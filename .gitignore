@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Maven / Java demos under courses/
+**/target/
+**/.classpath
+**/.project
+**/.settings/
+
+# Local learner progress (optional per course)
+**/progress.json

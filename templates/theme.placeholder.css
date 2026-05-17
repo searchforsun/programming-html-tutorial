@@ -1,0 +1,18 @@
+[data-theme-preset="{{THEME_PRESET}}"][data-theme="light"] {
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --accent-soft: #ddf4ff;
+  --accent-glow: rgba(9,105,218,.25);
+  --accent-alt: #58a6ff;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
+  --phase-basics: #0969da;
+}
+[data-theme-preset="{{THEME_PRESET}}"][data-theme="dark"] {
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+  --accent-soft: #132d4a;
+  --accent-glow: rgba(88,166,255,.2);
+  --accent-alt: #a371f7;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
+  --phase-basics: #58a6ff;
+}

@@ -1,0 +1,40 @@
+{
+  "shellVersion": "2.0.0",
+  "cdn": {
+    "highlightJs": "11.9.0",
+    "mermaid": "10.9.0"
+  },
+  "phases": [
+    { "phaseId": "basics", "defaultTitle": "基础", "prefix": "basics" },
+    { "phaseId": "practice", "defaultTitle": "实践", "prefix": "practice" },
+    { "phaseId": "advanced", "defaultTitle": "进阶", "prefix": "advanced" }
+  ],
+  "phasePolicy": {
+    "minChaptersPerPhase": 3,
+    "maxChaptersPerPhase": 6,
+    "minSectionsPerChapter": 2,
+    "maxSectionsPerChapter": 5,
+    "narrowTopicMinChapters": 2
+  },
+  "chapterBlocks": [
+    "concept",
+    "official-links",
+    "code-block",
+    "mermaid-wrap",
+    "steps",
+    "demo-box",
+    "resources"
+  ],
+  "chapterBlocksOptionalByDomainType": {
+    "E": ["mermaid-wrap", "demo-box"],
+    "F": ["demo-box"]
+  },
+  "domainTypes": {
+    "A": "语言/运行时",
+    "B": "框架/库",
+    "C": "平台/中间件",
+    "D": "运维/云原生",
+    "E": "窄专题",
+    "F": "横切能力"
+  }
+}

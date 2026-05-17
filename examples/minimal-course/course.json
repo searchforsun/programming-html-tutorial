@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "title": "示例 · 最小教程",
+    "slug": "minimal-example",
+    "domain": "示例技术",
+    "themePreset": "minimal-example",
+    "shellVersion": "2.0.0",
+    "domainType": "E",
+    "hljsLanguages": ["bash"],
+    "learningNotes": {
+      "assumptions": ["窄专题示例，每阶段 2 章"],
+      "phaseGoals": {
+        "basics": "理解最小概念集",
+        "practice": "完成一个简单场景",
+        "advanced": "了解边界与衔接"
+      }
+    }
+  },
+  "outline": [
+    {
+      "phaseId": "basics",
+      "phaseTitle": "核心概念速览",
+      "phaseGoal": "理解最小概念集",
+      "chapters": [
+        {
+          "id": "basics-01-intro",
+          "title": "入门介绍",
+          "sections": ["是什么", "何时使用"]
+        },
+        {
+          "id": "basics-02-syntax",
+          "title": "基本语法",
+          "sections": ["规则", "常见误用"]
+        }
+      ]
+    },
+    {
+      "phaseId": "practice",
+      "phaseTitle": "场景演练",
+      "phaseGoal": "完成一个简单场景",
+      "chapters": [
+        {
+          "id": "practice-01-lab",
+          "title": "动手实验",
+          "sections": ["步骤", "验证"]
+        }
+      ]
+    },
+    {
+      "phaseId": "advanced",
+      "phaseTitle": "延伸与边界",
+      "phaseGoal": "了解边界与衔接",
+      "chapters": [
+        {
+          "id": "advanced-01-edge",
+          "title": "边界情况",
+          "sections": ["陷阱", "与其他工具衔接"]
+        }
+      ]
+    }
+  ],
+  "chapters": {
+    "basics-01-intro": {
+      "title": "入门介绍",
+      "summary": "minimal-course 示例章：assemble 流程与 domainType E"
+    }
+  },
+  "terms": {
+    "assemble": {
+      "label": "assemble",
+      "prompt": "我在阅读 programming-html-tutorial 示例。请用简短中文说明 assemble-index.mjs 如何把 course.json、welcome.partial、chapters、quiz.partial 合并成 index.html。"
+    },
+    "domain-type-e": {
+      "label": "domainType E",
+      "prompt": "我在阅读 programming-html-tutorial 的 chapter-blocks-policy。请说明 domainType E（窄专题）可省略哪些章节 HTML 块，以及仍必须保留哪些块。"
+    },
+    "quiz-partial": {
+      "label": "quiz.partial.html",
+      "prompt": "我在学习 programming-html-tutorial 测验工作流。请说明 quiz.partial.html 如何注入页面、data-chapter 与章节 id 如何对应，以及 course.json 的 quizzes 字段作用。"
+    }
+  },
+  "quizzes": {
+    "basics-01-quiz": {
+      "chapterId": "basics-01-intro",
+      "title": "入门介绍测验",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "B", "hint": "assemble 产出" },
+        { "id": "q2", "type": "fill", "answer": "assemble", "hint": "assemble-index.mjs" },
+        { "id": "q3", "type": "multi", "answer": "A,C", "hint": "index.html 为生成物" }
+      ]
+    }
+  }
+}

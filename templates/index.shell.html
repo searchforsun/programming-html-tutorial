@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/highlight.min.js"></script>
+{{HLJS_LANG_SCRIPTS}}
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface-elevated: #ffffff;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --accent: #0969da;
+      --accent-hover: #0550ae;
+      --accent-soft: #ddf4ff;
+      --accent-glow: rgba(9,105,218,.25);
+      --accent-alt: #58a6ff;
+      --border: #dce3eb;
+      --code-bg: #f8fafc;
+      --code-header: #eef2f6;
+      --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+      --shadow-md: 0 4px 16px rgba(16,24,40,.08);
+      --shadow-lg: 0 12px 40px rgba(16,24,40,.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      --success: #1a7f37;
+      --danger: #cf222e;
+      --phase-basics: #0969da;
+      --phase-practice: #6f42c1;
+      --phase-advanced: #bf8700;
+      --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
+    }
+    [data-theme="dark"] {
+      --bg: #0f1419;
+      --surface: #1a222d;
+      --surface-elevated: #222c3a;
+      --text: #e8edf4;
+      --muted: #9aa8b8;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --accent-soft: #132d4a;
+      --accent-glow: rgba(88,166,255,.2);
+      --accent-alt: #a371f7;
+      --border: #2d3a4d;
+      --code-bg: #151b24;
+      --code-header: #1e2733;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.25);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,.35);
+      --success: #3fb950;
+      --danger: #f85149;
+      --phase-basics: #58a6ff;
+      --phase-practice: #a371f7;
+      --phase-advanced: #d29922;
+      --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
+    }
+{{SHELL_BASE_CSS}}
+{{THEME_CSS}}
+  </style>
+</head>
+<body>
+  <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <header class="topbar">
+    <h1 class="course-title">{{TITLE}}</h1>
+    <div class="topbar-actions">
+      <div class="progress-wrap" aria-label="学习进度">
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div id="progress-bar"></div>
+        </div>
+        <span id="progress-text">0/0 (0%)</span>
+      </div>
+      <button type="button" id="btn-theme" aria-label="切换主题">🌓</button>
+      <button type="button" id="btn-export-progress">导出进度</button>
+      <label class="btn-import">导入进度<input type="file" id="import-progress" accept=".json" hidden /></label>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar" aria-label="课程大纲"></aside>
+    <div class="main-area">
+      <main id="main-content">
+        <div id="welcome" class="welcome">
+{{WELCOME_HTML}}
+        </div>
+        <div id="content">
+{{CHAPTERS_HTML}}
+        </div>
+        <div id="quiz-panel">
+{{QUIZ_HTML}}
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="term-modal">
+    <div class="term-modal-header">
+      <h3 id="term-title"></h3>
+      <button type="button" class="btn-icon-close" id="btn-close-term-x" aria-label="关闭">×</button>
+    </div>
+    <div class="term-modal-body">
+      <pre id="term-prompt"></pre>
+      <div class="term-actions">
+        <button type="button" id="btn-copy-prompt" class="btn-term" aria-label="复制 AI 提示词">复制提示词</button>
+{{TERM_PLATFORM_LINKS}}
+        <button type="button" id="btn-close-term" class="btn-term" aria-label="关闭对话框">关闭</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script id="course-data" type="application/json">
+{{COURSE_DATA_JSON}}
+  </script>
+  <script>
+{{SHELL_APP_JS}}
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<h2 class="quiz-panel-title">章节测验</h2>
+<p class="quiz-panel-lead">仅「入门介绍」配有示例测验；其他章节无 <code>quiz.partial.html</code> 区块时不会显示测验区。</p>
+
+<section id="quiz-basics-01-quiz" class="quiz-section" data-quiz="basics-01-quiz" data-chapter="basics-01-intro">
+  <h3>测验：入门介绍</h3>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）assemble 生成的浏览器入口文件是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="minimal-q1" value="A"> course.json</label></li>
+      <li><label><input type="radio" name="minimal-q1" value="B"> index.html</label></li>
+      <li><label><input type="radio" name="minimal-q1" value="C"> welcome.partial.html</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">由 <code>assemble-index.mjs</code> 写出</p>
+    <p class="answer hidden"><strong>答案：</strong>B — index.html</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="assemble">
+    <p class="stem"><strong>2.</strong> （填空）将 partial 合并为单页的脚本命令是 <code>node scripts/____-index.mjs</code>。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">与 validate-tutorial 成对使用</p>
+    <p class="answer hidden"><strong>答案：</strong>assemble</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C">
+    <p class="stem"><strong>3.</strong> （多选）下列属于教程源文件、不应手改 assemble 产物的有？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="minimal-q3" value="A"> chapters/*.html</label></li>
+      <li><label><input type="checkbox" name="minimal-q3" value="B"> index.html</label></li>
+      <li><label><input type="checkbox" name="minimal-q3" value="C"> quiz.partial.html</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">index.html 由脚本生成</p>
+    <p class="answer hidden"><strong>答案：</strong>A, C — 章节与测验片段；B 为生成结果</p>
+  </article>
+</section>
