@@ -1,53 +1,17 @@
-[data-theme-preset="rocketmq"][data-theme="light"] {
-  --accent: #d4380d;
-  --accent-hover: #ad2102;
-  --accent-soft: #fff2e8;
-  --accent-glow: rgba(212, 56, 13, 0.28);
-  --accent-alt: #fa8c16;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 56, 13, 0.12), transparent);
-  --phase-basics: #d4380d;
+/* Apache Flink — 品牌粉 + 深蓝辅色 */
+[data-theme-preset="apache-flink"][data-theme="light"] {
+  --accent: #e6526f;
+  --accent-hover: #c93d5a;
+  --accent-soft: #fde8ec;
+  --accent-glow: rgba(230, 82, 111, 0.28);
+  --accent-alt: #1e3a5f;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(230, 82, 111, 0.12), transparent);
 }
-[data-theme-preset="rocketmq"][data-theme="dark"] {
-  --accent: #ff7a45;
-  --accent-hover: #ff9c6e;
-  --accent-soft: #2b1d14;
-  --accent-glow: rgba(255, 122, 69, 0.22);
-  --accent-alt: #ffc069;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 122, 69, 0.1), transparent);
-  --phase-basics: #ff7a45;
-}
-
-/* 章节内角色卡片：避免复用 .meta-card strong 的「小号大写标签」样式 */
-.role-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 1rem 0;
-}
-.role-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 1.15rem;
-  box-shadow: var(--shadow-sm);
-}
-.role-card .role-card-title {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--accent);
-  margin: 0 0 0.45rem;
-  text-transform: none;
-  letter-spacing: normal;
-}
-.role-card .role-card-desc {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.65;
-  color: var(--text);
-}
-.role-card .role-card-desc .term {
-  font-size: inherit;
-  font-weight: 500;
+[data-theme-preset="apache-flink"][data-theme="dark"] {
+  --accent: #b87a8c;
+  --accent-hover: #c88e9e;
+  --accent-soft: #352229;
+  --accent-glow: rgba(184, 122, 140, 0.12);
+  --accent-alt: #4a6278;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(184, 122, 140, 0.06), transparent);
 }

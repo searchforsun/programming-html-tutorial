@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.join(__dirname, '..');
-const SHELL_VERSION = '2.1.3';
+const SHELL_VERSION = '2.2.0';
 
 function parseArgs(argv) {
   const opts = { dir: null, out: null };

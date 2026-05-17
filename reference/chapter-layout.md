@@ -1,95 +1,77 @@
-# 章节正文布局（图文并茂、按内容编排）
+# 章节正文编排
 
-生成 `chapters/{chapterId}.html` 时**不要**套用固定章节模板顺序（概念 → 链接 → 代码 → 图 → 步骤 → Demo → 资源）。  
-校验只要求**块存在**（见 [chapter-blocks-policy.md](chapter-blocks-policy.md)），**块内结构与先后顺序由本章知识点决定**。
+生成 `chapters/{chapterId}.html` 时，以 `course.json` 该章的 **`sections[]` 为骨架**，块可嵌套、可交错；校验只要求**块存在**（见 [chapter-blocks-policy.md](chapter-blocks-policy.md)）。
 
 ## 原则
 
 | 原则 | 说明 |
 |------|------|
-| **先读后做** | 概念讲清 → 必要时配图/表 → 代码印证 → 动手步骤 → Demo |
-| **分点优先** | 用 `ul`/`ol`、`.notice` 要点框、`.role-cards` 卡片，避免连续 3 段以上大段纯文字 |
-| **图随文走** | Mermaid / 表格放在**刚提到该结构**的小节旁，不要全部堆在章末 |
-| **一屏一主题** | 用 `h4` 小标题切分（① ② ③ 或问句式），每节只讲一件事 |
-| **术语可点** | 首次出现的专有名词用 `.term` + `data-term-id`（与 `course.json` 的 `terms` 一致） |
+| **先读后做** | 讲清知识点 → 配图/表 → 代码印证 → 动手步骤 → Demo |
+| **分点优先** | `.notice`、`ul`/`ol`、`.role-cards`；避免连续 3 段以上纯文字 |
+| **图随文走** | Mermaid / 表放在刚提到该结构的小节旁 |
+| **术语可点** | `.term` + `data-term-id`（与 `course.json` 的 `terms` 一致，每章 ≥3） |
 
-## 必读块 vs 自由编排
+## 标题与右侧大纲
 
-以下选择器**必须出现**（`domainType` 放宽项除外），但**可嵌套在 `.concept` 内、可交错出现**：
+壳层 `#chapter-toc` 只收录本章 **`h3` / `h4`**。标题须与知识内容一致，便于阅读与索引。
 
-| 块 | 选择器 | 编排提示 |
-|----|--------|----------|
-| 概念 | `.concept` | 主战场：摘要框、分节、卡片、内嵌图/表/代码引用 |
-| 官方链接 | `.official-links` | 通常靠后；概念复杂时可拆「延伸阅读」 |
-| 代码 | `.code-block` | 紧跟所印证的 `h4` 小节之后 |
-| 架构图 | `.mermaid-wrap` | 流程/拓扑用 flowchart；交互用时序图；附 1 句读图提示 |
-| 实操 | `.steps` | 可与概念内步骤合并：章末总步骤 + 概念内 4 步清单二选一，**至少一处** `ol.steps` |
-| Demo | `.demo-box` | 动手章必备；纯概念章可简短指向 demo 目录 |
-| 资源 | `.resources` | 章末延伸；勿与 official-links 完全重复 |
+| 标签 | 用途 |
+|------|------|
+| `h2` | 章标题（仅 `.chapter-header`） |
+| `h3` | 一级知识节，与 `sections[]` **逐条对应** |
+| `h4` | 二级小节；**每个** `.code-block` 前的说明标题 |
+| `h5` | **图外**图题（在 `.mermaid-wrap` 内、边框上方）；**不进**右侧大纲 |
+| `.diagram-caption` | **图外**说明（在 `pre.mermaid` / 边框下方） |
 
-## 推荐内容模式（按需组合）
+- `.concept` 为内容容器；章首用 `.notice` 摘要（壳层会为摘要与首个 `h3` 留白）。
+- **Mermaid 结构**：`h5` → 壳注入的 `.mermaid-diagram`（仅 SVG 区域有边框）→ `p.diagram-caption`；勿手写 `.mermaid-toolbar`。
+- 代码块紧跟对应 `h3`/`h4`，每块前有 `h4` 标题。
+- 全章 **一处** `ol.steps`，建议 `h3`「动手练习」+ `p.steps-intro`（说明与图中 A1/B1 等标签的对照关系）。
+- 多图：外层 `h4` 分组，单图标题用 `h5`。
+- 有 `quiz.partial.html` 时，壳在右侧大纲末条追加「章节测验」（锚点为各章 `h3`）。
 
-### 1. 章首摘要 `.notice`
+## 必填块（位置自由）
 
-```html
-<div class="notice">
-  <strong>本章先记住 N 件事</strong>
-  <ul>
-    <li><strong>关键词</strong>：一句话。</li>
-  </ul>
-</div>
-```
+| 选择器 | 说明 |
+|--------|------|
+| `.concept` | 主内容：摘要、各 `h3` 知识节、小结 |
+| `.official-links` | ≥1 个经 WebSearch 的官方 URL |
+| `.code-block` | `pre>code` + 复制按钮 |
+| `.mermaid-wrap` | `pre.mermaid` + `diagram-caption` |
+| `.steps` | `ol.steps`，≥3 条 |
+| `.demo-box` | `demos/<chapterId>-<name>/` + README（`domainType` E/F 见块策略） |
+| `.resources` | 延伸链接 |
 
-### 2. 分节小标题 `h4`
+`domainType` 放宽见 [chapter-blocks-policy.md](chapter-blocks-policy.md)。
 
-在 `.concept` 内用 `h4`（壳已统一样式），例如：`① 解决什么问题？`、`② 核心组件`。
+## 推荐结构（`.concept` 内）
 
-### 3. 角色/概念卡片 `.role-cards`
+1. `.notice` — 「本章先记住 N 件事」
+2. 每个 `sections[]` 一项 → `<h3>` + 列表/卡片/表/图/代码
+3. `.notice` — 「本章小结」+ 下一章预告
 
-并列 2–4 个概念时用卡片（见 `shell.base.css`），**不要**用 `.meta-card`（那是欢迎页用的）。
+章末常见顺序：`.official-links` → `h3` 动手练习 + `ol.steps` → `.demo-box` → `.resources`（代码块通常在 `.concept` 内对应节下，而非堆在章末）。
 
-### 4. 图 + 说明 `.mermaid-wrap`
-
-```html
-<div class="mermaid-wrap">
-  <h4>架构总览</h4>
-  <pre class="mermaid">flowchart TB …</pre>
-  <p class="diagram-caption">看图记忆：…</p>
-</div>
-```
-
-勿手写 `.mermaid-toolbar`（壳注入全屏按钮）。
-
-### 5. 对比表
-
-复用 `.outline-table`（与欢迎页大纲表同款），放在「对比/选型」类 `h4` 下。
-
-### 6. 章末小结 `.notice`
-
-```html
-<div class="notice">
-  <strong>本章小结</strong>：过关标准 + 下一章预告。
-</div>
-```
-
-## 章节类型 → 布局侧重
+## 章节类型侧重
 
 | 类型 | 侧重 |
 |------|------|
-| **概念/架构** | 摘要 → 分点 → 卡片/图 → 对比表 → 短代码印证 → 复习步骤 |
-| **环境/安装** | 前置条件 notice → `ol.steps` 逐步命令 → demo-box |
-| **API/编码** | 最小概念 → code-block → 常见坑 notice → steps 练习 |
-| **原理/进阶** | 问题驱动 h4 → 图或序列 → 深入段落 → 官方链接 |
+| 概念/架构 | 摘要 → 卡片/图 → 表 → 短代码 |
+| 环境/安装 | notice → 命令型 steps → demo-box |
+| API/编码 | `h3` 知识节 → 带标题的 code-block → steps |
+| 原理/进阶 | 图/序列 → 深入段落 → official-links |
 
-以 `course.json` 该章 `sections` 为骨架，**每节至少一种**呈现形式（列表 / 图 / 表 / 代码 / 步骤），避免清一色段落。
+每节至少一种呈现形式（列表 / 图 / 表 / 代码 / 步骤）。
 
-## 禁止
+## 生成前清单
 
-- 固定顺序粘贴 [chapter-template.md](chapter-template.md) 旧版「七段式」而不改结构
-- 概念区仅 2–4 段长文、无列表无图
-- 所有 Mermaid 堆在章末、与正文脱节
-- 在章节里写 `style="..."` 大量内联样式（优先用语义 class；临时可少量 inline，但应逐步迁入壳 CSS）
-- 手写 `.mermaid-toolbar` 或全屏遮罩 DOM
+1. 读该章 `sections`，列出每节用图/表/代码/steps 的呈现方式。
+2. 为每个 section 写一个 `h3`；子主题与代码用 `h4`。
+3. 自检：术语 ≥3；无无标题代码堆；仅一处 `ol.steps`。
 
+## 参考范例
 
-生成新章前：读该章 `outline` 中 `sections`，列出「需要图 / 表 / 代码 / 步骤」的清单，再写 HTML。
+- 技能包内：`examples/minimal-course/chapters/basics-01-overview.html`
+- 用户项目：`courses/<slug>/chapters/*.html`
+
+HTML 片段见 [chapter-template.md](chapter-template.md)。

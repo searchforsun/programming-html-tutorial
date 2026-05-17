@@ -1,145 +1,195 @@
 {
   "meta": {
-    "title": "Apache RocketMQ 入门到进阶",
-    "slug": "rocketmq",
-    "domain": "Apache RocketMQ",
-    "themePreset": "rocketmq",
-    "shellVersion": "2.0.0",
-    "version": "5.4.0",
+    "title": "Apache Flink 流处理入门到进阶",
+    "slug": "apache-flink",
+    "domain": "Apache Flink",
+    "themePreset": "apache-flink",
+    "version": "2.2.0（Stable）；生产可参考 1.20 LTS",
     "generatedAt": "2026-05-17",
-    "officialDocs": "https://rocketmq.apache.org/docs/quickStart/01quickstart/",
+    "officialDocs": "https://nightlies.apache.org/flink/flink-docs-stable/",
     "domainType": "C",
-    "hljsLanguages": ["java", "bash", "json", "xml"],
+    "hljsLanguages": ["java", "sql", "bash", "yaml", "properties"],
     "learningNotes": {
       "assumptions": [
-        "具备 Java 基础与 Maven/Gradle 使用经验",
-        "了解分布式系统中异步通信的基本概念",
-        "本地可安装 JDK 8+ 并运行 Docker 或解压版 Broker（教程以 5.x 为主）"
+        "具备 Java 基础（建议 JDK 17）与 Maven 使用经验",
+        "了解分布式系统基本概念（节点、分区、副本）",
+        "未强制要求 Kafka 经验，Kafka 集成章会单独铺垫"
       ],
       "phaseGoals": {
-        "basics": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
-        "practice": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
-        "advanced": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点"
+        "basics": "能本地启动 Flink、理解 JobManager/TaskManager 与 DataStream 编程模型，完成第一个可运行作业",
+        "practice": "能使用 Keyed State、事件时间与窗口，并用 Table/SQL 或 Kafka 完成典型实时处理场景",
+        "advanced": "理解 Checkpoint 容错机制，掌握生产部署、调优与观测要点，了解 CDC 等生态组件"
       }
     }
   },
   "outline": [
     {
       "phaseId": "basics",
-      "phaseTitle": "消息模型与本地跑通",
-      "phaseGoal": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
+      "phaseTitle": "流处理入门：环境与 DataStream 核心",
+      "phaseGoal": "能本地启动 Flink、理解运行时架构与 DataStream 编程模型，完成第一个可运行作业",
       "chapters": [
         {
           "id": "basics-01-overview",
-          "title": "RocketMQ 定位与架构鸟瞰",
+          "title": "Flink 定位与流批一体架构",
           "sections": [
-            "分布式消息中间件要解决什么问题",
-            "NameServer、Broker、Producer、Consumer 职责",
-            "与 Kafka、RabbitMQ 的差异对照"
+            "流处理 vs 批处理：为何需要 Flink",
+            "核心组件：JobManager、TaskManager、Slot",
+            "DataStream / Table / SQL 三层 API 如何选型",
+            "版本线：2.x Stable 与 1.20 LTS 怎么选"
           ]
         },
         {
           "id": "basics-02-env",
-          "title": "环境搭建与第一次收发",
+          "title": "环境搭建与第一个作业",
           "sections": [
-            "下载 5.x 与 JDK 要求",
-            "启动 NameServer 与 Broker",
-            "mqadmin 与 RocketMQ Dashboard 初探"
+            "JDK、Maven 与 Flink 发行包",
+            "本地 Standalone 集群启动与 Web UI",
+            "DataStream 官方教程：欺诈检测骨架",
+            "在 IDE 中运行与打包提交"
           ]
         },
         {
-          "id": "basics-03-model",
-          "title": "Topic、Queue、Tag 与消息属性",
+          "id": "basics-03-datastream",
+          "title": "DataStream API：转换与执行图",
           "sections": [
-            "Topic 与 MessageQueue 分区",
-            "Tag、Keys 与属性过滤",
-            "消息存储与消费位点概念"
+            "Source → Transformation → Sink 数据流",
+            "map、filter、flatMap 与并行度",
+            "keyBy 与数据分区",
+            "从逻辑图到物理执行计划"
           ]
         },
         {
-          "id": "basics-04-api",
-          "title": "Java 客户端：生产与消费入门",
+          "id": "basics-04-connectors",
+          "title": "连接器：Source 与 Sink",
           "sections": [
-            "依赖引入与客户端生命周期",
-            "同步、异步与单向发送",
-            "Push 消费、消费组与重平衡"
+            "内置 Source/Sink 与 File 连接器",
+            "连接器通用配置模式",
+            "序列化与格式（JSON、CSV）",
+            "为后续 Kafka 集成做铺垫"
+          ]
+        },
+        {
+          "id": "basics-05-local-submit",
+          "title": "作业提交与 Web UI 初探",
+          "sections": [
+            "本地执行 vs 集群提交",
+            "作业生命周期：CREATED → RUNNING → FINISHED",
+            "Metrics 与 Task 视图",
+            "常见启动失败排查"
           ]
         }
       ]
     },
     {
       "phaseId": "practice",
-      "phaseTitle": "业务集成与可靠投递",
-      "phaseGoal": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
+      "phaseTitle": "状态、时间与 Table/SQL 实战",
+      "phaseGoal": "能完成有状态实时聚合，并掌握 Table API、Flink SQL 及 Kafka 典型集成",
       "chapters": [
         {
-          "id": "practice-01-patterns",
-          "title": "典型场景：解耦、削峰与事件驱动",
+          "id": "practice-01-keyed-state",
+          "title": "Keyed State 与有状态处理",
           "sections": [
-            "异步解耦与最终一致性",
-            "削峰填谷与流量整形",
-            "广播、集群消费模式选择"
+            "ValueState、ListState 与状态描述符",
+            "KeyedProcessFunction 业务逻辑",
+            "状态 TTL 与清理策略",
+            "有状态算子扩缩容注意事项"
           ]
         },
         {
-          "id": "practice-02-order-delay",
-          "title": "顺序消息、延迟与定时",
+          "id": "practice-02-event-time",
+          "title": "事件时间、Watermark 与窗口",
           "sections": [
-            "全局顺序与分区顺序",
-            "delayLevel 与 Timer 消息（5.x）",
-            "消费幂等与重复消息处理"
+            "Processing Time vs Event Time",
+            "Watermark 生成与乱序处理",
+            "滚动、滑动与会话窗口",
+            "迟到数据与 allowedLateness"
           ]
         },
         {
-          "id": "practice-03-transaction",
-          "title": "事务消息与可靠投递",
+          "id": "practice-03-table-sql",
+          "title": "Table API 与 Flink SQL",
           "sections": [
-            "半消息与事务回查机制",
-            "本地事务表配合模式",
-            "失败重试、死信与人工介入"
+            "动态表与连续查询概念",
+            "Table API 环境与会话",
+            "Flink SQL：DDL、DML 与 UDF",
+            "流批统一：同一套 SQL 两种模式"
           ]
         },
         {
-          "id": "practice-04-spring",
-          "title": "Spring Boot 集成实战",
+          "id": "practice-04-kafka",
+          "title": "Kafka 集成：端到端实时管道",
           "sections": [
-            "rocketmq-spring-boot-starter 配置",
-            "注解式发送与监听",
-            "多环境、多集群与测试替身"
+            "Kafka Source/Sink 依赖与版本",
+            "消费位点与 exactly-once 语义铺垫",
+            "反压与分区对齐",
+            "本地 Docker Compose 最小环境"
+          ]
+        },
+        {
+          "id": "practice-05-mini-project",
+          "title": "实战：实时 UV/PV 统计 mini 项目",
+          "sections": [
+            "需求与数据模型设计",
+            "DataStream 与 SQL 两种实现对比",
+            "结果落盘或打印 Sink",
+            "验收清单与扩展方向"
           ]
         }
       ]
     },
     {
       "phaseId": "advanced",
-      "phaseTitle": "集群高可用与生产治理",
-      "phaseGoal": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点",
+      "phaseTitle": "容错、集群部署与生产生态",
+      "phaseGoal": "理解 Checkpoint 与状态后端，能在集群环境部署并观测作业，了解 CDC 与版本选型",
       "chapters": [
         {
-          "id": "advanced-01-cluster",
-          "title": "集群部署与高可用架构",
+          "id": "advanced-01-checkpoint",
+          "title": "Checkpoint、Savepoint 与一致性",
           "sections": [
-            "主从复制与 Controller 模式概览",
-            "多副本、故障切换与容灾",
-            "跨机房与异地多活思路"
+            "Checkpoint 触发机制与 barrier 对齐",
+            "Savepoint 与版本升级/迁移",
+            "At-least-once vs Exactly-once",
+            "端到端一致性（Source/Sink 配合）"
           ]
         },
         {
-          "id": "advanced-02-tuning",
-          "title": "性能调优、存储与可观测性",
+          "id": "advanced-02-state-backend",
+          "title": "状态后端、RocksDB 与调优",
           "sections": [
-            "同步/异步刷盘与存储引擎",
-            "批量发送、消费线程与背压",
-            "消息轨迹、Metrics 与常见瓶颈"
+            "HashMapStateBackend vs EmbeddedRocksDBStateBackend",
+            "增量 Checkpoint 与状态大小",
+            "并行度、Slot 与资源规划",
+            "反压定位与常见瓶颈"
           ]
         },
         {
-          "id": "advanced-03-ops",
-          "title": "安全、ACL 2.0 与运维治理",
+          "id": "advanced-03-cluster-deploy",
+          "title": "集群部署：Standalone、YARN 与 Kubernetes",
           "sections": [
-            "ACL 2.0 与权限模型（5.3+ 迁移要点）",
-            "配额、限流与资源隔离",
-            "版本升级、RIP 特性与生产 checklist"
+            "Standalone 集群拓扑",
+            "YARN / K8s 模式适用场景",
+            "高可用 JobManager 要点",
+            "作业提交参数与资源隔离"
+          ]
+        },
+        {
+          "id": "advanced-04-observability",
+          "title": "观测、排错与运维习惯",
+          "sections": [
+            "Metrics、REST API 与 Prometheus",
+            "日志与 TaskManager 堆栈",
+            "作业失败重启策略",
+            "生产变更与灰度发布建议"
+          ]
+        },
+        {
+          "id": "advanced-05-ecosystem",
+          "title": "生态：CDC、SQL Gateway 与选型",
+          "sections": [
+            "Flink CDC 与数据库变更捕获",
+            "SQL Gateway / SQL Client 使用场景",
+            "与 Spark Streaming、Kafka Streams 的差异对照",
+            "学习路线延伸与官方资源"
           ]
         }
       ]
@@ -147,61 +197,141 @@
   ],
   "chapters": {
     "basics-01-overview": {
-      "title": "RocketMQ 定位与架构鸟瞰",
-      "summary": "理解 RocketMQ 在分布式系统中的角色、四大核心组件及与 Kafka/RabbitMQ 的差异。"
+      "title": "Flink 定位与流批一体架构",
+      "summary": "流处理价值、JobManager/TaskManager/Slot、三层 API 选型与版本线"
+    },
+    "basics-02-env": {
+      "title": "环境搭建与第一个作业",
+      "summary": "JDK/Maven、Standalone 与 Web UI、欺诈检测 Walkthrough、IDE 运行与 flink run 提交"
+    },
+    "basics-03-datastream": {
+      "title": "DataStream API：转换与执行图",
+      "summary": "Source/Transformation/Sink、算子与并行度、keyBy；调用流程 A1-A2、执行图 B0-B4、数据路径 C1 与 Web UI 对照"
     }
   },
   "terms": {
-    "nameserver": {
-      "label": "NameServer",
-      "prompt": "我在学习 Apache RocketMQ 5.x，已了解分布式系统基础。请用通俗中文解释 NameServer 的职责、与 ZooKeeper 类注册中心的区别、为何 RocketMQ 选择轻量级路由服务，并说明 Broker 上下线时客户端如何感知。"
+    "stream-processing": {
+      "label": "流处理",
+      "prompt": "我在学习 Apache Flink。请用通俗语言解释「流处理」与批处理的区别，说明事件驱动、无界数据流、低延迟等核心特征，并各举一个 Flink 适用与不适用场景。"
     },
-    "message-queue": {
-      "label": "MessageQueue",
-      "prompt": "我在学习 RocketMQ。请解释 MessageQueue 与 Kafka Partition 的异同、一个 Topic 下 Queue 数量如何影响并行度与顺序性，并给一个选择 Queue 数量的实践建议。"
+    "checkpoint": {
+      "label": "Checkpoint",
+      "prompt": "我在学习 Apache Flink 的容错机制。请解释 Checkpoint 是什么、与 Savepoint 有何区别、barrier 如何对齐，以及为何能实现 Exactly-once 语义。请配合一个简化的数据流示意图说明。"
     },
-    "consumer-group": {
-      "label": "消费组 Consumer Group",
-      "prompt": "我在学习 RocketMQ 消费模型。请解释消费组的作用、集群消费与广播消费的区别、Rebalance 何时触发及对业务的影响，并提醒 3 个常见踩坑。"
+    "watermark": {
+      "label": "Watermark",
+      "prompt": "我在学习 Flink 事件时间。请解释 Watermark 的作用、如何表示「事件时间进度」、与 Processing Time 的对比，以及乱序数据下窗口触发的常见策略（含 allowedLateness 概念）。"
     },
-    "half-message": {
-      "label": "半消息（事务消息）",
-      "prompt": "我在学习 RocketMQ 事务消息。请用步骤图式文字说明半消息提交、本地事务执行、commit/rollback 与回查检查的完整流程，并对比本地消息表方案的优劣。"
+    "keyed-state": {
+      "label": "Keyed State",
+      "prompt": "我在学习 Flink 有状态计算。请解释 Keyed State 是什么、为何必须 keyBy 之后才能使用、ValueState 与 ListState 的典型用途，并给一个 KeyedProcessFunction 的最小 Java 示例思路。"
     },
-    "acl-2": {
-      "label": "ACL 2.0",
-      "prompt": "我在准备 RocketMQ 5.3+ 生产环境。请说明 ACL 2.0 相对 ACL 1.0 的主要变化、为何 5.3.3 移除 ACL 1.0、迁移时需要注意的配置项与验证步骤。"
+    "table-api": {
+      "label": "Table API",
+      "prompt": "我在学习 Flink Table API。请解释动态表（Dynamic Table）概念、连续查询（Continuous Query）与批查询的差异，并说明何时优先用 Table/SQL 而非 DataStream API。"
+    },
+    "stream-execution-environment": {
+      "label": "StreamExecutionEnvironment",
+      "prompt": "我在学习 Apache Flink 环境搭建。请解释 StreamExecutionEnvironment 是什么、getExecutionEnvironment() 在 IDE 与集群提交时分别如何工作、MiniCluster 与 Standalone 集群的区别，并说明 execute() 触发了什么。"
+    },
+    "standalone-cluster": {
+      "label": "Standalone 集群",
+      "prompt": "我在学习 Flink Standalone 部署。请说明 JobManager 与 TaskManager 如何启动、Web UI 默认端口、Slot 在资源视图中的含义，以及本地学习与生产环境使用 Standalone 的适用边界。"
+    },
+    "fraud-detection-walkthrough": {
+      "label": "欺诈检测 Walkthrough",
+      "prompt": "我在学习 Flink 官方 DataStream Walkthrough（欺诈检测）。请说明 TransactionSource、keyBy、KeyedProcessFunction、AlertSink 各自职责，以及「小额后大额」规则如何用 ValueState 实现，并给出学习该教程的推荐步骤顺序。"
+    },
+    "datastream-pipeline": {
+      "label": "Source → Transformation → Sink",
+      "prompt": "我在学习 Flink DataStream API。请用通俗语言解释 Source、Transformation、Sink 三段管道各自职责，并给一个包含 map 与 print 的最小 Java 示例，说明数据如何在 DAG 中流动。"
+    },
+    "parallelism": {
+      "label": "并行度",
+      "prompt": "我在学习 Flink 并行执行。请解释并行度（parallelism）是什么、与 Slot 和 Subtask 的关系，以及 env.setParallelism、算子 setParallelism、flink run -p 的优先级与使用场景。"
+    },
+    "job-graph": {
+      "label": "JobGraph",
+      "prompt": "我在学习 Flink 作业调度。请解释 StreamGraph、JobGraph、ExecutionGraph 的区别，算子链（operator chaining）是什么，以及 keyBy 为何会在物理图上产生 shuffle。"
+    },
+    "execution-graph": {
+      "label": "ExecutionGraph",
+      "prompt": "我在学习 Flink ExecutionGraph。请说明它如何从 JobGraph 按并行度展开为 Subtask、与 StreamGraph/JobGraph 的区别，以及如何在 Web UI 中查看反压与 Subtask 指标。"
+    },
+    "filesystem-connector": {
+      "label": "FileSystem Source/Sink",
+      "prompt": "我在学习 Flink DataStream 连接器。请解释 FileSystem Source/Sink 的典型用途、bounded 与 continuous monitoring 模式的差异，以及与 socket/fromElements 在学习阶段的取舍。"
+    },
+    "serialization-schema": {
+      "label": "SerializationSchema",
+      "prompt": "我在学习 Flink 序列化。请说明 SerializationSchema / DeserializationSchema 与 SimpleStringSchema 一类内置格式的关系，如何在 Source/Sink 指定编码，以及端到端一致性与格式演进要注意什么。"
+    },
+    "kafka-connector-preview": {
+      "label": "Kafka 连接器预习",
+      "prompt": "我在预习 Flink Kafka Source/Sink。请概述分区对齐、起始位点（earliest/latest/group offsets）、以及它与 FileSystem 连接器在吞吐与语义上的差异，并给出下一章学习清单。"
+    },
+    "job-lifecycle": {
+      "label": "作业生命周期",
+      "prompt": "我在学习 Flink 作业调度。请解释 CREATED、RUNNING、FINISHED、FAILED、CANCELED 等典型状态在 Client 与 JobManager 视角的含义，以及 REST/Web UI 上如何观察状态迁移。"
+    },
+    "flink-metrics-task-view": {
+      "label": "Metrics 与 Task 视图",
+      "prompt": "我在学习 Flink Web UI。请说明 Overview、Task Graph、Task Metrics（records/s、backpressure）各自看什么，以及如何把它们与并行度、Shuffle、反压排查联系起来。"
+    },
+    "state-descriptor": {
+      "label": "StateDescriptor",
+      "prompt": "我在学习 Flink Keyed State。请解释 StateDescriptor（如 ValueStateDescriptor）包含哪些信息、为何声明名称与类型、以及它与运行时 State Backend 的关系。"
+    },
+    "keyed-process-function": {
+      "label": "KeyedProcessFunction",
+      "prompt": "我在学习 Flink KeyedProcessFunction。请说明 processElement/onTimer 的典型用法、定时器与状态的配合，以及与普通 map/filter 的差异。"
+    },
+    "state-ttl": {
+      "label": "状态 TTL",
+      "prompt": "我在学习 Flink 状态过期。请解释 StateTTLConfig 的作用、updateOnRead/write 语义差异、何时需要手动清理 ListState，以及对 Checkpoint 大小的影响。"
+    },
+    "event-time": {
+      "label": "事件时间",
+      "prompt": "我在学习 Flink Event Time。请对比 Processing Time / Event Time / Ingestion Time，说明水印如何推进事件时间时钟，以及乱序数据下窗口结果为何可能延迟或修正。"
+    },
+    "window-assigner": {
+      "label": "WindowAssigner",
+      "prompt": "我在学习 Flink 窗口。请解释滚动、滑动、会话窗口的定义与触发差异，以及 keyBy 与 window 组合后的并行与 shuffle 行为。"
+    },
+    "allowed-lateness": {
+      "label": "allowedLateness",
+      "prompt": "我在学习 Flink 迟到数据。请解释 allowedLateness、side output 捕获迟到记录、以及它与 watermark 的关系；何时宁愿扩大水印容忍度而非依赖 allowedLateness。"
     }
   },
   "quizzes": {
     "basics-01-overview-quiz": {
       "chapterId": "basics-01-overview",
-      "title": "RocketMQ 定位与架构鸟瞰",
+      "title": "Flink 定位与流批一体架构",
       "questions": [
-        {
-          "id": "q1",
-          "type": "single",
-          "answer": "C",
-          "hint": "消息队列补充同步调用，不是取代一切 RPC"
-        },
-        {
-          "id": "q2",
-          "type": "fill",
-          "answer": "NameServer",
-          "hint": "轻量无状态路由服务"
-        },
-        {
-          "id": "q3",
-          "type": "multiple",
-          "answer": "A,B,D,E",
-          "hint": "不含 ZooKeeper"
-        },
-        {
-          "id": "q4",
-          "type": "single",
-          "answer": "B",
-          "hint": "先查路由再连 Broker；同组负载均衡"
-        }
+        { "id": "q1", "type": "single", "answer": "C", "hint": "流处理面向实时，不是只能离线批" },
+        { "id": "q2", "type": "fill", "answer": "TaskManager", "hint": "Worker 进程执行算子" },
+        { "id": "q3", "type": "multiple", "answer": "A,B,C", "hint": "Client 只提交，不直接跑算子" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "表建模场景优先 Table/SQL" }
+      ]
+    },
+    "basics-02-env-quiz": {
+      "chapterId": "basics-02-env",
+      "title": "环境搭建与第一个作业",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "A", "hint": "IDE 默认 MiniCluster" },
+        { "id": "q2", "type": "fill", "answer": "8081", "hint": "Standalone Web UI 默认端口" },
+        { "id": "q3", "type": "multiple", "answer": "A,B,D", "hint": "Kafka 非本章前置" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "keyBy 后有状态 Process" }
+      ]
+    },
+    "basics-03-datastream-quiz": {
+      "chapterId": "basics-03-datastream",
+      "title": "DataStream API 与执行图",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "C", "hint": "flatMap 为 1:N" },
+        { "id": "q2", "type": "fill", "answer": "shuffle", "hint": "keyBy 引入网络 shuffle" },
+        { "id": "q3", "type": "multiple", "answer": "A,B,C", "hint": "全局、算子级、CLI 三种方式" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "JobGraph 展开为 ExecutionGraph" }
       ]
     }
   }

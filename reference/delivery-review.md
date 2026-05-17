@@ -44,7 +44,7 @@ node <skill-root>/scripts/validate-tutorial.mjs --dir <project>/courses/<slug>
 | 点击 `.term` | `#term-modal` 打开 |
 | 代码块「复制」 | Toast 或按钮 `copied` 态 |
 
-无浏览器时：至少确认 Console 不会因 `renderOutlineSummary` 等对 `null` 赋值而报错（历史上多因缺 `#outline-summary-body`）。
+无浏览器时：至少确认 Console 不会因 `renderOutlineSummary` 等对 `null` 赋值而报错（常见原因：缺 `#outline-summary-body`）。
 
 ## 工作流挂载点
 

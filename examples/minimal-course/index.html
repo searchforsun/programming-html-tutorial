@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Apache RocketMQ 入门到进阶</title>
+  <title>Apache Flink 流处理入门到进阶</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" id="hljs-light">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-dark" disabled>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/properties.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root, [data-theme="light"] {
       --bg: #f0f4f8;
@@ -35,13 +36,12 @@
       --shadow-lg: 0 12px 40px rgba(16,24,40,.1);
       --radius: 12px;
       --radius-sm: 8px;
+      --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif;
       --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
       --success: #1a7f37;
       --danger: #cf222e;
-      --phase-basics: #0969da;
-      --phase-practice: #6f42c1;
-      --phase-advanced: #bf8700;
       --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
+      --scrollbar-thumb: #b8c4d0;
     }
     [data-theme="dark"] {
       --bg: #0f1419;
@@ -62,21 +62,24 @@
       --shadow-lg: 0 12px 40px rgba(0,0,0,.35);
       --success: #3fb950;
       --danger: #f85149;
-      --phase-basics: #58a6ff;
-      --phase-practice: #a371f7;
-      --phase-advanced: #d29922;
       --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
+      --scrollbar-thumb: #4a5d73;
     }
 *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      scrollbar-gutter: stable;
+    }
     body {
       margin: 0;
-      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      font-family: var(--font-sans, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif);
       background: var(--bg);
       background-image: var(--bg-accent);
       color: var(--text);
       line-height: 1.7;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     .topbar {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -123,18 +126,66 @@
       border-color: var(--accent); background: var(--accent-soft);
     }
     .btn:active, .topbar button:active { transform: scale(.97); }
-    .layout { display: grid; grid-template-columns: 272px 1fr; min-height: calc(100vh - 56px); }
-    .main-area { display: flex; justify-content: center; min-width: 0; overflow-x: auto; }
+    .layout {
+      --sidebar-width: 300px;
+      --chapter-toc-width: var(--sidebar-width);
+      --nav-panel-label-size: 0.8rem;
+      --nav-panel-heading-size: 0.875rem;
+      --nav-panel-section-size: 0.84rem;
+      --nav-panel-subsection-size: 0.8rem;
+      --nav-panel-line-height: 1.55;
+      --layout-ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --layout-duration: 0.32s;
+      padding-left: var(--sidebar-width);
+      min-height: calc(100vh - 56px);
+    }
+    .main-area {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      align-items: flex-start;
+      justify-content: center;
+      padding-right: 0;
+      transition: padding-right var(--layout-duration) var(--layout-ease);
+    }
+    html.chapter-toc-open .main-area {
+      padding-right: var(--chapter-toc-width);
+    }
+    #sidebar,
+    #chapter-toc {
+      font-family: var(--font-sans, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
     #sidebar {
-      background: var(--surface); border-right: 1px solid var(--border);
-      padding: 1.25rem 1rem; overflow-y: auto;
-      position: sticky; top: 56px; height: calc(100vh - 56px);
+      position: fixed;
+      top: 56px;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-width);
+      z-index: 40;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.35rem 1.1rem;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       box-shadow: var(--shadow-sm);
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
     }
     #sidebar .phase { margin-bottom: .75rem; }
     #sidebar summary {
-      font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em;
-      color: var(--muted); cursor: pointer; padding: .4rem .5rem; list-style: none;
+      font-weight: 600;
+      font-size: var(--nav-panel-heading-size);
+      line-height: var(--nav-panel-line-height);
+      letter-spacing: 0;
+      color: var(--text);
+      cursor: pointer;
+      padding: 0.45rem 0.65rem;
+      list-style: none;
       border-radius: var(--radius-sm);
     }
     #sidebar summary:hover { background: var(--accent-soft); color: var(--accent); }
@@ -144,27 +195,33 @@
     #sidebar ul { list-style: none; margin: .25rem 0 0; padding: 0; }
     #sidebar li { margin: .2rem 0; }
     #sidebar a {
-      color: var(--text); text-decoration: none; font-size: .88rem;
-      display: flex; align-items: center; gap: .45rem;
-      padding: .45rem .65rem; border-radius: var(--radius-sm);
+      color: var(--text);
+      text-decoration: none;
+      font-size: var(--nav-panel-section-size);
+      font-weight: 400;
+      line-height: var(--nav-panel-line-height);
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .45rem .65rem;
+      border-radius: var(--radius-sm);
       border-left: 3px solid transparent;
       transition: background .15s, color .15s, border-color .15s;
     }
     #sidebar a:hover { background: var(--accent-soft); color: var(--accent); }
     #sidebar .ch-link-title { flex: 1; min-width: 0; }
     #sidebar .ch-done-icon {
-      flex-shrink: 0; width: 1.15rem; height: 1.15rem; line-height: 1.15rem;
-      text-align: center; font-size: .68rem; font-weight: 700;
-      border-radius: 50%; background: var(--accent); color: #fff;
-    }
-    #sidebar li.done a {
-      background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-      border-left-color: var(--accent);
-      color: var(--text);
-      font-weight: 600;
-    }
-    #sidebar li.done a:hover {
-      background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+      flex-shrink: 0;
+      margin-left: auto;
+      width: 1.15rem;
+      height: 1.15rem;
+      line-height: 1.15rem;
+      text-align: center;
+      font-size: 0.62rem;
+      font-weight: 700;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
     }
     #sidebar li.pending a { color: var(--muted); }
     #sidebar li.active-ch a {
@@ -172,12 +229,177 @@
       border-left-color: var(--accent);
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
     }
-    #sidebar li.active-ch.done a {
-      background: color-mix(in srgb, var(--accent) 12%, var(--accent-soft));
-      border-left-color: var(--accent);
+    [data-theme="dark"] #sidebar .ch-done-icon {
+      background: color-mix(in srgb, var(--accent) 78%, var(--surface));
+      color: #fff;
     }
     #main-content {
-      width: 100%; max-width: 900px; padding: 2rem 2.25rem 4rem; flex-shrink: 0;
+      flex: 0 1 900px;
+      width: min(100%, 900px);
+      max-width: 900px;
+      padding: 2rem 2.25rem 4rem;
+      min-width: 0;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .chapter h3,
+    .chapter h4 { scroll-margin-top: 4.5rem; }
+    #chapter-toc {
+      --chapter-toc-fg: color-mix(in srgb, var(--muted) 72%, var(--text));
+      --chapter-toc-fg-strong: color-mix(in srgb, var(--muted) 55%, var(--text));
+      --chapter-toc-fg-sub: color-mix(in srgb, var(--muted) 88%, var(--text));
+      position: fixed;
+      top: 56px;
+      right: 0;
+      bottom: 0;
+      z-index: 45;
+      width: var(--chapter-toc-width);
+      box-sizing: border-box;
+      padding: 1.35rem 1.1rem 1.5rem;
+      color: var(--chapter-toc-fg);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      transform: translateX(0);
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+      transition: transform var(--layout-duration) var(--layout-ease);
+    }
+    #chapter-toc[hidden] { display: none !important; }
+    #chapter-toc.is-collapsed {
+      transform: translateX(100%);
+      pointer-events: none;
+    }
+    .chapter-toc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .chapter-toc-title {
+      margin: 0;
+      font-size: var(--nav-panel-heading-size);
+      font-weight: 600;
+      line-height: var(--nav-panel-line-height);
+      letter-spacing: 0;
+      color: var(--chapter-toc-fg-strong);
+    }
+    .btn-chapter-toc-toggle {
+      font-size: var(--nav-panel-subsection-size);
+      padding: 0.35rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .btn-chapter-toc-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    #chapter-toc-nav ul {
+      list-style: none;
+      margin: 0.25rem 0 0;
+      padding: 0;
+    }
+    #chapter-toc-nav .chapter-toc-root {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #chapter-toc-nav .toc-block {
+      margin-bottom: 0.75rem;
+    }
+    #chapter-toc-nav li {
+      margin: 0.2rem 0;
+    }
+    #chapter-toc-nav a {
+      color: var(--chapter-toc-fg);
+      text-decoration: none;
+      font-size: var(--nav-panel-section-size);
+      font-weight: 400;
+      line-height: var(--nav-panel-line-height);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    #chapter-toc-nav a:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    #chapter-toc-nav a.is-active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-left-color: var(--accent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+    }
+    #chapter-toc-nav a.toc-l1 {
+      font-size: var(--nav-panel-heading-size);
+      font-weight: 600;
+      line-height: var(--nav-panel-line-height);
+      letter-spacing: 0;
+      color: var(--chapter-toc-fg-strong);
+    }
+    #chapter-toc-nav .toc-block > ul {
+      margin-top: 0.25rem;
+    }
+    #chapter-toc-nav a.toc-l2 {
+      font-size: var(--nav-panel-subsection-size);
+      font-weight: 400;
+      line-height: var(--nav-panel-line-height);
+      color: var(--chapter-toc-fg-sub);
+      padding-left: 1.05rem;
+    }
+    #chapter-toc-nav a.toc-l2.is-active,
+    #chapter-toc-nav a.toc-l2:hover {
+      color: var(--accent);
+    }
+    .chapter-toc-fab {
+      position: fixed;
+      top: 50%;
+      right: 0;
+      z-index: 44;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      background: var(--surface);
+      color: var(--accent);
+      font-size: var(--nav-panel-label-size);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) translateX(12px);
+      transition:
+        opacity var(--layout-duration) var(--layout-ease),
+        transform var(--layout-duration) var(--layout-ease),
+        background 0.15s,
+        color 0.15s;
+    }
+    .chapter-toc-fab.is-shown {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) translateX(0);
+    }
+    .chapter-toc-fab:hover {
+      background: var(--accent-soft);
+    }
+    .chapter-toc-fab[hidden] {
+      display: none !important;
     }
     .welcome h2 {
       margin-top: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -.03em;
@@ -202,29 +424,156 @@
       letter-spacing: .06em; color: var(--muted); margin-bottom: .35rem;
     }
     .meta-card a { color: var(--accent); word-break: break-all; }
+    .welcome > h3 {
+      margin: 2.25rem 0 0.85rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .outline-table-wrap {
+      margin: 0 0 1.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      background: var(--surface);
+    }
     .outline-table {
-      width: 100%; border-collapse: separate; border-spacing: 0;
-      margin: 1.5rem 0; font-size: .88rem; border-radius: var(--radius);
-      overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 0;
+      font-size: 0.875rem;
     }
-    .outline-table th, .outline-table td {
-      border-bottom: 1px solid var(--border); padding: .65rem .85rem; text-align: left;
+    .outline-table thead th {
+      padding: 0.65rem 1rem;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--code-header);
+      border-bottom: 1px solid var(--border);
     }
-    .outline-table tr:last-child td { border-bottom: none; }
-    .outline-table th { background: var(--code-header); font-weight: 600; }
-    .outline-table tr:hover td { background: var(--accent-soft); }
+    .outline-table tbody td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    }
+    .outline-table tbody tr:last-child td { border-bottom: none; }
+    .outline-table tbody tr.outline-row-phase-end td {
+      border-bottom: none;
+      box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--border) 70%, transparent);
+    }
+    .outline-table tbody tr.outline-row-phase-end:not(:last-child) td {
+      box-shadow:
+        inset 0 -1px 0 color-mix(in srgb, var(--border) 70%, transparent),
+        inset 0 -6px 0 var(--bg);
+    }
+    .outline-table tbody tr:hover td.outline-chapter,
+    .outline-table tbody tr:hover td.outline-sections {
+      background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+    }
+    .outline-table .outline-phase {
+      width: 26%;
+      min-width: 11rem;
+      padding: 1rem 1.1rem;
+      background: color-mix(in srgb, var(--bg) 35%, var(--surface));
+      border-right: 1px solid var(--border);
+    }
+    .outline-phase-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .outline-phase-goal {
+      margin: 0;
+      padding-left: 0.65rem;
+      border-left: 2px solid var(--border);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .outline-table .outline-chapter {
+      width: 28%;
+      min-width: 10rem;
+    }
+    .outline-chapter-cell {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+    .outline-ch-index {
+      flex-shrink: 0;
+      margin-top: 0.12rem;
+      padding: 0.18rem 0.42rem;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+    .outline-chapter-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .outline-table .outline-sections {
+      color: var(--muted);
+    }
+    .outline-section-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .outline-section-list li {
+      position: relative;
+      margin: 0.32rem 0;
+      padding-left: 0.95rem;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: color-mix(in srgb, var(--muted) 92%, var(--text));
+    }
+    .outline-section-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.58em;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.5;
+    }
     .phase-tag {
-      display: inline-block; padding: .2rem .55rem; border-radius: 99px;
-      font-size: .72rem; font-weight: 600;
+      align-self: flex-start;
+      display: inline-block;
+      padding: 0.28rem 0.65rem;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
     }
-    .phase-tag.basics { background: color-mix(in srgb, var(--phase-basics) 18%, transparent); color: var(--phase-basics); }
-    .phase-tag.practice { background: color-mix(in srgb, var(--phase-practice) 18%, transparent); color: var(--phase-practice); }
-    .phase-tag.advanced { background: color-mix(in srgb, var(--phase-advanced) 18%, transparent); color: var(--phase-advanced); }
     .notice {
       background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--surface) 80%, var(--accent-soft)));
       border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
       border-radius: var(--radius); padding: 1.1rem 1.35rem; margin-top: 2rem;
       box-shadow: var(--shadow-sm);
+    }
+    .concept > .notice:first-child {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .concept > .notice:first-child + h3 {
+      margin-top: 1.75rem;
     }
     .notice strong { color: var(--accent); }
     section[data-chapter] { display: none; }
@@ -237,6 +586,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .chapter-header {
+      scroll-margin-top: 4.5rem;
       display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
       margin-bottom: 2rem; padding: 1.25rem 1.5rem;
       background: var(--surface); border: 1px solid var(--border);
@@ -263,6 +613,11 @@
       letter-spacing: .02em; vertical-align: middle;
     }
     section[data-chapter].done .chapter-done-badge { display: inline-block; }
+    [data-theme="dark"] .chapter-done-badge {
+      background: color-mix(in srgb, var(--accent) 28%, var(--surface));
+      color: color-mix(in srgb, var(--accent) 72%, var(--muted));
+      border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+    }
     .chapter .content-section {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.25rem 0;
@@ -283,6 +638,18 @@
       border: none;
     }
     .concept h4:first-of-type { margin-top: 1rem; }
+    .chapter > h3 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .chapter > h3:first-of-type { margin-top: 1.25rem; }
+    .steps-intro {
+      margin: -0.35rem 0 1rem;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
     .concept ul,
     .concept ol:not(.steps) {
       margin: .5rem 0 1rem;
@@ -291,10 +658,13 @@
     }
     .concept li { margin: .35rem 0; }
     .diagram-caption {
-      margin: .75rem 0 0;
+      margin: .65rem 0 0;
       font-size: .88rem;
       color: var(--muted);
       line-height: 1.65;
+    }
+    .mermaid-wrap > .diagram-caption {
+      margin-top: 0.65rem;
     }
     .role-cards {
       display: grid;
@@ -370,15 +740,43 @@
       transition: all .2s cubic-bezier(.4,0,.2,1);
       min-width: 4.5em; text-align: center;
     }
-    .btn-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-    .btn-copy.copied {
-      border-color: var(--accent); background: var(--accent); color: #fff;
-      transform: scale(1.05); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+    .btn-copy:hover:not(.copied):not(.copy-fail) {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
+    }
+    .btn-copy.copied,
+    .btn-copy.copied:hover {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      min-width: 5.5em;
+      transform: scale(1.05);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     }
     .btn-copy.copy-fail { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
     .code-block pre {
-      margin: 0; overflow-x: auto; background: var(--code-bg) !important;
-      tab-size: 2; -moz-tab-size: 2;
+      margin: 0;
+      overflow-x: auto;
+      background: var(--code-bg) !important;
+      tab-size: 2;
+      -moz-tab-size: 2;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--code-bg);
+    }
+    .code-block pre::-webkit-scrollbar {
+      height: 8px;
+    }
+    .code-block pre::-webkit-scrollbar-track {
+      background: var(--code-bg);
+    }
+    .code-block pre::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 99px;
+      border: 2px solid var(--code-bg);
+      background-clip: padding-box;
+    }
+    .code-block pre::-webkit-scrollbar-thumb:hover {
+      background: color-mix(in srgb, var(--scrollbar-thumb) 80%, var(--accent));
     }
     .code-block pre code,
     .code-block pre code.hljs {
@@ -406,21 +804,52 @@
     .mermaid-wrap {
       position: relative;
       margin: 1.25rem 0;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
+    .mermaid-wrap > h3,
+    .mermaid-wrap > h4,
+    .mermaid-wrap > h5 {
+      width: 100%;
+      margin: 0 0 0.5rem;
+      padding: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .mermaid-wrap > h5 {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .mermaid-diagram {
+      position: relative;
+      margin: 0;
       padding: 2.25rem 1rem 1rem;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow-sm);
       overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--surface);
     }
-    .mermaid-wrap h3,
-    .mermaid-wrap h4 {
-      width: 100%;
-      margin: 0 0 0.75rem;
-      font-size: 0.95rem;
-      font-weight: 600;
+    .mermaid-diagram::-webkit-scrollbar {
+      height: 8px;
     }
-    .mermaid-toolbar {
+    .mermaid-diagram::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+    .mermaid-diagram::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 99px;
+      border: 2px solid var(--surface);
+      background-clip: padding-box;
+    }
+    .mermaid-diagram .mermaid-toolbar {
       position: absolute;
       top: 0.45rem;
       right: 0.45rem;
@@ -446,8 +875,10 @@
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
-    .mermaid-wrap pre.mermaid,
-    .mermaid-wrap div.mermaid {
+    .mermaid-diagram pre.mermaid,
+    .mermaid-diagram div.mermaid,
+    .mermaid-wrap > pre.mermaid,
+    .mermaid-wrap > div.mermaid {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -458,13 +889,23 @@
       border: none;
       text-align: center;
     }
+    /* 未注入 diagram 包裹时的回退：仅图表区域带边框 */
+    .mermaid-wrap:not(:has(.mermaid-diagram)) > pre.mermaid,
+    .mermaid-wrap:not(:has(.mermaid-diagram)) > div.mermaid {
+      padding: 2.25rem 1rem 1rem;
+      background: var(--surface) !important;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
     .mermaid-wrap pre.mermaid svg {
       display: block;
       max-width: 100%;
       height: auto;
       margin: 0 auto;
     }
-    .mermaid-wrap:fullscreen {
+  /* 全屏仅作用于 .mermaid-diagram，标题 h5 / .diagram-caption 留在正文 */
+    .mermaid-diagram:fullscreen {
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
@@ -474,18 +915,21 @@
       padding: 2.5rem 1rem 1rem;
       overflow: hidden;
       border-radius: 0;
+      border: none;
+      box-shadow: none;
       background: var(--bg);
       z-index: 10000;
     }
-    .mermaid-wrap:fullscreen .mermaid-toolbar {
+    .mermaid-diagram:fullscreen .mermaid-toolbar,
+    .mermaid-diagram.is-pseudo-fullscreen .mermaid-toolbar {
       position: fixed;
       top: 0.65rem;
       right: 0.65rem;
     }
-    .mermaid-wrap:fullscreen pre.mermaid,
-    .mermaid-wrap:fullscreen div.mermaid,
-    .mermaid-wrap.is-pseudo-fullscreen pre.mermaid,
-    .mermaid-wrap.is-pseudo-fullscreen div.mermaid {
+    .mermaid-diagram:fullscreen pre.mermaid,
+    .mermaid-diagram:fullscreen div.mermaid,
+    .mermaid-diagram.is-pseudo-fullscreen pre.mermaid,
+    .mermaid-diagram.is-pseudo-fullscreen div.mermaid {
       flex: 1;
       display: flex;
       align-items: center;
@@ -493,14 +937,14 @@
       min-height: 0;
       overflow: hidden;
     }
-    .mermaid-wrap:fullscreen svg,
-    .mermaid-wrap.is-pseudo-fullscreen svg {
+    .mermaid-diagram:fullscreen svg,
+    .mermaid-diagram.is-pseudo-fullscreen svg {
       max-width: min(96vw, 1400px) !important;
       max-height: min(88vh, 900px) !important;
       width: auto !important;
       height: auto !important;
     }
-    .mermaid-wrap.is-pseudo-fullscreen {
+    .mermaid-diagram.is-pseudo-fullscreen {
       position: fixed;
       inset: 0;
       z-index: 10000;
@@ -514,10 +958,24 @@
       border: none;
       box-shadow: none;
     }
-    .mermaid-wrap.is-pseudo-fullscreen .mermaid-toolbar {
-      position: fixed;
-      top: 0.65rem;
-      right: 0.65rem;
+    #sidebar::-webkit-scrollbar,
+    #chapter-toc::-webkit-scrollbar {
+      width: 8px;
+    }
+    #sidebar::-webkit-scrollbar-track,
+    #chapter-toc::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #sidebar::-webkit-scrollbar-thumb,
+    #chapter-toc::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 99px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    #sidebar::-webkit-scrollbar-thumb:hover,
+    #chapter-toc::-webkit-scrollbar-thumb:hover {
+      background: color-mix(in srgb, var(--scrollbar-thumb) 80%, var(--accent));
     }
     .steps { padding-left: 0; list-style: none; counter-reset: step; }
     .steps li {
@@ -556,6 +1014,49 @@
       background: color-mix(in srgb, var(--accent) 28%, var(--surface));
       transform: none;
     }
+    [data-theme="dark"] .btn-mark-done:not(.is-done),
+    [data-theme="dark"] .quiz-actions .btn-check,
+    [data-theme="dark"] #toast.toast-success,
+    [data-theme="dark"] #btn-copy-prompt:not(.copy-fail):not(.copied) {
+      background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+      color: color-mix(in srgb, var(--accent) 82%, var(--text));
+      border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
+      box-shadow: none;
+      filter: none;
+    }
+    [data-theme="dark"] .btn-mark-done:not(.is-done) {
+      background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--accent) 26%, var(--surface)),
+        color-mix(in srgb, var(--accent) 18%, var(--surface))
+      );
+    }
+    [data-theme="dark"] .btn-mark-done:not(.is-done):hover,
+    [data-theme="dark"] .quiz-actions .btn-check:hover,
+    [data-theme="dark"] #btn-copy-prompt:not(.copy-fail):not(.copied):hover {
+      background: color-mix(in srgb, var(--accent) 32%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+      box-shadow: none;
+    }
+    [data-theme="dark"] .btn-mark-done:not(.is-done):hover {
+      transform: translateY(-1px);
+    }
+    [data-theme="dark"] .btn-copy.copied,
+    [data-theme="dark"] .btn-copy.copied:hover {
+      border-color: color-mix(in srgb, var(--accent) 75%, var(--border));
+      background: color-mix(in srgb, var(--accent) 58%, var(--bg));
+      color: #f2eaed;
+      font-weight: 600;
+      min-width: 5.5em;
+      transform: scale(1.05);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+    }
+    [data-theme="dark"] #btn-copy-prompt.copied {
+      background: color-mix(in srgb, var(--accent) 48%, var(--surface));
+      color: var(--text);
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
     #toast {
       position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(120%);
       padding: .65rem 1.25rem; border-radius: 99px;
@@ -574,11 +1075,19 @@
       border-top: 2px dashed var(--border);
     }
     #quiz-panel:empty { display: none; }
-    .quiz-panel-title { margin: 0 0 .35rem; font-size: 1.35rem; }
-    .quiz-panel-lead { color: var(--muted); font-size: .92rem; margin: 0 0 1.5rem; }
+    .quiz-section .quiz-panel-lead {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.65;
+      margin: 0 0 1.25rem;
+    }
     .quiz-section { display: none; margin-bottom: 2rem; }
     .quiz-section.active { display: block; }
-    .quiz-section h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .quiz-section h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.1rem;
+      scroll-margin-top: 4.5rem;
+    }
     .quiz-item {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 1rem 1.15rem; margin-bottom: 1rem;
@@ -611,9 +1120,27 @@
     .quiz-item .feedback { margin: .65rem 0 0; font-size: .88rem; font-weight: 600; }
     .quiz-item .feedback-ok { color: var(--accent); }
     .quiz-item .feedback-fail { color: var(--danger); }
+    @media (max-width: 1280px) {
+      #chapter-toc,
+      .chapter-toc-fab { display: none !important; }
+      html.chapter-toc-open .main-area { padding-right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .main-area,
+      #chapter-toc,
+      .chapter-toc-fab {
+        transition: none;
+      }
+    }
     @media (max-width: 768px) {
-      .layout { grid-template-columns: 1fr; }
-      #sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      .layout { padding-left: 0; }
+      #sidebar {
+        position: static;
+        width: auto;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
       .main-area { justify-content: stretch; }
       #main-content { padding: 1.25rem 1rem 3rem; max-width: none; }
       .chapter-header { flex-direction: column; }
@@ -639,11 +1166,30 @@
     #term-modal .btn-icon-close:hover { background: var(--border); color: var(--text); }
     #term-modal .term-modal-body { padding: 1.25rem; }
     #term-prompt {
-      font-family: var(--font-mono);
-      white-space: pre-wrap; background: var(--code-bg); padding: 1rem 1.15rem;
-      border-radius: var(--radius-sm); font-size: 0.85rem; line-height: 1.65;
-      letter-spacing: 0.02em; margin: 0;
-      max-height: 240px; overflow-y: auto; border: 1px solid var(--border);
+      font-family: var(--font-sans, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif);
+      font-size: 0.94rem;
+      font-weight: 400;
+      line-height: 1.85;
+      letter-spacing: 0.01em;
+      font-variant-east-asian: proportional-width;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--code-bg);
+      padding: 1.1rem 1.2rem;
+      border-radius: var(--radius-sm);
+      margin: 0;
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--code-bg);
+    }
+    #term-prompt::-webkit-scrollbar {
+      width: 8px;
+    }
+    #term-prompt::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 99px;
     }
     .term-actions {
       display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
@@ -673,65 +1219,29 @@
     #btn-close-term { margin-left: auto; color: var(--muted); }
     #btn-close-term:hover { color: var(--text); background: var(--code-header); border-color: var(--muted); }
 
-[data-theme-preset="rocketmq"][data-theme="light"] {
-  --accent: #d4380d;
-  --accent-hover: #ad2102;
-  --accent-soft: #fff2e8;
-  --accent-glow: rgba(212, 56, 13, 0.28);
-  --accent-alt: #fa8c16;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 56, 13, 0.12), transparent);
-  --phase-basics: #d4380d;
+/* Apache Flink — 品牌粉 + 深蓝辅色 */
+[data-theme-preset="apache-flink"][data-theme="light"] {
+  --accent: #e6526f;
+  --accent-hover: #c93d5a;
+  --accent-soft: #fde8ec;
+  --accent-glow: rgba(230, 82, 111, 0.28);
+  --accent-alt: #1e3a5f;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(230, 82, 111, 0.12), transparent);
 }
-[data-theme-preset="rocketmq"][data-theme="dark"] {
-  --accent: #ff7a45;
-  --accent-hover: #ff9c6e;
-  --accent-soft: #2b1d14;
-  --accent-glow: rgba(255, 122, 69, 0.22);
-  --accent-alt: #ffc069;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 122, 69, 0.1), transparent);
-  --phase-basics: #ff7a45;
-}
-
-/* 章节内角色卡片：避免复用 .meta-card strong 的「小号大写标签」样式 */
-.role-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 1rem 0;
-}
-.role-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 1.15rem;
-  box-shadow: var(--shadow-sm);
-}
-.role-card .role-card-title {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--accent);
-  margin: 0 0 0.45rem;
-  text-transform: none;
-  letter-spacing: normal;
-}
-.role-card .role-card-desc {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.65;
-  color: var(--text);
-}
-.role-card .role-card-desc .term {
-  font-size: inherit;
-  font-weight: 500;
+[data-theme-preset="apache-flink"][data-theme="dark"] {
+  --accent: #b87a8c;
+  --accent-hover: #c88e9e;
+  --accent-soft: #352229;
+  --accent-glow: rgba(184, 122, 140, 0.12);
+  --accent-alt: #4a6278;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(184, 122, 140, 0.06), transparent);
 }
   </style>
 </head>
 <body>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <header class="topbar">
-    <h1 class="course-title">Apache RocketMQ 入门到进阶</h1>
+    <h1 class="course-title">Apache Flink 流处理入门到进阶</h1>
     <div class="topbar-actions">
       <div class="progress-wrap" aria-label="学习进度">
         <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -750,288 +1260,1061 @@
     <div class="main-area">
       <main id="main-content">
         <div id="welcome" class="welcome">
-<h2>Apache RocketMQ 交互教程</h2>
-<p class="lead">从<strong>消息模型与本地跑通</strong>到<strong>业务集成与可靠投递</strong>，再到<strong>集群高可用与生产治理</strong>——按三阶段循序渐进，支持章节进度、亮暗主题与术语 AI 探索。</p>
+<section class="welcome-panel">
+  <header class="welcome-header">
+    <h2>Apache Flink 流处理</h2>
+    <p class="welcome-lead">
+      从本地集群到 DataStream、Table/SQL，再到 Checkpoint 与生产部署——按三阶段系统掌握有状态流计算。
+    </p>
+  </header>
 
-<div class="meta-cards">
-  <div class="meta-card">
-    <strong>当前版本</strong>
-    Apache RocketMQ 5.4.0
+  <div class="meta-cards">
+    <div class="meta-card">
+      <strong>当前版本</strong>
+      Flink 2.2 Stable（生产可参考 1.20 LTS）
+    </div>
+    <div class="meta-card">
+      <strong>大纲规模</strong>
+      15 章 · 3 阶段 · 已生成 3 章正文
+    </div>
+    <div class="meta-card">
+      <strong>前置要求</strong>
+      Java · Maven · 分布式基础概念
+    </div>
   </div>
-  <div class="meta-card">
-    <strong>大纲规模</strong>
-    11 章 · 3 阶段 · 已生成 1 章正文
-  </div>
-  <div class="meta-card">
-    <strong>前置要求</strong>
-    Java 基础 · Maven · 分布式异步概念
-  </div>
-</div>
 
-<div class="meta-cards">
-  <div class="meta-card">
-    <strong>官方文档</strong>
-    <a href="https://rocketmq.apache.org/docs/quickStart/01quickstart/" target="_blank" rel="noopener">Quick Start</a>
+  <div class="meta-cards">
+    <div class="meta-card">
+      <strong>官方文档</strong>
+      <a href="https://nightlies.apache.org/flink/flink-docs-stable/" target="_blank" rel="noopener">Flink Docs Stable</a>
+    </div>
+    <div class="meta-card">
+      <strong>领域类型</strong>
+      C — 平台 / 中间件
+    </div>
+    <div class="meta-card">
+      <strong>学习路径</strong>
+      DataStream 核心 → 状态与时间 → 生产容错
+    </div>
   </div>
-  <div class="meta-card">
-    <strong>领域类型</strong>
-    C — 平台 / 中间件
-  </div>
-  <div class="meta-card">
-    <strong>学习路径</strong>
-    本地 Broker → 典型场景 → 集群与运维
-  </div>
-</div>
 
-<h3>三阶段大纲摘要</h3>
-<table class="outline-table">
-  <thead><tr><th>阶段</th><th>章节</th><th>阶段目标</th></tr></thead>
-  <tbody id="outline-summary-body"></tbody>
-</table>
+  <div class="notice welcome-notice">
+    <strong>版本说明（2026-05-17）：</strong>
+    教程以 Flink 2.2 Stable 文档为主；对接 1.20 LTS 集群时以集群版本文档为准。
+  </div>
 
-<div class="notice">
-  <strong>开始学习：</strong>点击左侧「RocketMQ 定位与架构鸟瞰」阅读第 1 章；学完后可标记完成，或回复<strong>继续下一章</strong>生成「环境搭建与第一次收发」。
-</div>
+  <h3>三阶段大纲摘要</h3>
+  <div class="outline-table-wrap">
+    <table class="outline-table">
+      <thead>
+        <tr><th scope="col">阶段</th><th scope="col">章节</th><th scope="col">小节概要</th></tr>
+      </thead>
+      <tbody id="outline-summary-body"></tbody>
+    </table>
+  </div>
+
+  <div class="role-cards welcome-phases">
+    <article class="role-card" data-phase="basics">
+      <h3>阶段一 · 流处理入门</h3>
+      <p>环境与 DataStream 核心：架构认知、本地集群、转换算子、连接器与作业提交。</p>
+    </article>
+    <article class="role-card" data-phase="practice">
+      <h3>阶段二 · 状态与时间实战</h3>
+      <p>Keyed State、Watermark 与窗口、Table/SQL、Kafka 集成，并完成 mini 实时统计项目。</p>
+    </article>
+    <article class="role-card" data-phase="advanced">
+      <h3>阶段三 · 容错与生产生态</h3>
+      <p>Checkpoint/Savepoint、状态后端调优、集群部署、观测排错与 CDC 生态。</p>
+    </article>
+  </div>
+
+  <p class="welcome-cta">
+    请从左侧目录选择章节开始学习。建议从「Flink 定位与流批一体架构」读起；学完后可点击章首<strong>标记完成</strong>。
+  </p>
+</section>
         </div>
         <div id="content">
 <section id="ch-basics-01-overview" class="chapter" data-chapter="basics-01-overview">
   <header class="chapter-header">
-    <h2><span class="chapter-done-badge">已完成</span>RocketMQ 定位与架构鸟瞰</h2>
+    <h2><span class="chapter-done-badge">已完成</span>Flink 定位与流批一体架构</h2>
     <button type="button" class="btn-mark-done" data-chapter="basics-01-overview" aria-label="标记本章完成">标记完成</button>
   </header>
 
   <div class="concept content-section">
-    <h3>概念</h3>
-
     <div class="notice">
       <strong>本章先记住 3 件事</strong>
-      <ul style="margin: .5rem 0 0; padding-left: 1.2rem;">
-        <li><strong>干什么</strong>：让业务系统<strong>异步解耦</strong>，不必同步等所有下游完成。</li>
-        <li><strong>谁协作</strong>：Producer、Broker、Consumer、NameServer 四个角色分工明确。</li>
-        <li><strong>怎么走</strong>：先向 NameServer 查路由，再直连 Broker 收发消息。</li>
+      <ul>
+        <li><strong>解决什么</strong>：对<strong>无界数据流</strong>做低延迟、有状态的实时计算，并保证故障后可恢复。</li>
+        <li><strong>谁协作</strong>：<span class="term" data-term-id="stream-processing" tabindex="0">流处理</span> 运行时由 JobManager 协调、TaskManager 执行，Client 负责提交作业。</li>
+        <li><strong>怎么写</strong>：DataStream 最灵活；多数分析场景优先 <span class="term" data-term-id="table-api" tabindex="0">Table API</span> / Flink SQL。</li>
       </ul>
     </div>
 
-    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">① 解决什么问题？</h4>
-    <p style="margin-top: 0;">Apache RocketMQ 是<strong>分布式消息中间件</strong>：上游把事件「投递出去」即可返回，下游按自己的节奏消费。</p>
-    <ul style="margin: .5rem 0 1rem; padding-left: 1.2rem; line-height: 1.85;">
-      <li><strong>异步解耦</strong> — 下单后发消息，库存/短信/积分各自消费，互不强依赖。</li>
-      <li><strong>削峰填谷</strong> — 秒杀流量先写入队列，后台慢慢处理，保护数据库。</li>
-      <li><strong>最终一致</strong> — 配合事务消息等能力，在分布式场景下保证业务一致。</li>
+    <h3>流处理 vs 批处理：为何需要 Flink？</h3>
+    <p>传统批处理（如离线 Hive/Spark Batch）按<strong>有界数据集</strong>切分、周期性跑作业；而业务事件（点击、支付、传感器）是<strong>持续到达</strong>的，需要「来一条算一条」或「按窗口聚合」。</p>
+    <ul>
+      <li><strong>低延迟</strong> — 秒级甚至毫秒级产出结果，而不是等 T+1 报表。</li>
+      <li><strong>有状态</strong> — 需要记住用户会话、累计金额、去重键等，单靠无状态 map/filter 不够。</li>
+      <li><strong>精确一次</strong> — 故障重启后，输出与副作用尽量不重复；依赖 <span class="term" data-term-id="checkpoint" tabindex="0">Checkpoint</span> 与 Source/Sink 协同（进阶章展开）。</li>
     </ul>
 
-    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">② 四大角色（对照下图）</h4>
+    <h3>核心组件：JobManager、TaskManager、Slot</h3>
     <div class="role-cards">
       <div class="role-card">
-        <span class="role-card-title">Producer 生产者</span>
-        <p class="role-card-desc">业务系统内负责发消息的客户端，只配置 NameServer 地址。</p>
+        <span class="role-card-title">Client</span>
+        <p class="role-card-desc">解析程序、生成 JobGraph，提交给 JobManager；可在 IDE 本地跑，也可 detached 提交到集群。</p>
       </div>
       <div class="role-card">
-        <span class="role-card-title">Broker 代理</span>
-        <p class="role-card-desc">存消息、投递消息的核心服务；CommitLog 持久化，支持主从复制。</p>
+        <span class="role-card-title">JobManager</span>
+        <p class="role-card-desc">调度资源、协调 Checkpoint；内含 Dispatcher（REST/Web UI）、JobMaster（单作业执行）、ResourceManager（Slot 分配）。</p>
       </div>
       <div class="role-card">
-        <span class="role-card-title">Consumer 消费者</span>
-        <p class="role-card-desc">在<span class="term" data-term-id="consumer-group" tabindex="0">消费组</span>内收消息，同组负载均衡，不同组互不影响。</p>
+        <span class="role-card-title">TaskManager</span>
+        <p class="role-card-desc">Worker 进程，执行算子 Task，在 Slot 间交换数据流；一个集群通常有多个 TaskManager。</p>
       </div>
       <div class="role-card">
-        <span class="role-card-title">NameServer</span>
-        <p class="role-card-desc"><span class="term" data-term-id="nameserver" tabindex="0">NameServer</span> 维护 Topic→Broker 路由表，无状态、可集群，类似轻量注册中心。</p>
+        <span class="role-card-title">Slot</span>
+        <p class="role-card-desc">TaskManager 内的资源切片，是调度最小单位；Slot 数 ≈ 集群并行能力上限。</p>
       </div>
     </div>
 
-    <div class="mermaid-wrap" style="margin: 1rem 0 1.5rem;">
-      <h4 style="margin: 0 0 .75rem; font-size: .95rem; font-weight: 600;">架构总览图</h4>
+    <div class="mermaid-wrap">
+      <h5>运行时架构总览</h5>
       <pre class="mermaid">flowchart TB
-  subgraph clients["业务应用"]
-    P[Producer]
-    C[Consumer]
+  subgraph client["Client"]
+    APP[你的 Flink 程序]
   end
-  NS[NameServer\n路由表]
-  subgraph broker_cluster["Broker 集群"]
-    B1[Broker Master]
-    B2[Broker Slave]
-    Store[(CommitLog)]
+  subgraph jm["JobManager"]
+    DISP[Dispatcher / Web UI]
+    RM[ResourceManager]
+    JM[JobMaster]
   end
-  P -->|① 查路由| NS
-  C -->|① 查路由| NS
-  P -->|② 发消息| B1
-  B1 --> Store
-  B1 -.复制.-> B2
-  C -->|② 收消息| B1
-  B1 -->|③ 注册| NS</pre>
-      <p style="margin: .75rem 0 0; font-size: .88rem; color: var(--muted);">看图记忆：客户端<strong>不直连彼此</strong>，都通过 NameServer 找到 Broker；消息落在 Broker 的 <span class="term" data-term-id="message-queue" tabindex="0">MessageQueue</span> 中分区存储。</p>
+  subgraph tm["TaskManager 集群"]
+    S1[Slot 1]
+    S2[Slot 2]
+    S3[Slot 3]
+  end
+  APP -->|提交 JobGraph| DISP
+  DISP --> JM
+  JM --> RM
+  RM -->|分配 Slot| S1
+  RM --> S2
+  RM --> S3
+  JM -->|部署 Task| S1
+  JM --> S2
+  JM --> S3</pre>
+      <p class="diagram-caption">看图记忆：<strong>Client 只提交</strong>；JobManager <strong>管调度与容错</strong>；TaskManager <strong>真正跑算子</strong>。</p>
     </div>
 
-    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">③ 一条消息怎么走？（4 步）</h4>
-    <div class="mermaid-wrap" style="margin: 0 0 1rem; padding: 1rem;">
+    <h4>作业提交流程</h4>
+    <div class="mermaid-wrap">
+      <h5>从 Client 提交到 Task 执行</h5>
       <pre class="mermaid">sequenceDiagram
   autonumber
-  participant P as Producer
-  participant NS as NameServer
-  participant B as Broker
-  participant C as Consumer
-  P->>NS: 查询 Topic 路由
-  NS-->>P: 返回 Broker 与 Queue
-  P->>B: 发送消息
-  C->>NS: 查询 Topic 路由
-  C->>B: 拉取 / 接收消息</pre>
+  participant C as Client
+  participant D as Dispatcher
+  participant J as JobMaster
+  participant T as TaskManager
+  C->>D: 提交作业 (JAR / Pipeline)
+  D->>J: 创建 JobMaster
+  J->>J: 将 JobGraph 转为 ExecutionGraph
+  J->>T: 在 Slot 上部署 Source / 算子 / Sink
+  T->>T: 持续消费无界流并输出
+  J->>T: 周期性触发 Checkpoint</pre>
+      <p class="diagram-caption">对照动手练习：能说出 Client 编译、Dispatcher 接收、JobMaster 调度、Task 执行四步。</p>
     </div>
 
-    <ol class="steps" style="margin-top: 0;">
-      <li><strong>Producer 问路由</strong> — 带着 Topic 名问 NameServer：这个 Topic 在哪些 Broker、哪些 Queue？</li>
-      <li><strong>Producer 发消息</strong> — 按路由选一个 MessageQueue，把消息写到 Broker。</li>
-      <li><strong>Consumer 问路由</strong> — 同组 Consumer 也向 NameServer 拿同一份路由。</li>
-      <li><strong>Consumer 收消息</strong> — 从 Broker 拉取或 Push 投递，业务处理完后提交消费位点。</li>
-    </ol>
-
-    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">④ 和 Kafka / RabbitMQ 怎么选？</h4>
+    <h3>DataStream / Table / SQL 三层 API 如何选型</h3>
     <table class="outline-table">
       <thead>
-        <tr><th>对比项</th><th>RocketMQ</th><th>Kafka</th><th>RabbitMQ</th></tr>
+        <tr><th>API 层</th><th>抽象</th><th>典型场景</th><th>何时优先</th></tr>
       </thead>
       <tbody>
-        <tr><td>典型场景</td><td>电商/金融、事务与定时消息</td><td>日志采集、流式计算</td><td>复杂路由、AMQP 生态</td></tr>
-        <tr><td>分区单元</td><td>MessageQueue</td><td>Partition</td><td>Queue（经 Exchange 路由）</td></tr>
-        <tr><td>元数据/路由</td><td>NameServer（轻量）</td><td>ZooKeeper / KRaft</td><td>Broker 内置</td></tr>
-        <tr><td>特色能力</td><td>顺序、延迟、事务消息原生支持</td><td>超高吞吐、生态成熟</td><td>灵活路由、低延迟小消息</td></tr>
-        <tr><td>何时优先选</td><td>Java/Spring 栈 + 事务/定时/顺序</td><td>大数据管道、流处理</td><td>协议标准、路由规则复杂</td></tr>
+        <tr>
+          <td><strong>DataStream</strong></td>
+          <td>事件流上的算子（map、keyBy、ProcessFunction）</td>
+          <td>复杂状态机、自定义窗口、细粒度时间控制</td>
+          <td>需要完全掌控状态、时间语义与底层逻辑时</td>
+        </tr>
+        <tr>
+          <td><strong>Table API</strong></td>
+          <td>关系型动态表 + 连续查询</td>
+          <td>ETL、实时数仓、指标聚合</td>
+          <td>业务以「表」思维建模，希望优化器自动选算子</td>
+        </tr>
+        <tr>
+          <td><strong>Flink SQL</strong></td>
+          <td>声明式 SQL（流批统一）</td>
+          <td>实时报表、即席分析、与 BI 工具对接</td>
+          <td>团队熟悉 SQL、希望降低 Java 样板代码时</td>
+        </tr>
       </tbody>
     </table>
+    <p>官方建议：多数数据分析从 <strong>Table/SQL</strong> 起步；DataStream 与 Table 可互操作。</p>
 
-    <div class="notice" style="margin-top: 1.5rem;">
-      <strong>本章小结</strong>：能口头说出「四大角色 + 四步流转」即可过关；配置细节留到下一章动手时再记。下一章将在本地启动 NameServer 与 Broker，完成第一次收发。
+    <h4>示例代码：DataStream 与 Table API 对照</h4>
+    <div class="code-block">
+      <div class="code-toolbar">
+        <span class="lang-tag">java</span>
+        <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+      </div>
+      <pre><code id="code-basics-01-overview-1" class="language-java">// DataStream 最小骨架 vs Table API 声明式（下一章环境搭建后运行）
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.TableEnvironment;
+
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.fromElements("click", "pay", "click")
+   .map(String::toUpperCase)
+   .print();
+// env.execute("word-upper-job");
+
+EnvironmentSettings settings = EnvironmentSettings.newInstance().inStreamingMode().build();
+TableEnvironment tEnv = TableEnvironment.create(settings);
+// tEnv.executeSql("CREATE TABLE events (...) WITH ('connector' = 'kafka')");
+// tEnv.executeSql("SELECT user_id, COUNT(*) FROM events GROUP BY user_id");</code></pre>
+    </div>
+
+    <h3>版本线：2.x Stable 与 1.20 LTS 怎么选</h3>
+    <ul>
+      <li><strong>Flink 2.2 Stable</strong> — 本教程与文档以此为主。</li>
+      <li><strong>Flink 1.20 LTS</strong> — 不少生产集群仍运行 1.x；API 思想一致，注意连接器版本矩阵。</li>
+      <li><strong>选型建议</strong> — 学习/新项目跟 Stable；对接现有 1.20 集群以集群文档为准。</li>
+    </ul>
+
+    <div class="notice">
+      <strong>本章小结</strong>：能说出 JobManager / TaskManager / Slot 职责，并说明 Flink 相对批处理的三大价值。过关后进入下一章搭环境并运行第一个作业。
     </div>
   </div>
 
   <div class="official-links content-section">
     <h3>官方文档</h3>
     <ul>
-      <li><a href="https://rocketmq.apache.org/docs/introduction/02concepts/" target="_blank" rel="noopener">Concepts — 核心概念</a></li>
-      <li><a href="https://github.com/apache/rocketmq/blob/develop/docs/en/architecture.md" target="_blank" rel="noopener">Architecture — 架构说明</a></li>
-      <li><a href="https://rocketmq.apache.org/docs/domainModel/01main/" target="_blank" rel="noopener">Domain Model — 领域模型总览（5.x）</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/flink-architecture/" target="_blank" rel="noopener">Flink Architecture — 运行时架构</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/overview/" target="_blank" rel="noopener">Concepts — 核心概念总览</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/overview/" target="_blank" rel="noopener">DataStream API Overview</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/overview/" target="_blank" rel="noopener">Table API Overview</a></li>
     </ul>
   </div>
 
-  <div class="code-block">
-    <div class="code-toolbar">
-      <span class="lang-tag">java</span>
-      <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
-    </div>
-    <pre><code id="code-basics-01-overview-1" class="language-java">// 代码印证「只配 NameServer」：Broker 地址由路由动态获得
-DefaultMQProducer producer = new DefaultMQProducer("order_producer_group");
-producer.setNamesrvAddr("127.0.0.1:9876");
-producer.start();
-
-Message msg = new Message("TopicOrder", "TagCreate",
-    "order-1001".getBytes(StandardCharsets.UTF_8));
-producer.send(msg);  // 内部：查路由 → 选 Queue → 发往 Broker
-
-DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("order_consumer_group");
-consumer.setNamesrvAddr("127.0.0.1:9876");
-consumer.subscribe("TopicOrder", "TagCreate || TagPay");
-consumer.registerMessageListener((msgs, ctx) ->
-    ConsumeConcurrentlyStatus.CONSUME_SUCCESS);
-consumer.start();</code></pre>
-  </div>
-
+  <h3>动手练习</h3>
+  <p class="steps-intro">按顺序完成；图中步骤编号与时序图对照，不会单独出现在右侧大纲。</p>
   <ol class="steps">
-    <li>先看「本章先记住 3 件事」，再对照<strong>架构总览图</strong>说出四个角色各干什么。</li>
-    <li>按<strong>时序图 4 步</strong>，在纸上画一遍 Producer → NameServer → Broker → Consumer。</li>
-    <li>阅读下方 Java 代码，指出哪一行体现「只配置 NameServer」。</li>
-    <li>（可选）运行 Demo：<code>demos/basics-01-overview-arch-lab</code>，用 <code>clusterList</code> 观察 Broker 注册。</li>
+    <li>阅读章首摘要，对照「运行时架构总览」图说出 Client、JobManager、TaskManager 各做什么。</li>
+    <li>对照「从 Client 提交到 Task 执行」时序图，复述提交到 Task 运行的四步。</li>
+    <li>看 API 选型表：若需求是「实时 UV 按小时聚合」，优先 Table/SQL 还是 DataStream？写下理由。</li>
+    <li>（可选）完成 Demo <code>demos/basics-01-overview-arch-lab</code>，在 Web UI 对照 JobManager / TaskManager。</li>
   </ol>
 
   <div class="demo-box">
-    <h3>Demo：架构实验室</h3>
-    <p>目录：<code>demos/basics-01-overview-arch-lab/</code>。Docker 启动 NameServer + Broker，执行 <code>mqadmin clusterList</code> 验证「Broker 向 NameServer 注册」。</p>
-    <p>命令：<code>cd demos/basics-01-overview-arch-lab &amp;&amp; docker compose up -d</code></p>
+    <h3>Demo：架构自测实验室</h3>
+    <p>目录：<code>demos/basics-01-overview-arch-lab/</code>。纸质架构图 + API 选型练习；可选 Docker 预览 Web UI。</p>
+    <p>命令：<code>cd demos/basics-01-overview-arch-lab &amp;&amp; docker compose up -d</code>（可选）</p>
   </div>
 
   <div class="resources content-section">
     <h3>延伸学习</h3>
     <ul>
-      <li><a href="https://rocketmq.apache.org/docs/introduction/03features/" target="_blank" rel="noopener">Features</a> — 5.x 特性一览</li>
-      <li><a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Kafka 文档</a> — 对比 Partition 模型</li>
+      <li><a href="https://flink.apache.org/what-is-flink/flink-architecture/" target="_blank" rel="noopener">What is Flink — Architecture</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/getting-started/datastream/" target="_blank" rel="noopener">DataStream API Tutorial — 欺诈检测入门</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/getting-started/table_api/" target="_blank" rel="noopener">Table API Tutorial</a></li>
+      <li><a href="https://flink.apache.org/downloads.html" target="_blank" rel="noopener">Downloads — 版本与连接器矩阵</a></li>
+    </ul>
+  </div>
+</section>
+<section id="ch-basics-02-env" class="chapter" data-chapter="basics-02-env">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>环境搭建与第一个作业</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-02-env" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept content-section">
+    <div class="notice">
+      <strong>本章先记住 3 件事</strong>
+      <ul>
+        <li><strong>装什么</strong>：JDK 17 + Maven 3.9+；学习阶段用 Maven 依赖即可，不必先装完整发行包。</li>
+        <li><strong>跑在哪</strong>：<span class="term" data-term-id="stream-execution-environment" tabindex="0">StreamExecutionEnvironment</span> 在 IDE 里默认是<strong>本地迷你集群</strong>；需要 Web UI 时再启 <span class="term" data-term-id="standalone-cluster" tabindex="0">Standalone 集群</span>。</li>
+        <li><strong>第一个作业</strong>：用官方 <span class="term" data-term-id="fraud-detection-walkthrough" tabindex="0">欺诈检测 Walkthrough</span> 骨架，跑通 Source → keyBy → Process → Sink。</li>
+      </ul>
+    </div>
+
+    <h3>JDK、Maven 与 Flink 发行包</h3>
+    <table class="outline-table">
+      <thead>
+        <tr><th>组件</th><th>推荐版本</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>JDK</strong></td>
+          <td>17（LTS）</td>
+          <td>Flink 2.x 官方文档以 Java 17 为主；确认 <code>java -version</code> 与 IDE Project SDK 一致。</td>
+        </tr>
+        <tr>
+          <td><strong>Maven</strong></td>
+          <td>3.9+</td>
+          <td>用于生成 Walkthrough 工程、打包 fat JAR；<code>mvn -v</code> 应显示 JDK 17。</td>
+        </tr>
+        <tr>
+          <td><strong>Flink 依赖</strong></td>
+          <td>与教程一致 2.2.0</td>
+          <td><code>flink-streaming-java</code> 为核心；Walkthrough 另需 <code>flink-walkthrough-common</code>（含 TransactionSource）。</td>
+        </tr>
+        <tr>
+          <td><strong>Flink 发行包</strong>（可选）</td>
+          <td>2.2.x binary</td>
+          <td>仅在你需要<strong>手动</strong> <code>bin/start-cluster.sh</code> 或 <code>flink run</code> 提交到已启动集群时下载；IDE 直接 Run 可跳过。</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>本课程 <code>course.json</code> 标注 Stable 为 2.2.x；若你对接 1.20 LTS 集群，请将依赖与文档版本改为集群一致，勿混用小版本连接器。</p>
+
+    <h3>本地 Standalone 集群启动与 Web UI</h3>
+    <p>Standalone 模式适合学习：一个 JobManager + 若干 TaskManager，Web UI 默认 <strong>http://localhost:8081</strong>。</p>
+    <div class="mermaid-wrap">
+      <h5>两种本地运行方式</h5>
+      <pre class="mermaid">flowchart LR
+  subgraph ide["方式 A：IDE 直接 Run"]
+    MAIN[FraudDetectionJob.main]
+    MINI[内置 MiniCluster]
+    LOG[TaskManager 日志 / AlertSink]
+    MAIN --> MINI --> LOG
+  end
+  subgraph docker["方式 B：Docker Standalone + 可选提交"]
+    UI[Web UI :8081]
+    JM[JobManager]
+    TM[TaskManager]
+    UI --- JM
+    JM --> TM
+  end</pre>
+      <p class="diagram-caption">学习路径建议：先用<strong>方式 A</strong> 在 IDE 打断点理解数据流；需要对照 Slot、作业列表时再用<strong>方式 B</strong> 打开 Web UI（与第一章 Demo 相同镜像）。</p>
+    </div>
+
+    <ul>
+      <li><strong>发行包启动</strong>（已下载 binary 时）：解压后执行 <code>bin/start-cluster.sh</code>（Windows 为 <code>bin\start-cluster.bat</code>），浏览器访问 8081。</li>
+      <li><strong>Docker 启动</strong>：见本章 Demo，<code>docker compose up -d</code> 后访问 8081；停止用 <code>docker compose down</code>。</li>
+      <li><strong>Web UI 看什么</strong>：Overview 中 TaskManager 数量与 Slot；提交作业后 Jobs 页可见 RUNNING 状态与 Task 拓扑。</li>
+    </ul>
+
+    <h3>DataStream 官方教程：欺诈检测骨架</h3>
+    <p>Apache 提供 Maven Archetype，一键生成带 TransactionSource、AlertSink 的完整工程，业务逻辑在 <code>FraudDetector</code>（<code>KeyedProcessFunction</code>）中填写。</p>
+    <div class="mermaid-wrap">
+      <h5>欺诈检测 Walkthrough 管道</h5>
+      <pre class="mermaid">flowchart LR
+  TS[TransactionSource]
+  KB[keyBy accountId]
+  FD[FraudDetector]
+  AS[AlertSink]
+  TS --> KB --> FD --> AS</pre>
+      <p class="diagram-caption">管道记忆：<strong>有界/无界 Source</strong> → 按账户分区 → <strong>有状态</strong> 规则判断 → Sink 输出告警（本 Walkthrough 打印到控制台）。</p>
+    </div>
+
+    <h4>示例代码：生成 Walkthrough 工程</h4>
+    <div class="code-block">
+      <div class="code-toolbar">
+        <span class="lang-tag">bash</span>
+        <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+      </div>
+      <pre><code id="code-basics-02-env-1" class="language-bash"># 生成官方 Walkthrough 工程（Flink 2.2.0）
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.flink \
+  -DarchetypeArtifactId=flink-walkthrough-datastream-java \
+  -DarchetypeVersion=2.2.0 \
+  -DgroupId=frauddetection \
+  -DartifactId=frauddetection \
+  -Dversion=0.1 \
+  -Dpackage=spendreport \
+  -DinteractiveMode=false
+
+cd frauddetection
+mvn clean package
+
+# 可选：flink run -c spendreport.FraudDetectionJob target/frauddetection-0.1.jar</code></pre>
+    </div>
+
+    <h4>示例代码：FraudDetectionJob 骨架</h4>
+    <div class="code-block">
+      <div class="code-toolbar">
+        <span class="lang-tag">java</span>
+        <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+      </div>
+      <pre><code id="code-basics-02-env-2" class="language-java">StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+DataStream&lt;Transaction&gt; transactions = env
+    .addSource(new TransactionSource())
+    .name("transactions");
+
+DataStream&lt;Alert&gt; alerts = transactions
+    .keyBy(Transaction::getAccountId)
+    .process(new FraudDetector())
+    .name("fraud-detector");
+
+alerts.addSink(new AlertSink()).name("send-alerts");
+
+env.execute("Fraud Detection");</code></pre>
+    </div>
+
+    <h3>在 IDE 中运行与打包提交</h3>
+    <table class="outline-table">
+      <thead>
+        <tr><th>场景</th><th>做法</th><th>注意</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>IDE 本地 Run</td>
+          <td>运行 <code>FraudDetectionJob.main</code></td>
+          <td>IntelliJ 若报 <code>NoClassDefFoundError</code>：Run Configuration → Modify options → 勾选 <strong>include dependencies with "Provided" scope</strong>。</td>
+        </tr>
+        <tr>
+          <td>打包可提交 JAR</td>
+          <td><code>mvn clean package</code></td>
+          <td>使用 archetype 自带的 shade 配置，产物在 <code>target/*.jar</code>。</td>
+        </tr>
+        <tr>
+          <td>提交到 Standalone</td>
+          <td><code>flink run -c spendreport.FraudDetectionJob target/frauddetection-0.1.jar</code></td>
+          <td>需已设置 <code>FLINK_HOME</code> 且集群已启动；<code>-c</code> 为全限定主类名。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="notice">
+      <strong>本章小结</strong>：能用 Archetype 生成工程并在 IDE 跑通 <code>FraudDetectionJob</code>；知道 IDE 本地跑与 <code>flink run</code> 提交的区别；会在 Web UI 看到 TaskManager。过关后进入 <code>basics-03-datastream</code>，系统学习 map、keyBy 与执行图。
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/try-flink/datastream/" target="_blank" rel="noopener">Try Flink — Fraud Detection with the DataStream API</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/getting-started/datastream/" target="_blank" rel="noopener">Getting Started — DataStream API Tutorial</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/deployment/resource-providers/standalone/overview/" target="_blank" rel="noopener">Standalone 部署概览</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/deployment/resource-providers/standalone/docker/" target="_blank" rel="noopener">Standalone on Docker</a></li>
+    </ul>
+  </div>
+
+  <h3>动手练习</h3>
+  <p class="steps-intro">按顺序完成；代码见上文「示例代码」两节。</p>
+  <ol class="steps">
+    <li>确认 <code>java -version</code> 为 17，<code>mvn -v</code> 正常；用 archetype 生成 <code>frauddetection</code> 工程。</li>
+    <li>IDE 运行 <code>FraudDetectionJob</code>，观察 Alert 输出。</li>
+    <li>（可选）Demo Docker Standalone，访问 <code>http://localhost:8081</code>。</li>
+    <li>（可选）<code>flink run</code> 提交并在 Web UI 确认 RUNNING。</li>
+    <li>在 <code>FraudDetector</code> 实现「先小额后大额」规则。</li>
+  </ol>
+
+  <div class="demo-box">
+    <h3>Demo：第一个作业实验室</h3>
+    <p>目录：<code>demos/basics-02-env-first-job/</code>。包含<strong>精简版</strong>可运行作业（不依赖 archetype 也能 <code>mvn -q exec:java</code>）以及可选 Docker Standalone，用于对照 Web UI。</p>
+    <p>命令：<code>cd demos/basics-02-env-first-job &amp;&amp; mvn -q exec:java</code>；Web UI：<code>docker compose up -d</code> 后访问 <code>http://localhost:8081</code></p>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/overview/" target="_blank" rel="noopener">DataStream API Overview — 下一章 API 详解</a></li>
+      <li><a href="https://flink.apache.org/downloads.html" target="_blank" rel="noopener">Downloads — Binary 与 Scala/Java 变体</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/configuration/overview/" target="_blank" rel="noopener">Configuration — 集群与作业配置项</a></li>
+    </ul>
+  </div>
+</section>
+<section id="ch-basics-03-datastream" class="chapter" data-chapter="basics-03-datastream">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>DataStream API 与执行图</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-03-datastream" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept content-section">
+<div class="notice">
+      <strong>本章先记住 3 件事</strong>
+      <ul>
+        <li><strong>管道三段</strong>：任何作业都是 <span class="term" data-term-id="datastream-pipeline" tabindex="0">Source → Transformation → Sink</span>；Transformation 是算子链，不是单独「阶段类」。</li>
+        <li><strong>并行度</strong>：<span class="term" data-term-id="parallelism" tabindex="0">并行度</span> 决定每个算子有多少并行 Subtask；集群上受 TaskManager Slot 总数约束，不是越大越快。</li>
+        <li><strong>执行图</strong>：<code>keyBy</code> 会引入<strong>网络 shuffle</strong>；Client 把 API 链编译成 <span class="term" data-term-id="job-graph" tabindex="0">JobGraph</span>，JobMaster 再展开为 <span class="term" data-term-id="execution-graph" tabindex="0">ExecutionGraph</span> 并部署到 TaskManager。</li>
+      </ul>
+    </div>
+
+    <h3>Source → Transformation → Sink</h3>
+    <p>DataStream 程序本质是<strong>有向无环图（DAG）</strong>：Source 产生流，Transformation 逐条变换，Sink 消费结果。</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">flowchart LR
+  S[Source\nSocket / Kafka / fromElements]
+  T1[Transformation\nmap / filter / keyBy]
+  T2[Transformation\nprocess / window]
+  K[Sink\nprint / File / JDBC]
+  S --> T1 --> T2 --> K</pre>
+      <p class="diagram-caption">记忆口诀：<strong>一条 DAG</strong>，从 Source 流入，经若干算子，最后在 Sink 落地；编译后才会切成并行 Task（见第四节「执行图」）。</p>
+    </div>
+
+    <div class="role-cards">
+      <div class="role-card">
+        <span class="role-card-title">Source</span>
+        <p class="role-card-desc">产出 <code>DataStream&lt;T&gt;</code>，如 <code>fromElements</code>、Socket、Kafka；决定输入格式与事件时间属性（高级章节展开）。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Transformation</span>
+        <p class="role-card-desc">对流做计算：map、filter、flatMap、keyBy、window 等；返回仍是 DataStream 或 KeyedStream。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Sink</span>
+        <p class="role-card-desc">写出结果：print（学习用）、文件、消息队列等；与 Source 一起决定端到端语义（at-least-once / exactly-once）。</p>
+      </div>
+    </div>
+
+    <h3>map、filter、flatMap 与并行度</h3>
+    <table class="outline-table">
+      <thead>
+        <tr><th>算子</th><th>输入:输出</th><th>作用</th><th>示例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>map</code></td>
+          <td>1 : 1</td>
+          <td>逐条映射</td>
+          <td><code>.map(x -&gt; x * 2)</code></td>
+        </tr>
+        <tr>
+          <td><code>filter</code></td>
+          <td>1 : 0 或 1</td>
+          <td>条件过滤</td>
+          <td><code>.filter(x -&gt; x &gt; 0)</code></td>
+        </tr>
+        <tr>
+          <td><code>flatMap</code></td>
+          <td>1 : N</td>
+          <td>一对多展开</td>
+          <td>拆行、拆词</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>并行度</strong>：每个算子可独立设置「并行实例数」—— 全局默认 → 算子覆盖 → 提交参数。</p>
+    <ul>
+      <li>单算子：<code>.map(...).setParallelism(4)</code></li>
+      <li>全局默认：<code>env.setParallelism(2)</code></li>
+      <li>提交时 CLI：<code>flink run -p 4 ...</code></li>
+    </ul>
+    <p>并行度不能超过可用 Slot 总数；Web UI 中 Task 数量与 Subtask 索引对应本章 Demo 的 <code>print</code> 行首输出。</p>
+
+        <h4>示例代码：并行度与算子级设置</h4>
+<div class="code-block">
+    <div class="code-toolbar">
+      <span class="lang-tag">java</span>
+      <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code id="code-basics-03-datastream-2" class="language-java">// 并行度：全局、单算子、提交参数（三选一或组合）
+env.setParallelism(2);
+someStream.map(...).setParallelism(4);
+// flink run -p 8 target/transform-lab.jar
+
+// keyBy 后按账户分区（Walkthrough 风格，与第三节呼应）
+transactions
+    .keyBy(Transaction::getAccountId)
+    .process(new FraudDetector())
+    .name("fraud-detector")
+    .setParallelism(4);</code></pre>
+  </div>
+    <h4>示例代码：本章 Demo 完整管道</h4>
+    <p>下方代码对应 <code>demos/basics-03-datastream-transform-lab</code> 中的 <code>TransformLabJob</code>，串联 flatMap → map → filter → keyBy → print，后文执行图均以此为例。</p>
+<div class="code-block">
+    <div class="code-toolbar">
+      <span class="lang-tag">java</span>
+      <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code id="code-basics-03-datastream-1" class="language-java">// TransformLabJob — 对应 demos/basics-03-datastream-transform-lab
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.setParallelism(2);
+
+DataStream&lt;String&gt; lines = env.fromElements(
+    "alice 100", "bob 50", "alice 30", "charlie 200",
+    "invalid-line", "bob 10");
+
+DataStream&lt;Tuple2&lt;String, Integer&gt;&gt; pairs = lines
+    .flatMap((String line, Collector&lt;String[]&gt; out) -&gt; {
+        String[] parts = line.split(" ");
+        if (parts.length == 2) {
+            out.collect(parts);
+        }
+    })
+    .returns(String[].class)
+    .map(parts -&gt; Tuple2.of(parts[0], Integer.parseInt(parts[1])))
+    .filter(t -&gt; t.f1 &gt;= 50);
+
+pairs.keyBy(t -&gt; t.f0)
+     .map(t -&gt; Tuple2.of(t.f0, t.f1))
+     .print();
+
+env.execute("transform-lab");</code></pre>
+  </div>
+
+    <h3>keyBy 与数据分区</h3>
+    <p><code>keyBy</code> 按 key 的 hash 将记录路由到下游 Subtask，保证<strong>相同 key 进入同一并行实例</strong>，从而能使用 Keyed State、窗口按 key 聚合等。</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">flowchart TB
+  subgraph before["keyBy 前 parallelism=3"]
+    P0[Subtask 0]
+    P1[Subtask 1]
+    P2[Subtask 2]
+  end
+  KB[keyBy userId]
+  subgraph after["keyBy 后 — hash 分区"]
+    K0[userId hash → 0]
+    K1[userId hash → 1]
+    K2[userId hash → 2]
+  end
+  P0 --> KB
+  P1 --> KB
+  P2 --> KB
+  KB --> K0
+  KB --> K1
+  KB --> K2</pre>
+      <p class="diagram-caption">注意：<code>keyBy</code> 之后得到 <code>KeyedStream</code>，再 <code>process</code> / 窗口 / 状态都按 key 隔离；不要在 KeyedStream 上再次 keyBy。</p>
+    </div>
+
+    <ul>
+      <li><strong>KeySelector</strong>：<code>.keyBy(event -&gt; event.getUserId())</code> 或方法引用 <code>Event::getUserId</code>。</li>
+      <li><strong>数据倾斜</strong>：个别 key 过多会导致某 Subtask 成为热点（practice / advanced 讲 rebalance 与自定义分区）。</li>
+      <li><strong>与 rebalance 区别</strong>：<code>keyBy</code> 是 hash 分区；<code>rebalance</code> / <code>rescale</code> 是轮询或局部轮询，不保证相同 key 同 Subtask。</li>
+    </ul>
+
+    <h3>从逻辑图到物理执行计划</h3>
+    <p>以 Demo <code>TransformLabJob</code> 为例：<code>fromElements → flatMap → map → filter → keyBy → print</code>。下面用<strong>同一管道</strong>从调用链、逻辑图到物理部署逐层展开。</p>
+
+    <table class="outline-table">
+      <thead>
+        <tr><th>层次</th><th>图 / 产物</th><th>谁生成</th><th>关注点</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>代码层</td><td>Java API 链</td><td>开发者</td><td>可读的业务 DAG</td></tr>
+        <tr><td><code>execute()</code> 前</td><td>StreamGraph</td><td>Flink Client</td><td>与 API 一一对应的 StreamNode</td></tr>
+        <tr><td>优化后</td><td>JobGraph</td><td>Client</td><td>算子链合并、keyBy 处 Shuffle</td></tr>
+        <tr><td>调度时</td><td>ExecutionGraph</td><td>JobMaster</td><td>按并行度展开 Subtask</td></tr>
+        <tr><td>运行时</td><td>物理 Task</td><td>JobMaster</td><td>Subtask 占用 TM Slot</td></tr>
+      </tbody>
+    </table>
+
+    <h4>调用与提交流程</h4>
+
+    <div class="mermaid-wrap">
+      <h5>A1 — 从 main 到 Subtask 启动</h5>
+      <pre class="mermaid">sequenceDiagram
+  autonumber
+  actor Dev as Developer
+  participant App as Main Job Class
+  participant Env as StreamExecutionEnvironment
+  participant Client as Flink Client
+  participant Disp as Dispatcher
+  participant JM as JobMaster
+  participant RM as ResourceManager
+  participant TM as TaskManager
+  Dev->>App: start main
+  App->>Env: getExecutionEnvironment
+  App->>Env: define Source and operators
+  App->>Env: execute job name
+  Env->>Client: StreamGraph to JobGraph
+  Client->>Disp: submit job
+  Disp->>JM: create JobMaster
+  JM->>JM: JobGraph to ExecutionGraph
+  JM->>RM: request Slots
+  RM->>TM: offer Slots
+  JM->>TM: deploy Subtasks
+  TM->>TM: run data pipeline</pre>
+      <p class="diagram-caption"><strong>分界线</strong>：<code>env.execute()</code> 之前只在 Client/JVM 内建图；之后进入 JobManager 与 TaskManager 调度。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>A2 — execute 在 Client 内部</h5>
+      <pre class="mermaid">flowchart TB
+  E[env.execute]
+  SG[Build StreamGraph from API]
+  JG[Optimize and build JobGraph]
+  MODE{Runtime mode}
+  LOCAL[MiniCluster in same JVM]
+  REMOTE[Submit to remote JobManager]
+  E --> SG --> JG --> MODE
+  MODE -->|IDE Run default| LOCAL
+  MODE -->|flink run| REMOTE</pre>
+      <p class="diagram-caption">IDE Run 走 MiniCluster；<code>flink run</code> 提交到已启动的 Standalone / YARN / K8s 集群。</p>
+    </div>
+
+    <h4>四层执行图（逻辑 → 物理）</h4>
+
+    <div class="mermaid-wrap">
+      <h5>B0 — 四层总览</h5>
+      <pre class="mermaid">flowchart LR
+  CODE[Java API chain]
+  SG[StreamGraph 6 nodes]
+  JG[JobGraph 3 vertices]
+  EG[ExecutionGraph p=2]
+  PHY[Tasks in Slots]
+  CODE --> SG --> JG --> EG --> PHY</pre>
+      <p class="diagram-caption">越往下越「物理」：节点变少（链合并）、再按并行度复制 Subtask、最后落到 Slot。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B1 — StreamGraph（与 API 同构）</h5>
+      <pre class="mermaid">flowchart LR
+  S[Source fromElements]
+  FM[flatMap]
+  M[map]
+  F[filter]
+  KB[keyBy user]
+  SK[Sink print]
+  S --> FM --> M --> F --> KB --> SK</pre>
+      <p class="diagram-caption">节点数 = 你的 StreamNode 个数；尚未做链合并与 shuffle 边抽象。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B2 — JobGraph（链合并 + Shuffle）</h5>
+      <pre class="mermaid">flowchart LR
+  subgraph V1[JobVertex-1 operator chain]
+    a1[Source]
+    a2[flatMap]
+    a3[map]
+    a4[filter]
+    a1 --- a2 --- a3 --- a4
+  end
+  SH[Shuffle IntermediateDataSet]
+  subgraph V2[JobVertex-2]
+    b1[after keyBy]
+  end
+  subgraph V3[JobVertex-3]
+    c1[Sink print]
+  end
+  V1 --> SH --> V2 --> V3</pre>
+      <p class="diagram-caption">keyBy 打断算子链，产生独立 JobVertex；Web UI Task Graph 中可见 Shuffle 类型边。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B3 — ExecutionGraph（并行度 p=2）</h5>
+      <pre class="mermaid">flowchart TB
+  subgraph EV1[JobVertex-1 parallelism 2]
+    e10[Subtask 0]
+    e11[Subtask 1]
+  end
+  SH2[Network Shuffle]
+  subgraph EV2[JobVertex-2 parallelism 2]
+    e20[Subtask 0]
+    e21[Subtask 1]
+  end
+  subgraph EV3[JobVertex-3 parallelism 2]
+    e30[Subtask 0]
+    e31[Subtask 1]
+  end
+  e10 --> SH2
+  e11 --> SH2
+  SH2 --> e20
+  SH2 --> e21
+  e20 --> e30
+  e21 --> e31</pre>
+      <p class="diagram-caption"><strong>对照点</strong>：每个 Subtask 对应 Web UI 中 Vertex 下的 Subtasks 列表与 Metrics。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B4 — 物理部署到 Slot</h5>
+      <pre class="mermaid">flowchart TB
+  subgraph TM1[TaskManager host-1]
+    s11[Slot-1 Subtask chain-0]
+    s12[Slot-2 Subtask keyed-0]
+  end
+  subgraph TM2[TaskManager host-2]
+    s21[Slot-1 Subtask chain-1]
+    s22[Slot-2 Subtask keyed-1]
+  end
+  NET[Cross-host network]
+  s11 --> NET
+  s21 --> NET
+  NET --> s12
+  NET --> s22</pre>
+      <p class="diagram-caption">同一 key 的记录经 shuffle 进入同一 keyBy 后 Subtask；跨机时走网络缓冲区。</p>
+    </div>
+
+    <h4>单条记录在管道中的路径</h4>
+
+    <div class="mermaid-wrap">
+      <h5>C1 — 一条记录穿越 Subtask</h5>
+      <pre class="mermaid">sequenceDiagram
+  participant Src as Source Subtask
+  participant Chain as Chain Subtask
+  participant Shuf as Shuffle
+  participant Keyed as Keyed Subtask
+  participant Sink as Print Subtask
+  Src->>Chain: emit record
+  Chain->>Chain: flatMap map filter
+  Chain->>Shuf: partition by key hash
+  Shuf->>Keyed: same key same Subtask
+  Keyed->>Sink: output</pre>
+      <p class="diagram-caption">Demo 中 key = 用户名（<code>t.f0</code>）；欺诈检测 Walkthrough 中 key = <code>accountId</code>。</p>
+    </div>
+
+    <div class="notice">
+      <strong>Web UI 对照</strong>
+      <table class="outline-table">
+        <thead><tr><th>本节图</th><th>Flink Web UI 入口</th><th>看什么</th></tr></thead>
+        <tbody>
+          <tr><td>B2 JobGraph</td><td>Running Jobs → 作业 → Task Graph</td><td>Vertex 之间 HASH 等 shuffle 边</td></tr>
+          <tr><td>B3 ExecutionGraph</td><td>Vertex → Subtasks</td><td>Subtask 状态、背压、Records 计数</td></tr>
+          <tr><td>B4 物理 Task</td><td>Task Managers → Slots</td><td>哪个 Slot 跑哪个 Subtask</td></tr>
+          <tr><td>A1 提交流程</td><td>Jobs 列表</td><td>CREATED → RUNNING → FINISHED</td></tr>
+          <tr><td>B1 StreamGraph</td><td>（无直接页面）</td><td>与 Task Graph 拓扑一致，节点更细</td></tr>
+        </tbody>
+      </table>
+    </div>
+<div class="notice">
+      <strong>本章小结</strong>：能写出 Source–Transformation–Sink 管道；会设并行度与 <code>keyBy</code>；理解 <code>execute()</code> 触发编译（A1、A2）与四层图（B0–B4）及单条记录路径（C1）。下一章 <code>basics-04-connectors</code> 替换 Source/Sink 为 Kafka 等连接器。
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/overview/" target="_blank" rel="noopener">DataStream API — Overview</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/overview/" target="_blank" rel="noopener">Operators — 算子总览</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/flink-architecture/" target="_blank" rel="noopener">Flink Architecture — 组件与职责</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/internals/job_scheduling/" target="_blank" rel="noopener">Job Scheduling — 调度与执行图</a></li>
+    </ul>
+  </div>
+  <h3>动手练习</h3>
+  <p class="steps-intro">按顺序完成下列步骤；图中标签（A1、B1、C1 等）仅用于与上文插图对照，不会出现在右侧大纲里。</p>
+  <ol class="steps">
+    <li>阅读前三节，对照「示例代码：本章 Demo 完整管道」画出你自己的 Source → Transformation → Sink 草图。</li>
+    <li>运行 Demo：<code>cd demos/basics-03-datastream-transform-lab &amp;&amp; mvn -q exec:java</code>，在 IDE 于 <code>execute</code> 前后设断点，对照图 <strong>A1</strong> 理解 Client 与 Cluster 分工。</li>
+    <li>对照图 <strong>B1→B3</strong>：数清 StreamGraph 节点数、JobGraph 的 Vertex 数；可选 <code>mvn -q exec:java -Dexec.args=4</code>，在 Web UI 核对 Subtask 数量。</li>
+    <li>在 Web UI Task Graph 找图 <strong>B2</strong> 的 Vertex 与 keyBy 后的 Shuffle 边；观察 <code>print</code> 输出，同用户名（key）是否落在相同 subtask 索引（图 <strong>C1</strong>）。</li>
+    <li>（可选）<code>mvn package</code> 后 <code>flink run</code> 提交 Standalone，在 Jobs 列表对照图 <strong>A1</strong> 的作业状态变化。</li>
+  </ol>
+
+
+<div class="demo-box">
+    <h3>Demo：转换与分区实验室</h3>
+    <p>目录：<code>demos/basics-03-datastream-transform-lab/</code>。演示 <strong>flatMap → map → filter → keyBy → print</strong>；本地运行对照 <strong>B1</strong> 拓扑，提交集群后对照 <strong>B2–B4</strong> 与 Web UI。</p>
+    <p>命令：<code>cd demos/basics-03-datastream-transform-lab &amp;&amp; mvn -q exec:java</code>；指定并行度：<code>mvn -q exec:java -Dexec.args=4</code></p>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/joining/" target="_blank" rel="noopener">Joining — connect / union / join</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/partition/" target="_blank" rel="noopener">Partitioning — rebalance / rescale / broadcast</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/execution/parallel/" target="_blank" rel="noopener">Parallel Execution — 并行度详解</a></li>
     </ul>
   </div>
 </section>
         </div>
         <div id="quiz-panel">
-<h2 class="quiz-panel-title">章节测验</h2>
-<p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。切换章节时自动显示对应测验。</p>
-
 <section id="quiz-basics-01-overview-quiz" class="quiz-section" data-quiz="basics-01-overview-quiz" data-chapter="basics-01-overview">
-  <h3>测验：RocketMQ 定位与架构鸟瞰</h3>
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
 
   <article class="quiz-item" data-qid="q1" data-answer="C">
-    <p class="stem"><strong>1.</strong> （单选）下列哪一项<strong>不是</strong>本章强调的 RocketMQ 典型价值？</p>
+    <p class="stem"><strong>1.</strong> （单选）下列哪一项<strong>不是</strong>本章强调的流处理典型诉求？</p>
     <ul class="options">
-      <li><label><input type="radio" name="rq-b01-q1" value="A"> 异步解耦，上下游不必同步等待</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="B"> 削峰填谷，缓冲突发流量</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="C"> 替代所有同步 HTTP/RPC，成为唯一调用方式</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="D"> 配合事务消息等能力实现最终一致</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="A"> 对持续到达的无界数据做低延迟计算</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="B"> 在算子中维护会话、累计等状态</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="C"> 只支持 T+1 离线批报表，不能实时输出</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="D"> 故障后借助 Checkpoint 尽量保证精确一次</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">消息队列是<strong>补充</strong>同步调用，不是取代一切 RPC。</p>
-    <p class="answer hidden"><strong>答案：</strong>C — MQ 解决异步与削峰，不是把所有调用都改成消息。</p>
+    <p class="hint hidden">对照「流处理 vs 批处理」：Flink 面向实时流，不是只能离线。</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 流处理强调低延迟与持续计算，而非只能等离线批。</p>
   </article>
 
-  <article class="quiz-item" data-qid="q2" data-answer="NameServer">
-    <p class="stem"><strong>2.</strong> （填空）Producer 与 Consumer 在收发消息前，通常先向 ______ 查询 Topic 的路由信息（Broker 与 Queue 列表）。</p>
+  <article class="quiz-item" data-qid="q2" data-answer="TaskManager">
+    <p class="stem"><strong>2.</strong> （填空）真正在集群上执行算子 Task、并在 Slot 间交换数据的进程是 ______。</p>
     <input type="text" class="fill-input" aria-label="填空答案" placeholder="组件英文名" />
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">轻量、无状态的路由注册中心，不是 ZooKeeper。</p>
-    <p class="answer hidden"><strong>答案：</strong>NameServer（也接受 nameserver，大小写不敏感）</p>
+    <p class="hint hidden">JobManager 负责调度与容错；Worker 进程执行算子。</p>
+    <p class="answer hidden"><strong>答案：</strong>TaskManager（大小写不敏感）</p>
   </article>
 
-  <article class="quiz-item" data-qid="q3" data-answer="A,B,D,E">
-    <p class="stem"><strong>3.</strong> （多选）下列属于 RocketMQ 架构中「四大角色」的是？</p>
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,C">
+    <p class="stem"><strong>3.</strong> （多选）关于 Flink 运行时角色，下列描述<strong>正确</strong>的是？</p>
     <ul class="options">
-      <li><label><input type="checkbox" name="rq-b01-q3" value="A"> Producer 生产者</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="B"> NameServer</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="C"> ZooKeeper</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="D"> Broker</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="E"> Consumer 消费者</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="A"> Client 解析程序并提交 JobGraph</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="B"> JobManager 协调调度与 Checkpoint</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="C"> Slot 是 TaskManager 内的调度资源切片</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="D"> Client 直接在 Slot 上长期运行所有算子</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">Kafka 依赖 ZooKeeper/KRaft；RocketMQ 用 NameServer 做路由。</p>
-    <p class="answer hidden"><strong>答案：</strong>A, B, D, E — Producer、NameServer、Broker、Consumer；不含 ZooKeeper。</p>
+    <p class="hint hidden">Client 只提交；算子在 TaskManager 的 Slot 上跑。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, C — D 错在 Client 不直接执行算子。</p>
   </article>
 
   <article class="quiz-item" data-qid="q4" data-answer="B">
-    <p class="stem"><strong>4.</strong> （单选）关于消息流转，下列描述<strong>正确</strong>的是？</p>
+    <p class="stem"><strong>4.</strong> （单选）团队以「表」思维做实时 ETL、希望优化器自动选算子，本章建议优先哪一层 API？</p>
     <ul class="options">
-      <li><label><input type="radio" name="rq-b01-q4" value="A"> Producer 与 Consumer 必须直连，不经 Broker</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="B"> 先查路由，再向 Broker 收发；消息落在 Broker 的 MessageQueue</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="C"> NameServer 负责持久化 CommitLog</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="D"> 同一消费组内，每条消息会被组内所有实例各消费一次</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="A"> 仅 DataStream，禁止 Table/SQL</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="B"> Table API / Flink SQL</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="C"> 只能写 MapReduce 作业</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="D"> 必须手写所有物理执行计划</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">对照本章时序图四步：查路由 → 发/收 → Broker 存储。</p>
-    <p class="answer hidden"><strong>答案：</strong>B — D 错在同组是负载均衡（一条只被一个实例消费），C 错在存储在 Broker。</p>
+    <p class="hint hidden">多数分析从 Table/SQL 起步；DataStream 用于细粒度控制。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 复杂状态机、自定义时间语义时再深入 DataStream。</p>
+  </article>
+</section>
+
+<section id="quiz-basics-02-env-quiz" class="quiz-section" data-quiz="basics-02-env-quiz" data-chapter="basics-02-env">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="A">
+    <p class="stem"><strong>1.</strong> （单选）在 IDE 中直接 Run <code>FraudDetectionJob</code> 时，<code>StreamExecutionEnvironment.getExecutionEnvironment()</code> 通常对应哪种运行方式？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b02-q1" value="A"> 内置本地 MiniCluster</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="B"> 必须先下载完整发行包并 start-cluster</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="C"> 只能在 YARN 上运行</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="D"> 不会创建任何集群进程</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照「方式 A：IDE 直接 Run」示意图。</p>
+    <p class="answer hidden"><strong>答案：</strong>A — IDE 默认嵌入式 MiniCluster；需要 Web UI 时可另启 Standalone。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="8081">
+    <p class="stem"><strong>2.</strong> （填空）本地 Standalone 集群 Web UI 默认端口是 ______。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="端口号" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">浏览器访问 http://localhost:____</p>
+    <p class="answer hidden"><strong>答案：</strong>8081</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）运行官方欺诈检测 Walkthrough 前，本章推荐已具备的是？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="flink-b02-q3" value="A"> JDK 17 与 Maven 3.9+</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="B"> 通过 Archetype 生成含 TransactionSource 的工程</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="C"> 必须先掌握 Kafka 生产集群</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="D"> 理解 Source → keyBy → Process → Sink 管道</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Kafka 在后续章节；学习阶段 Maven 依赖即可。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, D — 不必先装 Kafka 或完整发行包（IDE Run 时）。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）欺诈检测 Walkthrough 中，<code>KeyedProcessFunction</code>（FraudDetector）应放在管道的哪个位置？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b02-q4" value="A"> TransactionSource 之前</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="B"> keyBy(accountId) 之后、AlertSink 之前</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="C"> 无需 keyBy，任意位置均可</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="D"> 仅作为 Sink 输出告警</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">有状态规则按账户分区，再输出到 AlertSink。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — TS → keyBy → FraudDetector → AlertSink。</p>
+  </article>
+</section>
+
+<section id="quiz-basics-03-datastream-quiz" class="quiz-section" data-quiz="basics-03-datastream-quiz" data-chapter="basics-03-datastream">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）下列算子中，输入 1 条记录可能输出<strong>多条</strong>的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b03-q1" value="A"> map</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="B"> filter</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="C"> flatMap</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="D"> keyBy</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照算子表「输入:输出」列。</p>
+    <p class="answer hidden"><strong>答案：</strong>C — flatMap 为 1:N；map 为 1:1，filter 为 0 或 1。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="shuffle">
+    <p class="stem"><strong>2.</strong> （填空）在物理执行图上，<code>keyBy</code> 会引入网络 ______，把相同 key 的数据发到同一 Subtask。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="英文术语" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">本章摘要：keyBy 会引入网络 ___。</p>
+    <p class="answer hidden"><strong>答案：</strong>shuffle（接受「网络 shuffle」等包含 shuffle 的表述）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,C">
+    <p class="stem"><strong>3.</strong> （多选）下列属于设置 Flink 并行度的方式有？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="flink-b03-q3" value="A"> <code>env.setParallelism(n)</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="B"> 单算子 <code>.setParallelism(n)</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="C"> 提交时 <code>flink run -p n</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="D"> 在 Sink 里写 <code>setSlotCount</code></label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">并行度受 Slot 总数约束；无 setSlotCount API。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, C — D 不是合法 API。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）Client 提交作业后，JobMaster 将逻辑图按并行度展开并部署到 TaskManager，对应的概念是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b03-q4" value="A"> 仅 StreamGraph，不再变化</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="B"> ExecutionGraph（由 JobGraph 展开）</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="C"> NameServer 路由表</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="D"> Checkpoint 屏障文件</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">StreamGraph → JobGraph → ExecutionGraph。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — ExecutionGraph 含并行 Subtask；可在 Web UI Task 视图对照。</p>
   </article>
 </section>
         </div>
       </main>
+      <aside id="chapter-toc" class="chapter-toc" aria-label="本章大纲" hidden>
+        <div class="chapter-toc-header">
+          <span class="chapter-toc-title">大纲</span>
+          <button type="button" id="btn-chapter-toc-toggle" class="btn-chapter-toc-toggle" aria-label="隐藏大纲" aria-expanded="true">隐藏</button>
+        </div>
+        <nav id="chapter-toc-nav" class="chapter-toc-nav" aria-label="本章大纲导航"></nav>
+      </aside>
     </div>
   </div>
+  <button type="button" id="chapter-toc-fab" class="chapter-toc-fab" hidden aria-label="显示大纲">大纲</button>
 
   <dialog id="term-modal">
     <div class="term-modal-header">
@@ -1039,7 +2322,7 @@ consumer.start();</code></pre>
       <button type="button" class="btn-icon-close" id="btn-close-term-x" aria-label="关闭">×</button>
     </div>
     <div class="term-modal-body">
-      <pre id="term-prompt"></pre>
+      <div id="term-prompt" class="term-prompt" role="document"></div>
       <div class="term-actions">
         <button type="button" id="btn-copy-prompt" class="btn-term" aria-label="复制 AI 提示词">复制提示词</button>
         <a class="btn-term btn-term-link" href="https://www.doubao.com/chat/" target="_blank" rel="noopener">豆包 ↗</a>
@@ -1053,151 +2336,203 @@ consumer.start();</code></pre>
   <script id="course-data" type="application/json">
 {
   "meta": {
-    "title": "Apache RocketMQ 入门到进阶",
-    "slug": "rocketmq",
-    "domain": "Apache RocketMQ",
-    "themePreset": "rocketmq",
-    "shellVersion": "2.1.3",
-    "version": "5.4.0",
+    "title": "Apache Flink 流处理入门到进阶",
+    "slug": "apache-flink",
+    "domain": "Apache Flink",
+    "themePreset": "apache-flink",
+    "version": "2.2.0（Stable）；生产可参考 1.20 LTS",
     "generatedAt": "2026-05-17",
-    "officialDocs": "https://rocketmq.apache.org/docs/quickStart/01quickstart/",
+    "officialDocs": "https://nightlies.apache.org/flink/flink-docs-stable/",
     "domainType": "C",
     "hljsLanguages": [
       "java",
+      "sql",
       "bash",
-      "json",
-      "xml"
+      "yaml",
+      "properties"
     ],
     "learningNotes": {
       "assumptions": [
-        "具备 Java 基础与 Maven/Gradle 使用经验",
-        "了解分布式系统中异步通信的基本概念",
-        "本地可安装 JDK 8+ 并运行 Docker 或解压版 Broker（教程以 5.x 为主）"
+        "具备 Java 基础（建议 JDK 17）与 Maven 使用经验",
+        "了解分布式系统基本概念（节点、分区、副本）",
+        "未强制要求 Kafka 经验，Kafka 集成章会单独铺垫"
       ],
       "phaseGoals": {
-        "basics": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
-        "practice": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
-        "advanced": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点"
+        "basics": "能本地启动 Flink、理解 JobManager/TaskManager 与 DataStream 编程模型，完成第一个可运行作业",
+        "practice": "能使用 Keyed State、事件时间与窗口，并用 Table/SQL 或 Kafka 完成典型实时处理场景",
+        "advanced": "理解 Checkpoint 容错机制，掌握生产部署、调优与观测要点，了解 CDC 等生态组件"
       }
-    }
+    },
+    "shellVersion": "2.2.0"
   },
   "outline": [
     {
       "phaseId": "basics",
-      "phaseTitle": "消息模型与本地跑通",
-      "phaseGoal": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
+      "phaseTitle": "流处理入门：环境与 DataStream 核心",
+      "phaseGoal": "能本地启动 Flink、理解运行时架构与 DataStream 编程模型，完成第一个可运行作业",
       "chapters": [
         {
           "id": "basics-01-overview",
-          "title": "RocketMQ 定位与架构鸟瞰",
+          "title": "Flink 定位与流批一体架构",
           "sections": [
-            "分布式消息中间件要解决什么问题",
-            "NameServer、Broker、Producer、Consumer 职责",
-            "与 Kafka、RabbitMQ 的差异对照"
+            "流处理 vs 批处理：为何需要 Flink",
+            "核心组件：JobManager、TaskManager、Slot",
+            "DataStream / Table / SQL 三层 API 如何选型",
+            "版本线：2.x Stable 与 1.20 LTS 怎么选"
           ]
         },
         {
           "id": "basics-02-env",
-          "title": "环境搭建与第一次收发",
+          "title": "环境搭建与第一个作业",
           "sections": [
-            "下载 5.x 与 JDK 要求",
-            "启动 NameServer 与 Broker",
-            "mqadmin 与 RocketMQ Dashboard 初探"
+            "JDK、Maven 与 Flink 发行包",
+            "本地 Standalone 集群启动与 Web UI",
+            "DataStream 官方教程：欺诈检测骨架",
+            "在 IDE 中运行与打包提交"
           ]
         },
         {
-          "id": "basics-03-model",
-          "title": "Topic、Queue、Tag 与消息属性",
+          "id": "basics-03-datastream",
+          "title": "DataStream API：转换与执行图",
           "sections": [
-            "Topic 与 MessageQueue 分区",
-            "Tag、Keys 与属性过滤",
-            "消息存储与消费位点概念"
+            "Source → Transformation → Sink 数据流",
+            "map、filter、flatMap 与并行度",
+            "keyBy 与数据分区",
+            "从逻辑图到物理执行计划"
           ]
         },
         {
-          "id": "basics-04-api",
-          "title": "Java 客户端：生产与消费入门",
+          "id": "basics-04-connectors",
+          "title": "连接器：Source 与 Sink",
           "sections": [
-            "依赖引入与客户端生命周期",
-            "同步、异步与单向发送",
-            "Push 消费、消费组与重平衡"
+            "内置 Source/Sink 与 File 连接器",
+            "连接器通用配置模式",
+            "序列化与格式（JSON、CSV）",
+            "为后续 Kafka 集成做铺垫"
+          ]
+        },
+        {
+          "id": "basics-05-local-submit",
+          "title": "作业提交与 Web UI 初探",
+          "sections": [
+            "本地执行 vs 集群提交",
+            "作业生命周期：CREATED → RUNNING → FINISHED",
+            "Metrics 与 Task 视图",
+            "常见启动失败排查"
           ]
         }
       ]
     },
     {
       "phaseId": "practice",
-      "phaseTitle": "业务集成与可靠投递",
-      "phaseGoal": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
+      "phaseTitle": "状态、时间与 Table/SQL 实战",
+      "phaseGoal": "能完成有状态实时聚合，并掌握 Table API、Flink SQL 及 Kafka 典型集成",
       "chapters": [
         {
-          "id": "practice-01-patterns",
-          "title": "典型场景：解耦、削峰与事件驱动",
+          "id": "practice-01-keyed-state",
+          "title": "Keyed State 与有状态处理",
           "sections": [
-            "异步解耦与最终一致性",
-            "削峰填谷与流量整形",
-            "广播、集群消费模式选择"
+            "ValueState、ListState 与状态描述符",
+            "KeyedProcessFunction 业务逻辑",
+            "状态 TTL 与清理策略",
+            "有状态算子扩缩容注意事项"
           ]
         },
         {
-          "id": "practice-02-order-delay",
-          "title": "顺序消息、延迟与定时",
+          "id": "practice-02-event-time",
+          "title": "事件时间、Watermark 与窗口",
           "sections": [
-            "全局顺序与分区顺序",
-            "delayLevel 与 Timer 消息（5.x）",
-            "消费幂等与重复消息处理"
+            "Processing Time vs Event Time",
+            "Watermark 生成与乱序处理",
+            "滚动、滑动与会话窗口",
+            "迟到数据与 allowedLateness"
           ]
         },
         {
-          "id": "practice-03-transaction",
-          "title": "事务消息与可靠投递",
+          "id": "practice-03-table-sql",
+          "title": "Table API 与 Flink SQL",
           "sections": [
-            "半消息与事务回查机制",
-            "本地事务表配合模式",
-            "失败重试、死信与人工介入"
+            "动态表与连续查询概念",
+            "Table API 环境与会话",
+            "Flink SQL：DDL、DML 与 UDF",
+            "流批统一：同一套 SQL 两种模式"
           ]
         },
         {
-          "id": "practice-04-spring",
-          "title": "Spring Boot 集成实战",
+          "id": "practice-04-kafka",
+          "title": "Kafka 集成：端到端实时管道",
           "sections": [
-            "rocketmq-spring-boot-starter 配置",
-            "注解式发送与监听",
-            "多环境、多集群与测试替身"
+            "Kafka Source/Sink 依赖与版本",
+            "消费位点与 exactly-once 语义铺垫",
+            "反压与分区对齐",
+            "本地 Docker Compose 最小环境"
+          ]
+        },
+        {
+          "id": "practice-05-mini-project",
+          "title": "实战：实时 UV/PV 统计 mini 项目",
+          "sections": [
+            "需求与数据模型设计",
+            "DataStream 与 SQL 两种实现对比",
+            "结果落盘或打印 Sink",
+            "验收清单与扩展方向"
           ]
         }
       ]
     },
     {
       "phaseId": "advanced",
-      "phaseTitle": "集群高可用与生产治理",
-      "phaseGoal": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点",
+      "phaseTitle": "容错、集群部署与生产生态",
+      "phaseGoal": "理解 Checkpoint 与状态后端，能在集群环境部署并观测作业，了解 CDC 与版本选型",
       "chapters": [
         {
-          "id": "advanced-01-cluster",
-          "title": "集群部署与高可用架构",
+          "id": "advanced-01-checkpoint",
+          "title": "Checkpoint、Savepoint 与一致性",
           "sections": [
-            "主从复制与 Controller 模式概览",
-            "多副本、故障切换与容灾",
-            "跨机房与异地多活思路"
+            "Checkpoint 触发机制与 barrier 对齐",
+            "Savepoint 与版本升级/迁移",
+            "At-least-once vs Exactly-once",
+            "端到端一致性（Source/Sink 配合）"
           ]
         },
         {
-          "id": "advanced-02-tuning",
-          "title": "性能调优、存储与可观测性",
+          "id": "advanced-02-state-backend",
+          "title": "状态后端、RocksDB 与调优",
           "sections": [
-            "同步/异步刷盘与存储引擎",
-            "批量发送、消费线程与背压",
-            "消息轨迹、Metrics 与常见瓶颈"
+            "HashMapStateBackend vs EmbeddedRocksDBStateBackend",
+            "增量 Checkpoint 与状态大小",
+            "并行度、Slot 与资源规划",
+            "反压定位与常见瓶颈"
           ]
         },
         {
-          "id": "advanced-03-ops",
-          "title": "安全、ACL 2.0 与运维治理",
+          "id": "advanced-03-cluster-deploy",
+          "title": "集群部署：Standalone、YARN 与 Kubernetes",
           "sections": [
-            "ACL 2.0 与权限模型（5.3+ 迁移要点）",
-            "配额、限流与资源隔离",
-            "版本升级、RIP 特性与生产 checklist"
+            "Standalone 集群拓扑",
+            "YARN / K8s 模式适用场景",
+            "高可用 JobManager 要点",
+            "作业提交参数与资源隔离"
+          ]
+        },
+        {
+          "id": "advanced-04-observability",
+          "title": "观测、排错与运维习惯",
+          "sections": [
+            "Metrics、REST API 与 Prometheus",
+            "日志与 TaskManager 堆栈",
+            "作业失败重启策略",
+            "生产变更与灰度发布建议"
+          ]
+        },
+        {
+          "id": "advanced-05-ecosystem",
+          "title": "生态：CDC、SQL Gateway 与选型",
+          "sections": [
+            "Flink CDC 与数据库变更捕获",
+            "SQL Gateway / SQL Client 使用场景",
+            "与 Spark Streaming、Kafka Streams 的差异对照",
+            "学习路线延伸与官方资源"
           ]
         }
       ]
@@ -1205,60 +2540,200 @@ consumer.start();</code></pre>
   ],
   "chapters": {
     "basics-01-overview": {
-      "title": "RocketMQ 定位与架构鸟瞰",
-      "summary": "理解 RocketMQ 在分布式系统中的角色、四大核心组件及与 Kafka/RabbitMQ 的差异。"
+      "title": "Flink 定位与流批一体架构",
+      "summary": "流处理价值、JobManager/TaskManager/Slot、三层 API 选型与版本线"
+    },
+    "basics-02-env": {
+      "title": "环境搭建与第一个作业",
+      "summary": "JDK/Maven、Standalone 与 Web UI、欺诈检测 Walkthrough、IDE 运行与 flink run 提交"
+    },
+    "basics-03-datastream": {
+      "title": "DataStream API：转换与执行图",
+      "summary": "Source/Transformation/Sink、算子与并行度、keyBy；调用流程 A1-A2、执行图 B0-B4、数据路径 C1 与 Web UI 对照"
     }
   },
   "terms": {
-    "nameserver": {
-      "label": "NameServer",
-      "prompt": "我在学习 Apache RocketMQ 5.x，已了解分布式系统基础。请用通俗中文解释 NameServer 的职责、与 ZooKeeper 类注册中心的区别、为何 RocketMQ 选择轻量级路由服务，并说明 Broker 上下线时客户端如何感知。"
+    "stream-processing": {
+      "label": "流处理",
+      "prompt": "我在学习 Apache Flink。请用通俗语言解释「流处理」与批处理的区别，说明事件驱动、无界数据流、低延迟等核心特征，并各举一个 Flink 适用与不适用场景。"
     },
-    "message-queue": {
-      "label": "MessageQueue",
-      "prompt": "我在学习 RocketMQ。请解释 MessageQueue 与 Kafka Partition 的异同、一个 Topic 下 Queue 数量如何影响并行度与顺序性，并给一个选择 Queue 数量的实践建议。"
+    "checkpoint": {
+      "label": "Checkpoint",
+      "prompt": "我在学习 Apache Flink 的容错机制。请解释 Checkpoint 是什么、与 Savepoint 有何区别、barrier 如何对齐，以及为何能实现 Exactly-once 语义。请配合一个简化的数据流示意图说明。"
     },
-    "consumer-group": {
-      "label": "消费组 Consumer Group",
-      "prompt": "我在学习 RocketMQ 消费模型。请解释消费组的作用、集群消费与广播消费的区别、Rebalance 何时触发及对业务的影响，并提醒 3 个常见踩坑。"
+    "watermark": {
+      "label": "Watermark",
+      "prompt": "我在学习 Flink 事件时间。请解释 Watermark 的作用、如何表示「事件时间进度」、与 Processing Time 的对比，以及乱序数据下窗口触发的常见策略（含 allowedLateness 概念）。"
     },
-    "half-message": {
-      "label": "半消息（事务消息）",
-      "prompt": "我在学习 RocketMQ 事务消息。请用步骤图式文字说明半消息提交、本地事务执行、commit/rollback 与回查检查的完整流程，并对比本地消息表方案的优劣。"
+    "keyed-state": {
+      "label": "Keyed State",
+      "prompt": "我在学习 Flink 有状态计算。请解释 Keyed State 是什么、为何必须 keyBy 之后才能使用、ValueState 与 ListState 的典型用途，并给一个 KeyedProcessFunction 的最小 Java 示例思路。"
     },
-    "acl-2": {
-      "label": "ACL 2.0",
-      "prompt": "我在准备 RocketMQ 5.3+ 生产环境。请说明 ACL 2.0 相对 ACL 1.0 的主要变化、为何 5.3.3 移除 ACL 1.0、迁移时需要注意的配置项与验证步骤。"
+    "table-api": {
+      "label": "Table API",
+      "prompt": "我在学习 Flink Table API。请解释动态表（Dynamic Table）概念、连续查询（Continuous Query）与批查询的差异，并说明何时优先用 Table/SQL 而非 DataStream API。"
+    },
+    "stream-execution-environment": {
+      "label": "StreamExecutionEnvironment",
+      "prompt": "我在学习 Apache Flink 环境搭建。请解释 StreamExecutionEnvironment 是什么、getExecutionEnvironment() 在 IDE 与集群提交时分别如何工作、MiniCluster 与 Standalone 集群的区别，并说明 execute() 触发了什么。"
+    },
+    "standalone-cluster": {
+      "label": "Standalone 集群",
+      "prompt": "我在学习 Flink Standalone 部署。请说明 JobManager 与 TaskManager 如何启动、Web UI 默认端口、Slot 在资源视图中的含义，以及本地学习与生产环境使用 Standalone 的适用边界。"
+    },
+    "fraud-detection-walkthrough": {
+      "label": "欺诈检测 Walkthrough",
+      "prompt": "我在学习 Flink 官方 DataStream Walkthrough（欺诈检测）。请说明 TransactionSource、keyBy、KeyedProcessFunction、AlertSink 各自职责，以及「小额后大额」规则如何用 ValueState 实现，并给出学习该教程的推荐步骤顺序。"
+    },
+    "datastream-pipeline": {
+      "label": "Source → Transformation → Sink",
+      "prompt": "我在学习 Flink DataStream API。请用通俗语言解释 Source、Transformation、Sink 三段管道各自职责，并给一个包含 map 与 print 的最小 Java 示例，说明数据如何在 DAG 中流动。"
+    },
+    "parallelism": {
+      "label": "并行度",
+      "prompt": "我在学习 Flink 并行执行。请解释并行度（parallelism）是什么、与 Slot 和 Subtask 的关系，以及 env.setParallelism、算子 setParallelism、flink run -p 的优先级与使用场景。"
+    },
+    "job-graph": {
+      "label": "JobGraph",
+      "prompt": "我在学习 Flink 作业调度。请解释 StreamGraph、JobGraph、ExecutionGraph 的区别，算子链（operator chaining）是什么，以及 keyBy 为何会在物理图上产生 shuffle。"
+    },
+    "execution-graph": {
+      "label": "ExecutionGraph",
+      "prompt": "我在学习 Flink ExecutionGraph。请说明它如何从 JobGraph 按并行度展开为 Subtask、与 StreamGraph/JobGraph 的区别，以及如何在 Web UI 中查看反压与 Subtask 指标。"
+    },
+    "filesystem-connector": {
+      "label": "FileSystem Source/Sink",
+      "prompt": "我在学习 Flink DataStream 连接器。请解释 FileSystem Source/Sink 的典型用途、bounded 与 continuous monitoring 模式的差异，以及与 socket/fromElements 在学习阶段的取舍。"
+    },
+    "serialization-schema": {
+      "label": "SerializationSchema",
+      "prompt": "我在学习 Flink 序列化。请说明 SerializationSchema / DeserializationSchema 与 SimpleStringSchema 一类内置格式的关系，如何在 Source/Sink 指定编码，以及端到端一致性与格式演进要注意什么。"
+    },
+    "kafka-connector-preview": {
+      "label": "Kafka 连接器预习",
+      "prompt": "我在预习 Flink Kafka Source/Sink。请概述分区对齐、起始位点（earliest/latest/group offsets）、以及它与 FileSystem 连接器在吞吐与语义上的差异，并给出下一章学习清单。"
+    },
+    "job-lifecycle": {
+      "label": "作业生命周期",
+      "prompt": "我在学习 Flink 作业调度。请解释 CREATED、RUNNING、FINISHED、FAILED、CANCELED 等典型状态在 Client 与 JobManager 视角的含义，以及 REST/Web UI 上如何观察状态迁移。"
+    },
+    "flink-metrics-task-view": {
+      "label": "Metrics 与 Task 视图",
+      "prompt": "我在学习 Flink Web UI。请说明 Overview、Task Graph、Task Metrics（records/s、backpressure）各自看什么，以及如何把它们与并行度、Shuffle、反压排查联系起来。"
+    },
+    "state-descriptor": {
+      "label": "StateDescriptor",
+      "prompt": "我在学习 Flink Keyed State。请解释 StateDescriptor（如 ValueStateDescriptor）包含哪些信息、为何声明名称与类型、以及它与运行时 State Backend 的关系。"
+    },
+    "keyed-process-function": {
+      "label": "KeyedProcessFunction",
+      "prompt": "我在学习 Flink KeyedProcessFunction。请说明 processElement/onTimer 的典型用法、定时器与状态的配合，以及与普通 map/filter 的差异。"
+    },
+    "state-ttl": {
+      "label": "状态 TTL",
+      "prompt": "我在学习 Flink 状态过期。请解释 StateTTLConfig 的作用、updateOnRead/write 语义差异、何时需要手动清理 ListState，以及对 Checkpoint 大小的影响。"
+    },
+    "event-time": {
+      "label": "事件时间",
+      "prompt": "我在学习 Flink Event Time。请对比 Processing Time / Event Time / Ingestion Time，说明水印如何推进事件时间时钟，以及乱序数据下窗口结果为何可能延迟或修正。"
+    },
+    "window-assigner": {
+      "label": "WindowAssigner",
+      "prompt": "我在学习 Flink 窗口。请解释滚动、滑动、会话窗口的定义与触发差异，以及 keyBy 与 window 组合后的并行与 shuffle 行为。"
+    },
+    "allowed-lateness": {
+      "label": "allowedLateness",
+      "prompt": "我在学习 Flink 迟到数据。请解释 allowedLateness、side output 捕获迟到记录、以及它与 watermark 的关系；何时宁愿扩大水印容忍度而非依赖 allowedLateness。"
     }
   },
   "quizzes": {
     "basics-01-overview-quiz": {
       "chapterId": "basics-01-overview",
-      "title": "RocketMQ 定位与架构鸟瞰",
+      "title": "Flink 定位与流批一体架构",
       "questions": [
         {
           "id": "q1",
           "type": "single",
           "answer": "C",
-          "hint": "消息队列补充同步调用，不是取代一切 RPC"
+          "hint": "流处理面向实时，不是只能离线批"
         },
         {
           "id": "q2",
           "type": "fill",
-          "answer": "NameServer",
-          "hint": "轻量无状态路由服务"
+          "answer": "TaskManager",
+          "hint": "Worker 进程执行算子"
         },
         {
           "id": "q3",
           "type": "multiple",
-          "answer": "A,B,D,E",
-          "hint": "不含 ZooKeeper"
+          "answer": "A,B,C",
+          "hint": "Client 只提交，不直接跑算子"
         },
         {
           "id": "q4",
           "type": "single",
           "answer": "B",
-          "hint": "先查路由再连 Broker；同组负载均衡"
+          "hint": "表建模场景优先 Table/SQL"
+        }
+      ]
+    },
+    "basics-02-env-quiz": {
+      "chapterId": "basics-02-env",
+      "title": "环境搭建与第一个作业",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "single",
+          "answer": "A",
+          "hint": "IDE 默认 MiniCluster"
+        },
+        {
+          "id": "q2",
+          "type": "fill",
+          "answer": "8081",
+          "hint": "Standalone Web UI 默认端口"
+        },
+        {
+          "id": "q3",
+          "type": "multiple",
+          "answer": "A,B,D",
+          "hint": "Kafka 非本章前置"
+        },
+        {
+          "id": "q4",
+          "type": "single",
+          "answer": "B",
+          "hint": "keyBy 后有状态 Process"
+        }
+      ]
+    },
+    "basics-03-datastream-quiz": {
+      "chapterId": "basics-03-datastream",
+      "title": "DataStream API 与执行图",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "single",
+          "answer": "C",
+          "hint": "flatMap 为 1:N"
+        },
+        {
+          "id": "q2",
+          "type": "fill",
+          "answer": "shuffle",
+          "hint": "keyBy 引入网络 shuffle"
+        },
+        {
+          "id": "q3",
+          "type": "multiple",
+          "answer": "A,B,C",
+          "hint": "全局、算子级、CLI 三种方式"
+        },
+        {
+          "id": "q4",
+          "type": "single",
+          "answer": "B",
+          "hint": "JobGraph 展开为 ExecutionGraph"
         }
       ]
     }
@@ -1273,6 +2748,17 @@ consumer.start();</code></pre>
   const KEY_DONE = slug + '_completed';
   const KEY_THEME = slug + '_theme';
   const KEY_SCROLL = slug + '_scroll';
+  const KEY_CHAPTER_TOC_OPEN = slug + '_chapter_toc_open';
+  var chapterTocObserver = null;
+  var chapterTocTopObserver = null;
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
   function storageGet(key) {
     try {
@@ -1367,6 +2853,315 @@ consumer.start();</code></pre>
     } catch (e2) { /* ignore */ }
   }
 
+  function ensureChapterHeadingIds(section) {
+    var chId = section.getAttribute('data-chapter') || 'ch';
+    var counts = { h3: 0, h4: 0 };
+    section.querySelectorAll('h3, h4').forEach(function (heading) {
+      if (heading.closest('.chapter-header')) return;
+      if (heading.closest('.code-toolbar')) return;
+      if (heading.id) return;
+      var tag = heading.tagName.toLowerCase();
+      counts[tag] += 1;
+      var prefix = tag === 'h3' ? 'sec' : 'sub';
+      heading.id = chId + '-' + prefix + '-' + counts[tag];
+    });
+  }
+
+  function isChapterTocOpenPref() {
+    return storageGet(KEY_CHAPTER_TOC_OPEN) !== '0';
+  }
+
+  function setChapterTocOpenPref(open) {
+    storageSet(KEY_CHAPTER_TOC_OPEN, open ? '1' : '0');
+  }
+
+  function applyChapterTocVisibility() {
+    var toc = document.getElementById('chapter-toc');
+    var fab = document.getElementById('chapter-toc-fab');
+    var toggle = document.getElementById('btn-chapter-toc-toggle');
+    if (!toc || toc.hidden) {
+      document.documentElement.classList.remove('chapter-toc-open');
+      if (fab) {
+        fab.classList.remove('is-shown');
+        fab.hidden = true;
+      }
+      return;
+    }
+    var open = isChapterTocOpenPref();
+    toc.classList.toggle('is-collapsed', !open);
+    document.documentElement.classList.toggle('chapter-toc-open', open);
+    if (fab) {
+      if (open) {
+        fab.classList.remove('is-shown');
+        fab.hidden = true;
+      } else {
+        fab.hidden = false;
+        requestAnimationFrame(function () {
+          fab.classList.add('is-shown');
+        });
+      }
+    }
+    if (toggle) {
+      toggle.textContent = open ? '隐藏' : '显示';
+      toggle.setAttribute('aria-label', open ? '隐藏大纲' : '显示大纲');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+  }
+
+  function toggleChapterTocPanel() {
+    setChapterTocOpenPref(!isChapterTocOpenPref());
+    applyChapterTocVisibility();
+  }
+
+  function hideChapterToc() {
+    var toc = document.getElementById('chapter-toc');
+    var fab = document.getElementById('chapter-toc-fab');
+    document.documentElement.classList.remove('chapter-toc-open');
+    if (toc) {
+      toc.hidden = true;
+      toc.classList.remove('is-collapsed');
+    }
+    if (fab) {
+      fab.classList.remove('is-shown');
+      fab.hidden = true;
+    }
+    disconnectChapterTocObservers();
+  }
+
+  function disconnectChapterTocObservers() {
+    if (chapterTocObserver) {
+      chapterTocObserver.disconnect();
+      chapterTocObserver = null;
+    }
+    if (chapterTocTopObserver) {
+      chapterTocTopObserver.disconnect();
+      chapterTocTopObserver = null;
+    }
+  }
+
+  function scrollChapterToTop(section) {
+    var anchor = section.querySelector('.chapter-header') || section;
+    anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function getChapterQuizSection(chapterId) {
+    var panel = document.getElementById('quiz-panel');
+    if (!panel || !chapterId) return null;
+    return panel.querySelector('.quiz-section[data-chapter="' + chapterId + '"]');
+  }
+
+  function ensureQuizTocHeading(chapterId) {
+    var quiz = getChapterQuizSection(chapterId);
+    if (!quiz) return null;
+    var h = quiz.querySelector('h3');
+    if (!h) {
+      h = document.createElement('h3');
+      h.textContent = '章节测验';
+      quiz.insertBefore(h, quiz.firstChild);
+    }
+    if (!h.id) h.id = 'toc-' + chapterId + '-quiz';
+    return h;
+  }
+
+  function isQuizTocTarget(section, target) {
+    if (!section || !target) return false;
+    var quiz = getChapterQuizSection(section.getAttribute('data-chapter'));
+    return !!(quiz && quiz.contains(target));
+  }
+
+  function buildChapterTocGroups(items) {
+    var groups = [];
+    var current = null;
+    items.forEach(function (it) {
+      if (it.level === 'h3') {
+        current = { h3: it, children: [] };
+        groups.push(current);
+      } else if (it.level === 'h4') {
+        if (!current) {
+          groups.push({ h3: null, children: [it] });
+        } else {
+          current.children.push(it);
+        }
+      }
+    });
+    return groups;
+  }
+
+  function renderChapterTocNavHtml(groups) {
+    var html = '<ul class="chapter-toc-root">';
+    groups.forEach(function (g) {
+      if (g.h3 && g.children.length) {
+        html +=
+          '<li class="toc-block"><a class="toc-l1" href="#' +
+          escapeHtml(g.h3.id) +
+          '">' +
+          escapeHtml(g.h3.text) +
+          '</a><ul>';
+        g.children.forEach(function (c) {
+          html +=
+            '<li><a class="toc-l2" href="#' +
+            escapeHtml(c.id) +
+            '">' +
+            escapeHtml(c.text) +
+            '</a></li>';
+        });
+        html += '</ul></li>';
+      } else if (g.h3) {
+        html +=
+          '<li><a class="toc-l1" href="#' +
+          escapeHtml(g.h3.id) +
+          '">' +
+          escapeHtml(g.h3.text) +
+          '</a></li>';
+      } else {
+        g.children.forEach(function (c) {
+          html +=
+            '<li><a class="toc-l2" href="#' +
+            escapeHtml(c.id) +
+            '">' +
+            escapeHtml(c.text) +
+            '</a></li>';
+        });
+      }
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  function bindChapterTocNav(section) {
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav) return;
+    var firstTocLink = nav.querySelector('a[href^="#"]');
+    nav.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (firstTocLink && link === firstTocLink) {
+          scrollChapterToTop(section);
+          nav.querySelectorAll('a.is-active').forEach(function (a) {
+            a.classList.remove('is-active');
+          });
+          link.classList.add('is-active');
+          return;
+        }
+        var id = link.getAttribute('href').slice(1);
+        var target = id ? document.getElementById(id) : null;
+        if (!target || (!section.contains(target) && !isQuizTocTarget(section, target))) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        nav.querySelectorAll('a.is-active').forEach(function (a) {
+          a.classList.remove('is-active');
+        });
+        link.classList.add('is-active');
+      });
+    });
+  }
+
+  function setChapterTocActiveLink(nav, activeLink) {
+    nav.querySelectorAll('a.is-active').forEach(function (a) {
+      a.classList.remove('is-active');
+    });
+    if (activeLink) activeLink.classList.add('is-active');
+  }
+
+  function initChapterTocSpy(section) {
+    disconnectChapterTocObservers();
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav || typeof IntersectionObserver === 'undefined') return;
+    var links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+    if (!links.length) return;
+    var firstTocLink = nav.querySelector('a[href^="#"]');
+    var headings = links
+      .map(function (a) {
+        return document.getElementById(a.getAttribute('href').slice(1));
+      })
+      .filter(Boolean);
+    var spyRaf = 0;
+    chapterTocObserver = new IntersectionObserver(
+      function (entries) {
+        if (spyRaf) cancelAnimationFrame(spyRaf);
+        spyRaf = requestAnimationFrame(function () {
+          spyRaf = 0;
+          var visible = entries
+            .filter(function (en) { return en.isIntersecting; })
+            .sort(function (a, b) { return a.target.offsetTop - b.target.offsetTop; });
+          if (!visible.length) return;
+          var id = visible[0].target.id;
+          links.forEach(function (link) {
+            var on = link.getAttribute('href') === '#' + id;
+            if (on) link.classList.add('is-active');
+            else link.classList.remove('is-active');
+          });
+        });
+      },
+      { root: null, rootMargin: '-18% 0px -62% 0px', threshold: [0, 1] }
+    );
+    headings.forEach(function (h) { chapterTocObserver.observe(h); });
+
+    var header = section.querySelector('.chapter-header');
+    if (firstTocLink && header) {
+      chapterTocTopObserver = new IntersectionObserver(
+        function (entries) {
+          if (!entries.some(function (en) { return en.isIntersecting; })) return;
+          var firstHeading = document.getElementById(firstTocLink.getAttribute('href').slice(1));
+          if (firstHeading && firstHeading.getBoundingClientRect().top <= 120) return;
+          setChapterTocActiveLink(nav, firstTocLink);
+        },
+        { root: null, rootMargin: '-8% 0px -72% 0px', threshold: 0 }
+      );
+      chapterTocTopObserver.observe(header);
+    }
+  }
+
+  function renderChapterToc(section) {
+    var toc = document.getElementById('chapter-toc');
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!toc || !nav || !section) return;
+    ensureChapterHeadingIds(section);
+    var items = [];
+    section.querySelectorAll('h3, h4').forEach(function (heading) {
+      if (heading.closest('.chapter-header')) return;
+      if (heading.closest('.code-toolbar')) return;
+      if (!heading.id) return;
+      items.push({
+        id: heading.id,
+        text: heading.textContent.trim(),
+        level: heading.tagName.toLowerCase()
+      });
+    });
+    var chapterId = section.getAttribute('data-chapter');
+    var quizHeading = ensureQuizTocHeading(chapterId);
+    if (quizHeading) {
+      items.push({
+        id: quizHeading.id,
+        text: '章节测验',
+        level: 'h3'
+      });
+    }
+    if (!items.length) {
+      hideChapterToc();
+      return;
+    }
+    var groups = buildChapterTocGroups(items);
+    nav.innerHTML = renderChapterTocNavHtml(groups);
+    toc.hidden = false;
+    applyChapterTocVisibility();
+    bindChapterTocNav(section);
+    initChapterTocSpy(section);
+  }
+
+  function initChapterTocControls() {
+    var toggle = document.getElementById('btn-chapter-toc-toggle');
+    var fab = document.getElementById('chapter-toc-fab');
+    if (toggle) {
+      toggle.addEventListener('click', toggleChapterTocPanel);
+    }
+    if (fab) {
+      fab.addEventListener('click', function () {
+        setChapterTocOpenPref(true);
+        applyChapterTocVisibility();
+      });
+    }
+  }
+
   function showWelcome() {
     document.getElementById('welcome').style.display = '';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
@@ -1379,7 +3174,8 @@ consumer.start();</code></pre>
     if (homeLi) homeLi.classList.add('active-ch');
     storageRemove(KEY_SCROLL);
     syncQuizVisibility(null);
-    document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' });
+    hideChapterToc();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showChapter(id) {
@@ -1400,7 +3196,8 @@ consumer.start();</code></pre>
     });
     renderMermaidIn(section);
     syncQuizVisibility(id);
-    section.scrollIntoView({ behavior: 'smooth' });
+    renderChapterToc(section);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function syncQuizVisibility(chapterId) {
@@ -1418,10 +3215,6 @@ consumer.start();</code></pre>
       if (on) matched = true;
     });
     panel.style.display = matched ? '' : 'none';
-    var title = panel.querySelector('.quiz-panel-title');
-    var lead = panel.querySelector('.quiz-panel-lead');
-    if (title) title.style.display = matched ? '' : 'none';
-    if (lead) lead.style.display = matched ? '' : 'none';
   }
 
   function normalizeQuizText(s) {
@@ -1526,7 +3319,7 @@ consumer.start();</code></pre>
         icon.className = 'ch-done-icon';
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = '✓';
-        a.insertBefore(icon, a.firstChild);
+        a.appendChild(icon);
       } else if (!isDone && icon) {
         icon.remove();
       }
@@ -1543,11 +3336,11 @@ consumer.start();</code></pre>
       '</li></ul>';
     nav.innerHTML = homeNav + COURSE_DATA.outline.map(function (phase) {
       return '<details class="phase" open>' +
-        '<summary>' + phase.phaseTitle + '（' + phase.chapters.length + ' 章）</summary>' +
+        '<summary>' + escapeHtml(phase.phaseTitle) + '</summary>' +
         '<ul>' + phase.chapters.map(function (ch) {
           const cls = done.has(ch.id) ? 'done' : 'pending';
           const badge = done.has(ch.id) ? '<span class="ch-done-icon" aria-hidden="true">✓</span>' : '';
-          return '<li class="' + cls + '"><a href="#ch-' + ch.id + '" data-ch-id="' + ch.id + '">' + badge + '<span class="ch-link-title">' + ch.title + '</span></a></li>';
+          return '<li class="' + cls + '"><a href="#ch-' + ch.id + '" data-ch-id="' + ch.id + '"><span class="ch-link-title">' + escapeHtml(ch.title) + '</span>' + badge + '</a></li>';
         }).join('') + '</ul></details>';
     }).join('');
     var homeLink = document.getElementById('nav-home');
@@ -1570,14 +3363,52 @@ consumer.start();</code></pre>
 
   function renderOutlineSummary() {
     const tbody = document.getElementById('outline-summary-body');
+    if (!tbody) return;
     const phaseClass = { basics: 'basics', practice: 'practice', advanced: 'advanced' };
-    tbody.innerHTML = COURSE_DATA.outline.map(function (phase) {
-      return phase.chapters.map(function (ch, i) {
-        const tag = i === 0 ? '<span class="phase-tag ' + (phaseClass[phase.phaseId] || '') + '">' + phase.phaseTitle + '</span>' : '';
-        const sections = ch.sections.join('、');
-        return '<tr><td>' + tag + '</td><td><strong>' + ch.title + '</strong></td><td>' + sections + '</td></tr>';
-      }).join('');
-    }).join('');
+    const rows = [];
+    COURSE_DATA.outline.forEach(function (phase) {
+      const chapterCount = phase.chapters.length;
+      const phaseId = phase.phaseId || '';
+      phase.chapters.forEach(function (ch, i) {
+        let cells = '';
+        if (i === 0) {
+          const goalHtml = phase.phaseGoal
+            ? '<p class="outline-phase-goal">' + escapeHtml(phase.phaseGoal) + '</p>'
+            : '';
+          cells +=
+            '<td class="outline-phase" rowspan="' + chapterCount + '">' +
+            '<div class="outline-phase-inner">' +
+            '<span class="phase-tag ' + (phaseClass[phaseId] || '') + '">' +
+            escapeHtml(phase.phaseTitle) +
+            '</span>' +
+            goalHtml +
+            '</div></td>';
+        }
+        const sectionsHtml =
+          '<ul class="outline-section-list">' +
+          ch.sections
+            .map(function (section) {
+              return '<li>' + escapeHtml(section) + '</li>';
+            })
+            .join('') +
+          '</ul>';
+        const chIndex = String(i + 1).padStart(2, '0');
+        cells +=
+          '<td class="outline-chapter">' +
+          '<div class="outline-chapter-cell">' +
+          '<span class="outline-ch-index" aria-hidden="true">' + chIndex + '</span>' +
+          '<span class="outline-chapter-title">' + escapeHtml(ch.title) + '</span>' +
+          '</div></td>' +
+          '<td class="outline-sections">' + sectionsHtml + '</td>';
+        const rowClasses = ['outline-row'];
+        if (i === chapterCount - 1) rowClasses.push('outline-row-phase-end');
+        const rowAttr =
+          ' class="' + rowClasses.join(' ') + '"' +
+          (phaseId ? ' data-phase="' + escapeHtml(phaseId) + '"' : '');
+        rows.push('<tr' + rowAttr + '>' + cells + '</tr>');
+      });
+    });
+    tbody.innerHTML = rows.join('');
   }
 
   function initMermaid() {
@@ -1642,11 +3473,31 @@ consumer.start();</code></pre>
     });
   }
 
+  function getMermaidDiagramHost(wrap) {
+    var pre = wrap.querySelector(':scope > pre.mermaid, :scope > div.mermaid');
+    if (!pre) {
+      pre = wrap.querySelector('pre.mermaid, div.mermaid');
+    }
+    if (!pre) return null;
+    var diagram = wrap.querySelector('.mermaid-diagram');
+    if (!diagram) {
+      diagram = document.createElement('div');
+      diagram.className = 'mermaid-diagram';
+      wrap.insertBefore(diagram, pre);
+      diagram.appendChild(pre);
+    }
+    var bar = wrap.querySelector(':scope > .mermaid-toolbar');
+    if (bar) diagram.appendChild(bar);
+    return diagram;
+  }
+
   function injectMermaidFullscreenUi(root) {
     var scope = root || document;
     if (!scope.querySelectorAll) return;
     scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-      if (wrap.querySelector('.mermaid-toolbar')) return;
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      if (diagram.querySelector('.mermaid-toolbar')) return;
       var bar = document.createElement('div');
       bar.className = 'mermaid-toolbar';
       var btn = document.createElement('button');
@@ -1656,35 +3507,35 @@ consumer.start();</code></pre>
       btn.setAttribute('aria-label', '图表全屏');
       btn.setAttribute('aria-expanded', 'false');
       bar.appendChild(btn);
-      wrap.insertBefore(bar, wrap.firstChild);
+      diagram.appendChild(bar);
     });
   }
 
-  function isPseudoFs(wrap) {
-    return wrap.classList.contains('is-pseudo-fullscreen');
+  function isPseudoFs(diagram) {
+    return diagram.classList.contains('is-pseudo-fullscreen');
   }
 
-  function closePseudoFs(wrap) {
-    wrap.classList.remove('is-pseudo-fullscreen');
-    if (!document.querySelector('.mermaid-wrap.is-pseudo-fullscreen')) {
+  function closePseudoFs(diagram) {
+    diagram.classList.remove('is-pseudo-fullscreen');
+    if (!document.querySelector('.mermaid-diagram.is-pseudo-fullscreen')) {
       document.body.style.overflow = '';
     }
   }
 
-  function openPseudoFs(wrap) {
+  function openPseudoFs(diagram) {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
     }
-    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
-      if (w !== wrap) closePseudoFs(w);
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+      if (d !== diagram) closePseudoFs(d);
     });
-    wrap.classList.add('is-pseudo-fullscreen');
+    diagram.classList.add('is-pseudo-fullscreen');
     document.body.style.overflow = 'hidden';
   }
 
-  function syncFsButton(wrap, btn) {
-    var native = document.fullscreenElement === wrap;
-    var pseudo = isPseudoFs(wrap);
+  function syncFsButton(diagram, btn) {
+    var native = document.fullscreenElement === diagram;
+    var pseudo = isPseudoFs(diagram);
     var on = native || pseudo;
     btn.textContent = on ? '退出全屏' : '全屏';
     btn.setAttribute('aria-expanded', on ? 'true' : 'false');
@@ -1695,10 +3546,10 @@ consumer.start();</code></pre>
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
     }
-    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
-      closePseudoFs(wrap);
-      var btn = wrap.querySelector('.mermaid-fs-btn');
-      if (btn) syncFsButton(wrap, btn);
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+      closePseudoFs(diagram);
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
     });
   }
 
@@ -1706,66 +3557,69 @@ consumer.start();</code></pre>
     var scope = root || document;
     if (!scope.querySelectorAll) return;
     scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-      var btn = wrap.querySelector('.mermaid-fs-btn');
-      if (!btn || wrap.dataset.fsBound) return;
-      wrap.dataset.fsBound = '1';
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (!btn || diagram.dataset.fsBound) return;
+      diagram.dataset.fsBound = '1';
       btn.addEventListener('click', function () {
-        var pre = wrap.querySelector('pre.mermaid, div.mermaid');
+        var pre = diagram.querySelector('pre.mermaid, div.mermaid');
         if (!pre || !pre.querySelector('svg')) {
           showToast('图表尚未渲染完成，请稍候再试', 'error');
           return;
         }
-        var native = document.fullscreenElement === wrap;
-        var pseudo = isPseudoFs(wrap);
+        var native = document.fullscreenElement === diagram;
+        var pseudo = isPseudoFs(diagram);
         if (native || pseudo) {
           if (native) document.exitFullscreen().catch(function () {});
-          if (pseudo) closePseudoFs(wrap);
-          syncFsButton(wrap, btn);
+          if (pseudo) closePseudoFs(diagram);
+          syncFsButton(diagram, btn);
           return;
         }
-        document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
-          closePseudoFs(w);
-          var b = w.querySelector('.mermaid-fs-btn');
-          if (b) syncFsButton(w, b);
+        document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+          closePseudoFs(d);
+          var b = d.querySelector('.mermaid-fs-btn');
+          if (b) syncFsButton(d, b);
         });
-        var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        var req = diagram.requestFullscreen || diagram.webkitRequestFullscreen;
         if (typeof req === 'function') {
-          Promise.resolve(req.call(wrap)).then(function () {
-            syncFsButton(wrap, btn);
+          Promise.resolve(req.call(diagram)).then(function () {
+            syncFsButton(diagram, btn);
           }).catch(function () {
-            openPseudoFs(wrap);
-            syncFsButton(wrap, btn);
+            openPseudoFs(diagram);
+            syncFsButton(diagram, btn);
           });
         } else {
-          openPseudoFs(wrap);
-          syncFsButton(wrap, btn);
+          openPseudoFs(diagram);
+          syncFsButton(diagram, btn);
         }
       });
     });
   }
 
+  function syncAllMermaidFsButtons() {
+    document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var diagram = wrap.querySelector('.mermaid-diagram');
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
+    });
+  }
+
   function initMermaidFullscreen() {
     document.addEventListener('fullscreenchange', function () {
-      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
-      });
+      syncAllMermaidFsButtons();
       if (!document.fullscreenElement) {
-        document.body.style.overflow = document.querySelector('.mermaid-wrap.is-pseudo-fullscreen') ? 'hidden' : '';
+        document.body.style.overflow = document.querySelector('.mermaid-diagram.is-pseudo-fullscreen') ? 'hidden' : '';
       }
     });
-    document.addEventListener('webkitfullscreenchange', function () {
-      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
-      });
-    });
+    document.addEventListener('webkitfullscreenchange', syncAllMermaidFsButtons);
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
-        closePseudoFs(wrap);
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
+      document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+        closePseudoFs(diagram);
+        var btn = diagram.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(diagram, btn);
       });
     });
   }
@@ -1982,6 +3836,7 @@ consumer.start();</code></pre>
     injectMermaidFullscreenUi(document);
     bindMermaidFullscreen(document);
     initQuiz();
+    initChapterTocControls();
     initMermaid();
     highlightIn(document);
     syncAllProgressUI();

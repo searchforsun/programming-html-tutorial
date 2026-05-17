@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     :root, [data-theme="light"] {
       --bg: #f0f4f8;
@@ -32,13 +32,12 @@
       --shadow-lg: 0 12px 40px rgba(16,24,40,.1);
       --radius: 12px;
       --radius-sm: 8px;
+      --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif;
       --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
       --success: #1a7f37;
       --danger: #cf222e;
-      --phase-basics: #0969da;
-      --phase-practice: #6f42c1;
-      --phase-advanced: #bf8700;
       --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
+      --scrollbar-thumb: #b8c4d0;
     }
     [data-theme="dark"] {
       --bg: #0f1419;
@@ -59,10 +58,8 @@
       --shadow-lg: 0 12px 40px rgba(0,0,0,.35);
       --success: #3fb950;
       --danger: #f85149;
-      --phase-basics: #58a6ff;
-      --phase-practice: #a371f7;
-      --phase-advanced: #d29922;
       --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
+      --scrollbar-thumb: #4a5d73;
     }
 {{SHELL_BASE_CSS}}
 {{THEME_CSS}}
@@ -99,8 +96,16 @@
 {{QUIZ_HTML}}
         </div>
       </main>
+      <aside id="chapter-toc" class="chapter-toc" aria-label="本章大纲" hidden>
+        <div class="chapter-toc-header">
+          <span class="chapter-toc-title">大纲</span>
+          <button type="button" id="btn-chapter-toc-toggle" class="btn-chapter-toc-toggle" aria-label="隐藏大纲" aria-expanded="true">隐藏</button>
+        </div>
+        <nav id="chapter-toc-nav" class="chapter-toc-nav" aria-label="本章大纲导航"></nav>
+      </aside>
     </div>
   </div>
+  <button type="button" id="chapter-toc-fab" class="chapter-toc-fab" hidden aria-label="显示大纲">大纲</button>
 
   <dialog id="term-modal">
     <div class="term-modal-header">
@@ -108,7 +113,7 @@
       <button type="button" class="btn-icon-close" id="btn-close-term-x" aria-label="关闭">×</button>
     </div>
     <div class="term-modal-body">
-      <pre id="term-prompt"></pre>
+      <div id="term-prompt" class="term-prompt" role="document"></div>
       <div class="term-actions">
         <button type="button" id="btn-copy-prompt" class="btn-term" aria-label="复制 AI 提示词">复制提示词</button>
 {{TERM_PLATFORM_LINKS}}

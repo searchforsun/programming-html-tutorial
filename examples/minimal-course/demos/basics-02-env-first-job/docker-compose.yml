@@ -1,5 +1,4 @@
-# Flink Standalone — 仅用于预览 Web UI 与集群拓扑（概念章）
-# 参考：https://nightlies.apache.org/flink/flink-docs-stable/docs/deployment/resource-providers/standalone/docker/
+# Flink Standalone — 对照 Web UI（可选，与 basics-01 相同拓扑）
 services:
   jobmanager:
     image: flink:2.0-scala_2.12-java17

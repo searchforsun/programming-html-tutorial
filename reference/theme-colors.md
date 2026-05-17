@@ -4,7 +4,7 @@
 
 ## Agent 任务（生成 `index.html` 时执行）
 
-结合 `meta.domain`、`meta.title` 与官方品牌色/社区共识，**自行判断**主色与背景渐变，并写入 `<style>`（接在 [shell-styles.md](shell-styles.md) 之后）：
+结合 `meta.domain`、`meta.title` 与官方品牌色/社区共识，**自行判断**主色与背景渐变，并写入本课 `theme.css`（assemble 时注入在 `shell.base.css` 之后）：
 
 1. 取 `themePreset = meta.themePreset || meta.slug`（kebab-case，如 `kotlin-coroutines`）。
 2. 为 **亮色 / 暗色** 各写一组 CSS 变量，选择器：
@@ -24,11 +24,11 @@
 | `--accent-glow` | 按钮阴影 rgba |
 | `--accent-alt` | 进度条/渐变第二色（勿写死在组件里） |
 | `--bg-accent` | `body` 背景径向渐变 |
-| `--phase-basics` | 基础阶段标签色（可与 accent 相同或略调） |
 
-4. **实践 / 进阶** 阶段色可在 `:root` / `[data-theme]` 层统一写（如紫、琥珀），与主色协调即可。
-5. 保证亮/暗模式下文字与背景对比度可读；禁止在 `.btn-copy`、`.chapter-header` 等组件规则里写死某一技术的 hex。
-6. **完成态 / 正向反馈**（侧栏 ✓、章首「已完成」、复制成功、Toast 成功、标记完成、**测验答对**与答案区）在 `shell.base.css` 中统一使用 `var(--accent*)`，**不要**用 `var(--success)`，否则会与课程主色脱节。`--danger` 保留给测验答错（`.feedback-fail`）。
+4. 欢迎页阶段标签（`.phase-tag`）使用 `var(--accent)`，**无需**单独定义阶段色变量。
+5. **暗色模式 `accent`**：链接、`.notice strong`、测验反馈等用 `--accent`；**实心按钮**在壳层暗色下已改为浅底描边（见 `shell.base.css` `[data-theme="dark"]`），勿把 `accent` 设得比亮色更亮；`accent-alt` 暗色下亦勿用高亮蓝（会与粉渐变混成刺眼色带）。
+6. 保证亮/暗模式下文字与背景对比度可读；禁止在 `.btn-copy`、`.chapter-header` 等组件规则里写死某一技术的 hex。
+7. **完成态 / 正向反馈**（侧栏 ✓、章首「已完成」、复制成功、Toast 成功、标记完成、**测验答对**与答案区）在 `shell.base.css` 中统一使用 `var(--accent*)`，**不要**用 `var(--success)`，否则会与课程主色脱节。`--danger` 保留给测验答错（`.feedback-fail`）。
 
 ## `COURSE_DATA.meta` 示例
 

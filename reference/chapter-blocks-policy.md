@@ -2,7 +2,7 @@
 
 由 `config/defaults.json` + `course.meta.domainType` 决定每章 HTML **必须**包含的块。
 
-**布局**：必填 ≠ 固定顺序。块可嵌套在 `.concept` 内、可交错；图文并茂与分点写法见 [chapter-layout.md](chapter-layout.md)。
+块可嵌套在 `.concept` 内、可交错。编排见 [chapter-layout.md](chapter-layout.md)。
 
 ## 默认必填块（`chapterBlocks`）
 

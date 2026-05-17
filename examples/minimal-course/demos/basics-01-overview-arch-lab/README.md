@@ -1,47 +1,40 @@
-# 架构实验室：观察 NameServer 与 Broker 注册
+# 架构自测实验室
 
-配合第 1 章「RocketMQ 定位与架构鸟瞰」，用最小集群验证架构图中的路由注册关系。
+本章配套 Demo：**不写 Flink 代码**，用自测清单 +（可选）Web UI 巩固 JobManager / TaskManager 概念。
 
-## 环境要求
+## 方式 A：纸质自测（零依赖）
 
-- Docker Desktop 或 Docker Engine 20+
-- 本机端口 `9876`（NameServer）、`10911`/`10909`（Broker）未被占用
+1. 在纸上画出 Client → JobManager → TaskManager 三层，标出 Dispatcher、JobMaster、Slot。
+2. 用 4 句话描述「提交作业 → 部署 Task → 持续运行 → Checkpoint」时序。
+3. 完成 API 选型：场景「实时按小时统计订单金额」选 Table/SQL 还是 DataStream，写 2 条理由。
 
-## 启动
+## 方式 B：Docker 预览 Web UI（可选）
+
+**环境要求：** Docker Desktop 或 Docker Engine 20+
 
 ```bash
+# 在课程根目录 courses/apache-flink 下执行
 cd demos/basics-01-overview-arch-lab
 docker compose up -d
 ```
 
-等待约 15–30 秒，直到 Broker 完成向 NameServer 注册。
+浏览器打开 **http://localhost:8081**（Flink Web UI）。
 
-## 查看集群（对应架构图中的「Broker → NameServer 注册」）
+### 观察清单
 
-```bash
-docker exec rmq-broker sh mqadmin clusterList -n namesrv:9876
-```
+| Web UI 位置 | 对应本章概念 |
+|-------------|--------------|
+| Overview → Task Managers | TaskManager 进程与 Slot 数量 |
+| Overview → Jobs | 当前无作业时为空；下一章提交后可见 JobMaster 管理的作业 |
+| 配置中的 JobManager 地址 | Client 提交目标 |
 
-预期输出中包含 `DefaultCluster` 及 `broker-a`（或类似 Broker 名称），说明 Broker 已向 NameServer 上报路由。
-
-## 可选：查看 Topic 路由
-
-```bash
-docker exec rmq-broker sh mqadmin topicRouteInfo -n namesrv:9876 -t TopicTest
-```
-
-若 Topic 尚未创建，可能提示不存在——第 2 章会创建 Topic 并收发消息。
-
-## 停止与清理
+停止环境：
 
 ```bash
 docker compose down
 ```
 
-## 与课程的关系
+## 学习建议
 
-| 组件 | 本 Demo 中 |
-|------|------------|
-| NameServer | 容器 `rmq-namesrv`，端口 9876 |
-| Broker | 容器 `rmq-broker`，存储消息并注册路由 |
-| Producer/Consumer | 第 2、4 章用 Java 客户端连接 `127.0.0.1:9876` |
+- 本章 Demo 为**概念验证**；完整动手跑作业见下一章 `basics-02-env`。
+- 镜像标签以 `docker-compose.yml` 为准；若拉取失败，可改用 [Flink Docker 官方文档](https://nightlies.apache.org/flink/flink-docs-stable/docs/deployment/resource-providers/standalone/docker/) 推荐版本。

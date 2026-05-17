@@ -1,0 +1,188 @@
+<section id="ch-basics-01-overview" class="chapter" data-chapter="basics-01-overview">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>Flink 定位与流批一体架构</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-01-overview" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept content-section">
+    <div class="notice">
+      <strong>本章先记住 3 件事</strong>
+      <ul>
+        <li><strong>解决什么</strong>：对<strong>无界数据流</strong>做低延迟、有状态的实时计算，并保证故障后可恢复。</li>
+        <li><strong>谁协作</strong>：<span class="term" data-term-id="stream-processing" tabindex="0">流处理</span> 运行时由 JobManager 协调、TaskManager 执行，Client 负责提交作业。</li>
+        <li><strong>怎么写</strong>：DataStream 最灵活；多数分析场景优先 <span class="term" data-term-id="table-api" tabindex="0">Table API</span> / Flink SQL。</li>
+      </ul>
+    </div>
+
+    <h3>流处理 vs 批处理：为何需要 Flink？</h3>
+    <p>传统批处理（如离线 Hive/Spark Batch）按<strong>有界数据集</strong>切分、周期性跑作业；而业务事件（点击、支付、传感器）是<strong>持续到达</strong>的，需要「来一条算一条」或「按窗口聚合」。</p>
+    <ul>
+      <li><strong>低延迟</strong> — 秒级甚至毫秒级产出结果，而不是等 T+1 报表。</li>
+      <li><strong>有状态</strong> — 需要记住用户会话、累计金额、去重键等，单靠无状态 map/filter 不够。</li>
+      <li><strong>精确一次</strong> — 故障重启后，输出与副作用尽量不重复；依赖 <span class="term" data-term-id="checkpoint" tabindex="0">Checkpoint</span> 与 Source/Sink 协同（进阶章展开）。</li>
+    </ul>
+
+    <h3>核心组件：JobManager、TaskManager、Slot</h3>
+    <div class="role-cards">
+      <div class="role-card">
+        <span class="role-card-title">Client</span>
+        <p class="role-card-desc">解析程序、生成 JobGraph，提交给 JobManager；可在 IDE 本地跑，也可 detached 提交到集群。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">JobManager</span>
+        <p class="role-card-desc">调度资源、协调 Checkpoint；内含 Dispatcher（REST/Web UI）、JobMaster（单作业执行）、ResourceManager（Slot 分配）。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">TaskManager</span>
+        <p class="role-card-desc">Worker 进程，执行算子 Task，在 Slot 间交换数据流；一个集群通常有多个 TaskManager。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Slot</span>
+        <p class="role-card-desc">TaskManager 内的资源切片，是调度最小单位；Slot 数 ≈ 集群并行能力上限。</p>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>运行时架构总览</h5>
+      <pre class="mermaid">flowchart TB
+  subgraph client["Client"]
+    APP[你的 Flink 程序]
+  end
+  subgraph jm["JobManager"]
+    DISP[Dispatcher / Web UI]
+    RM[ResourceManager]
+    JM[JobMaster]
+  end
+  subgraph tm["TaskManager 集群"]
+    S1[Slot 1]
+    S2[Slot 2]
+    S3[Slot 3]
+  end
+  APP -->|提交 JobGraph| DISP
+  DISP --> JM
+  JM --> RM
+  RM -->|分配 Slot| S1
+  RM --> S2
+  RM --> S3
+  JM -->|部署 Task| S1
+  JM --> S2
+  JM --> S3</pre>
+      <p class="diagram-caption">看图记忆：<strong>Client 只提交</strong>；JobManager <strong>管调度与容错</strong>；TaskManager <strong>真正跑算子</strong>。</p>
+    </div>
+
+    <h4>作业提交流程</h4>
+    <div class="mermaid-wrap">
+      <h5>从 Client 提交到 Task 执行</h5>
+      <pre class="mermaid">sequenceDiagram
+  autonumber
+  participant C as Client
+  participant D as Dispatcher
+  participant J as JobMaster
+  participant T as TaskManager
+  C->>D: 提交作业 (JAR / Pipeline)
+  D->>J: 创建 JobMaster
+  J->>J: 将 JobGraph 转为 ExecutionGraph
+  J->>T: 在 Slot 上部署 Source / 算子 / Sink
+  T->>T: 持续消费无界流并输出
+  J->>T: 周期性触发 Checkpoint</pre>
+      <p class="diagram-caption">对照动手练习：能说出 Client 编译、Dispatcher 接收、JobMaster 调度、Task 执行四步。</p>
+    </div>
+
+    <h3>DataStream / Table / SQL 三层 API 如何选型</h3>
+    <table class="outline-table">
+      <thead>
+        <tr><th>API 层</th><th>抽象</th><th>典型场景</th><th>何时优先</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>DataStream</strong></td>
+          <td>事件流上的算子（map、keyBy、ProcessFunction）</td>
+          <td>复杂状态机、自定义窗口、细粒度时间控制</td>
+          <td>需要完全掌控状态、时间语义与底层逻辑时</td>
+        </tr>
+        <tr>
+          <td><strong>Table API</strong></td>
+          <td>关系型动态表 + 连续查询</td>
+          <td>ETL、实时数仓、指标聚合</td>
+          <td>业务以「表」思维建模，希望优化器自动选算子</td>
+        </tr>
+        <tr>
+          <td><strong>Flink SQL</strong></td>
+          <td>声明式 SQL（流批统一）</td>
+          <td>实时报表、即席分析、与 BI 工具对接</td>
+          <td>团队熟悉 SQL、希望降低 Java 样板代码时</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>官方建议：多数数据分析从 <strong>Table/SQL</strong> 起步；DataStream 与 Table 可互操作。</p>
+
+    <h4>示例代码：DataStream 与 Table API 对照</h4>
+    <div class="code-block">
+      <div class="code-toolbar">
+        <span class="lang-tag">java</span>
+        <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+      </div>
+      <pre><code id="code-basics-01-overview-1" class="language-java">// DataStream 最小骨架 vs Table API 声明式（下一章环境搭建后运行）
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.TableEnvironment;
+
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.fromElements("click", "pay", "click")
+   .map(String::toUpperCase)
+   .print();
+// env.execute("word-upper-job");
+
+EnvironmentSettings settings = EnvironmentSettings.newInstance().inStreamingMode().build();
+TableEnvironment tEnv = TableEnvironment.create(settings);
+// tEnv.executeSql("CREATE TABLE events (...) WITH ('connector' = 'kafka')");
+// tEnv.executeSql("SELECT user_id, COUNT(*) FROM events GROUP BY user_id");</code></pre>
+    </div>
+
+    <h3>版本线：2.x Stable 与 1.20 LTS 怎么选</h3>
+    <ul>
+      <li><strong>Flink 2.2 Stable</strong> — 本教程与文档以此为主。</li>
+      <li><strong>Flink 1.20 LTS</strong> — 不少生产集群仍运行 1.x；API 思想一致，注意连接器版本矩阵。</li>
+      <li><strong>选型建议</strong> — 学习/新项目跟 Stable；对接现有 1.20 集群以集群文档为准。</li>
+    </ul>
+
+    <div class="notice">
+      <strong>本章小结</strong>：能说出 JobManager / TaskManager / Slot 职责，并说明 Flink 相对批处理的三大价值。过关后进入下一章搭环境并运行第一个作业。
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/flink-architecture/" target="_blank" rel="noopener">Flink Architecture — 运行时架构</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/overview/" target="_blank" rel="noopener">Concepts — 核心概念总览</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/overview/" target="_blank" rel="noopener">DataStream API Overview</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/overview/" target="_blank" rel="noopener">Table API Overview</a></li>
+    </ul>
+  </div>
+
+  <h3>动手练习</h3>
+  <p class="steps-intro">按顺序完成；图中步骤编号与时序图对照，不会单独出现在右侧大纲。</p>
+  <ol class="steps">
+    <li>阅读章首摘要，对照「运行时架构总览」图说出 Client、JobManager、TaskManager 各做什么。</li>
+    <li>对照「从 Client 提交到 Task 执行」时序图，复述提交到 Task 运行的四步。</li>
+    <li>看 API 选型表：若需求是「实时 UV 按小时聚合」，优先 Table/SQL 还是 DataStream？写下理由。</li>
+    <li>（可选）完成 Demo <code>demos/basics-01-overview-arch-lab</code>，在 Web UI 对照 JobManager / TaskManager。</li>
+  </ol>
+
+  <div class="demo-box">
+    <h3>Demo：架构自测实验室</h3>
+    <p>目录：<code>demos/basics-01-overview-arch-lab/</code>。纸质架构图 + API 选型练习；可选 Docker 预览 Web UI。</p>
+    <p>命令：<code>cd demos/basics-01-overview-arch-lab &amp;&amp; docker compose up -d</code>（可选）</p>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><a href="https://flink.apache.org/what-is-flink/flink-architecture/" target="_blank" rel="noopener">What is Flink — Architecture</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/getting-started/datastream/" target="_blank" rel="noopener">DataStream API Tutorial — 欺诈检测入门</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/getting-started/table_api/" target="_blank" rel="noopener">Table API Tutorial</a></li>
+      <li><a href="https://flink.apache.org/downloads.html" target="_blank" rel="noopener">Downloads — 版本与连接器矩阵</a></li>
+    </ul>
+  </div>
+</section>

@@ -90,6 +90,7 @@
 | `chapters[id].html` | 可选：缓存章节 innerHTML，便于导出；与 DOM 二选一为主源 |
 | `terms` | 全课程术语表，多章共享 id |
 
-## 渲染侧栏
+## 渲染侧栏与欢迎页表
 
-遍历 `outline` → 阶段标题 + `ul.chapter-list` → 每章 `a[href="#ch-{id}"]`，未完成加 `.pending`，完成加 `.done`。
+- **侧栏**：`renderSidebar()` 生成 `details.phase` → `summary`（仅 `phaseTitle`）→ `ul` → `a[href="#ch-{id}"]`；完成 `.done`、当前章 `.active-ch`。
+- **欢迎页表**：`renderOutlineSummary()` 读 `outline`；`outline-table-wrap` + 可见 `thead`；阶段列 `rowspan`（`outline-phase-inner`）；章节列含 `outline-ch-index`；小节为 `outline-section-list`。

@@ -1,0 +1,381 @@
+<section id="ch-basics-03-datastream" class="chapter" data-chapter="basics-03-datastream">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>DataStream API 与执行图</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-03-datastream" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept content-section">
+<div class="notice">
+      <strong>本章先记住 3 件事</strong>
+      <ul>
+        <li><strong>管道三段</strong>：任何作业都是 <span class="term" data-term-id="datastream-pipeline" tabindex="0">Source → Transformation → Sink</span>；Transformation 是算子链，不是单独「阶段类」。</li>
+        <li><strong>并行度</strong>：<span class="term" data-term-id="parallelism" tabindex="0">并行度</span> 决定每个算子有多少并行 Subtask；集群上受 TaskManager Slot 总数约束，不是越大越快。</li>
+        <li><strong>执行图</strong>：<code>keyBy</code> 会引入<strong>网络 shuffle</strong>；Client 把 API 链编译成 <span class="term" data-term-id="job-graph" tabindex="0">JobGraph</span>，JobMaster 再展开为 <span class="term" data-term-id="execution-graph" tabindex="0">ExecutionGraph</span> 并部署到 TaskManager。</li>
+      </ul>
+    </div>
+
+    <h3>Source → Transformation → Sink</h3>
+    <p>DataStream 程序本质是<strong>有向无环图（DAG）</strong>：Source 产生流，Transformation 逐条变换，Sink 消费结果。</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">flowchart LR
+  S[Source\nSocket / Kafka / fromElements]
+  T1[Transformation\nmap / filter / keyBy]
+  T2[Transformation\nprocess / window]
+  K[Sink\nprint / File / JDBC]
+  S --> T1 --> T2 --> K</pre>
+      <p class="diagram-caption">记忆口诀：<strong>一条 DAG</strong>，从 Source 流入，经若干算子，最后在 Sink 落地；编译后才会切成并行 Task（见第四节「执行图」）。</p>
+    </div>
+
+    <div class="role-cards">
+      <div class="role-card">
+        <span class="role-card-title">Source</span>
+        <p class="role-card-desc">产出 <code>DataStream&lt;T&gt;</code>，如 <code>fromElements</code>、Socket、Kafka；决定输入格式与事件时间属性（高级章节展开）。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Transformation</span>
+        <p class="role-card-desc">对流做计算：map、filter、flatMap、keyBy、window 等；返回仍是 DataStream 或 KeyedStream。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Sink</span>
+        <p class="role-card-desc">写出结果：print（学习用）、文件、消息队列等；与 Source 一起决定端到端语义（at-least-once / exactly-once）。</p>
+      </div>
+    </div>
+
+    <h3>map、filter、flatMap 与并行度</h3>
+    <table class="outline-table">
+      <thead>
+        <tr><th>算子</th><th>输入:输出</th><th>作用</th><th>示例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>map</code></td>
+          <td>1 : 1</td>
+          <td>逐条映射</td>
+          <td><code>.map(x -&gt; x * 2)</code></td>
+        </tr>
+        <tr>
+          <td><code>filter</code></td>
+          <td>1 : 0 或 1</td>
+          <td>条件过滤</td>
+          <td><code>.filter(x -&gt; x &gt; 0)</code></td>
+        </tr>
+        <tr>
+          <td><code>flatMap</code></td>
+          <td>1 : N</td>
+          <td>一对多展开</td>
+          <td>拆行、拆词</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>并行度</strong>：每个算子可独立设置「并行实例数」—— 全局默认 → 算子覆盖 → 提交参数。</p>
+    <ul>
+      <li>单算子：<code>.map(...).setParallelism(4)</code></li>
+      <li>全局默认：<code>env.setParallelism(2)</code></li>
+      <li>提交时 CLI：<code>flink run -p 4 ...</code></li>
+    </ul>
+    <p>并行度不能超过可用 Slot 总数；Web UI 中 Task 数量与 Subtask 索引对应本章 Demo 的 <code>print</code> 行首输出。</p>
+
+        <h4>示例代码：并行度与算子级设置</h4>
+<div class="code-block">
+    <div class="code-toolbar">
+      <span class="lang-tag">java</span>
+      <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code id="code-basics-03-datastream-2" class="language-java">// 并行度：全局、单算子、提交参数（三选一或组合）
+env.setParallelism(2);
+someStream.map(...).setParallelism(4);
+// flink run -p 8 target/transform-lab.jar
+
+// keyBy 后按账户分区（Walkthrough 风格，与第三节呼应）
+transactions
+    .keyBy(Transaction::getAccountId)
+    .process(new FraudDetector())
+    .name("fraud-detector")
+    .setParallelism(4);</code></pre>
+  </div>
+    <h4>示例代码：本章 Demo 完整管道</h4>
+    <p>下方代码对应 <code>demos/basics-03-datastream-transform-lab</code> 中的 <code>TransformLabJob</code>，串联 flatMap → map → filter → keyBy → print，后文执行图均以此为例。</p>
+<div class="code-block">
+    <div class="code-toolbar">
+      <span class="lang-tag">java</span>
+      <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+    </div>
+    <pre><code id="code-basics-03-datastream-1" class="language-java">// TransformLabJob — 对应 demos/basics-03-datastream-transform-lab
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.setParallelism(2);
+
+DataStream&lt;String&gt; lines = env.fromElements(
+    "alice 100", "bob 50", "alice 30", "charlie 200",
+    "invalid-line", "bob 10");
+
+DataStream&lt;Tuple2&lt;String, Integer&gt;&gt; pairs = lines
+    .flatMap((String line, Collector&lt;String[]&gt; out) -&gt; {
+        String[] parts = line.split(" ");
+        if (parts.length == 2) {
+            out.collect(parts);
+        }
+    })
+    .returns(String[].class)
+    .map(parts -&gt; Tuple2.of(parts[0], Integer.parseInt(parts[1])))
+    .filter(t -&gt; t.f1 &gt;= 50);
+
+pairs.keyBy(t -&gt; t.f0)
+     .map(t -&gt; Tuple2.of(t.f0, t.f1))
+     .print();
+
+env.execute("transform-lab");</code></pre>
+  </div>
+
+    <h3>keyBy 与数据分区</h3>
+    <p><code>keyBy</code> 按 key 的 hash 将记录路由到下游 Subtask，保证<strong>相同 key 进入同一并行实例</strong>，从而能使用 Keyed State、窗口按 key 聚合等。</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">flowchart TB
+  subgraph before["keyBy 前 parallelism=3"]
+    P0[Subtask 0]
+    P1[Subtask 1]
+    P2[Subtask 2]
+  end
+  KB[keyBy userId]
+  subgraph after["keyBy 后 — hash 分区"]
+    K0[userId hash → 0]
+    K1[userId hash → 1]
+    K2[userId hash → 2]
+  end
+  P0 --> KB
+  P1 --> KB
+  P2 --> KB
+  KB --> K0
+  KB --> K1
+  KB --> K2</pre>
+      <p class="diagram-caption">注意：<code>keyBy</code> 之后得到 <code>KeyedStream</code>，再 <code>process</code> / 窗口 / 状态都按 key 隔离；不要在 KeyedStream 上再次 keyBy。</p>
+    </div>
+
+    <ul>
+      <li><strong>KeySelector</strong>：<code>.keyBy(event -&gt; event.getUserId())</code> 或方法引用 <code>Event::getUserId</code>。</li>
+      <li><strong>数据倾斜</strong>：个别 key 过多会导致某 Subtask 成为热点（practice / advanced 讲 rebalance 与自定义分区）。</li>
+      <li><strong>与 rebalance 区别</strong>：<code>keyBy</code> 是 hash 分区；<code>rebalance</code> / <code>rescale</code> 是轮询或局部轮询，不保证相同 key 同 Subtask。</li>
+    </ul>
+
+    <h3>从逻辑图到物理执行计划</h3>
+    <p>以 Demo <code>TransformLabJob</code> 为例：<code>fromElements → flatMap → map → filter → keyBy → print</code>。下面用<strong>同一管道</strong>从调用链、逻辑图到物理部署逐层展开。</p>
+
+    <table class="outline-table">
+      <thead>
+        <tr><th>层次</th><th>图 / 产物</th><th>谁生成</th><th>关注点</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>代码层</td><td>Java API 链</td><td>开发者</td><td>可读的业务 DAG</td></tr>
+        <tr><td><code>execute()</code> 前</td><td>StreamGraph</td><td>Flink Client</td><td>与 API 一一对应的 StreamNode</td></tr>
+        <tr><td>优化后</td><td>JobGraph</td><td>Client</td><td>算子链合并、keyBy 处 Shuffle</td></tr>
+        <tr><td>调度时</td><td>ExecutionGraph</td><td>JobMaster</td><td>按并行度展开 Subtask</td></tr>
+        <tr><td>运行时</td><td>物理 Task</td><td>JobMaster</td><td>Subtask 占用 TM Slot</td></tr>
+      </tbody>
+    </table>
+
+    <h4>调用与提交流程</h4>
+
+    <div class="mermaid-wrap">
+      <h5>A1 — 从 main 到 Subtask 启动</h5>
+      <pre class="mermaid">sequenceDiagram
+  autonumber
+  actor Dev as Developer
+  participant App as Main Job Class
+  participant Env as StreamExecutionEnvironment
+  participant Client as Flink Client
+  participant Disp as Dispatcher
+  participant JM as JobMaster
+  participant RM as ResourceManager
+  participant TM as TaskManager
+  Dev->>App: start main
+  App->>Env: getExecutionEnvironment
+  App->>Env: define Source and operators
+  App->>Env: execute job name
+  Env->>Client: StreamGraph to JobGraph
+  Client->>Disp: submit job
+  Disp->>JM: create JobMaster
+  JM->>JM: JobGraph to ExecutionGraph
+  JM->>RM: request Slots
+  RM->>TM: offer Slots
+  JM->>TM: deploy Subtasks
+  TM->>TM: run data pipeline</pre>
+      <p class="diagram-caption"><strong>分界线</strong>：<code>env.execute()</code> 之前只在 Client/JVM 内建图；之后进入 JobManager 与 TaskManager 调度。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>A2 — execute 在 Client 内部</h5>
+      <pre class="mermaid">flowchart TB
+  E[env.execute]
+  SG[Build StreamGraph from API]
+  JG[Optimize and build JobGraph]
+  MODE{Runtime mode}
+  LOCAL[MiniCluster in same JVM]
+  REMOTE[Submit to remote JobManager]
+  E --> SG --> JG --> MODE
+  MODE -->|IDE Run default| LOCAL
+  MODE -->|flink run| REMOTE</pre>
+      <p class="diagram-caption">IDE Run 走 MiniCluster；<code>flink run</code> 提交到已启动的 Standalone / YARN / K8s 集群。</p>
+    </div>
+
+    <h4>四层执行图（逻辑 → 物理）</h4>
+
+    <div class="mermaid-wrap">
+      <h5>B0 — 四层总览</h5>
+      <pre class="mermaid">flowchart LR
+  CODE[Java API chain]
+  SG[StreamGraph 6 nodes]
+  JG[JobGraph 3 vertices]
+  EG[ExecutionGraph p=2]
+  PHY[Tasks in Slots]
+  CODE --> SG --> JG --> EG --> PHY</pre>
+      <p class="diagram-caption">越往下越「物理」：节点变少（链合并）、再按并行度复制 Subtask、最后落到 Slot。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B1 — StreamGraph（与 API 同构）</h5>
+      <pre class="mermaid">flowchart LR
+  S[Source fromElements]
+  FM[flatMap]
+  M[map]
+  F[filter]
+  KB[keyBy user]
+  SK[Sink print]
+  S --> FM --> M --> F --> KB --> SK</pre>
+      <p class="diagram-caption">节点数 = 你的 StreamNode 个数；尚未做链合并与 shuffle 边抽象。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B2 — JobGraph（链合并 + Shuffle）</h5>
+      <pre class="mermaid">flowchart LR
+  subgraph V1[JobVertex-1 operator chain]
+    a1[Source]
+    a2[flatMap]
+    a3[map]
+    a4[filter]
+    a1 --- a2 --- a3 --- a4
+  end
+  SH[Shuffle IntermediateDataSet]
+  subgraph V2[JobVertex-2]
+    b1[after keyBy]
+  end
+  subgraph V3[JobVertex-3]
+    c1[Sink print]
+  end
+  V1 --> SH --> V2 --> V3</pre>
+      <p class="diagram-caption">keyBy 打断算子链，产生独立 JobVertex；Web UI Task Graph 中可见 Shuffle 类型边。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B3 — ExecutionGraph（并行度 p=2）</h5>
+      <pre class="mermaid">flowchart TB
+  subgraph EV1[JobVertex-1 parallelism 2]
+    e10[Subtask 0]
+    e11[Subtask 1]
+  end
+  SH2[Network Shuffle]
+  subgraph EV2[JobVertex-2 parallelism 2]
+    e20[Subtask 0]
+    e21[Subtask 1]
+  end
+  subgraph EV3[JobVertex-3 parallelism 2]
+    e30[Subtask 0]
+    e31[Subtask 1]
+  end
+  e10 --> SH2
+  e11 --> SH2
+  SH2 --> e20
+  SH2 --> e21
+  e20 --> e30
+  e21 --> e31</pre>
+      <p class="diagram-caption"><strong>对照点</strong>：每个 Subtask 对应 Web UI 中 Vertex 下的 Subtasks 列表与 Metrics。</p>
+    </div>
+
+    <div class="mermaid-wrap">
+      <h5>B4 — 物理部署到 Slot</h5>
+      <pre class="mermaid">flowchart TB
+  subgraph TM1[TaskManager host-1]
+    s11[Slot-1 Subtask chain-0]
+    s12[Slot-2 Subtask keyed-0]
+  end
+  subgraph TM2[TaskManager host-2]
+    s21[Slot-1 Subtask chain-1]
+    s22[Slot-2 Subtask keyed-1]
+  end
+  NET[Cross-host network]
+  s11 --> NET
+  s21 --> NET
+  NET --> s12
+  NET --> s22</pre>
+      <p class="diagram-caption">同一 key 的记录经 shuffle 进入同一 keyBy 后 Subtask；跨机时走网络缓冲区。</p>
+    </div>
+
+    <h4>单条记录在管道中的路径</h4>
+
+    <div class="mermaid-wrap">
+      <h5>C1 — 一条记录穿越 Subtask</h5>
+      <pre class="mermaid">sequenceDiagram
+  participant Src as Source Subtask
+  participant Chain as Chain Subtask
+  participant Shuf as Shuffle
+  participant Keyed as Keyed Subtask
+  participant Sink as Print Subtask
+  Src->>Chain: emit record
+  Chain->>Chain: flatMap map filter
+  Chain->>Shuf: partition by key hash
+  Shuf->>Keyed: same key same Subtask
+  Keyed->>Sink: output</pre>
+      <p class="diagram-caption">Demo 中 key = 用户名（<code>t.f0</code>）；欺诈检测 Walkthrough 中 key = <code>accountId</code>。</p>
+    </div>
+
+    <div class="notice">
+      <strong>Web UI 对照</strong>
+      <table class="outline-table">
+        <thead><tr><th>本节图</th><th>Flink Web UI 入口</th><th>看什么</th></tr></thead>
+        <tbody>
+          <tr><td>B2 JobGraph</td><td>Running Jobs → 作业 → Task Graph</td><td>Vertex 之间 HASH 等 shuffle 边</td></tr>
+          <tr><td>B3 ExecutionGraph</td><td>Vertex → Subtasks</td><td>Subtask 状态、背压、Records 计数</td></tr>
+          <tr><td>B4 物理 Task</td><td>Task Managers → Slots</td><td>哪个 Slot 跑哪个 Subtask</td></tr>
+          <tr><td>A1 提交流程</td><td>Jobs 列表</td><td>CREATED → RUNNING → FINISHED</td></tr>
+          <tr><td>B1 StreamGraph</td><td>（无直接页面）</td><td>与 Task Graph 拓扑一致，节点更细</td></tr>
+        </tbody>
+      </table>
+    </div>
+<div class="notice">
+      <strong>本章小结</strong>：能写出 Source–Transformation–Sink 管道；会设并行度与 <code>keyBy</code>；理解 <code>execute()</code> 触发编译（A1、A2）与四层图（B0–B4）及单条记录路径（C1）。下一章 <code>basics-04-connectors</code> 替换 Source/Sink 为 Kafka 等连接器。
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/overview/" target="_blank" rel="noopener">DataStream API — Overview</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/overview/" target="_blank" rel="noopener">Operators — 算子总览</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/flink-architecture/" target="_blank" rel="noopener">Flink Architecture — 组件与职责</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/internals/job_scheduling/" target="_blank" rel="noopener">Job Scheduling — 调度与执行图</a></li>
+    </ul>
+  </div>
+  <h3>动手练习</h3>
+  <p class="steps-intro">按顺序完成下列步骤；图中标签（A1、B1、C1 等）仅用于与上文插图对照，不会出现在右侧大纲里。</p>
+  <ol class="steps">
+    <li>阅读前三节，对照「示例代码：本章 Demo 完整管道」画出你自己的 Source → Transformation → Sink 草图。</li>
+    <li>运行 Demo：<code>cd demos/basics-03-datastream-transform-lab &amp;&amp; mvn -q exec:java</code>，在 IDE 于 <code>execute</code> 前后设断点，对照图 <strong>A1</strong> 理解 Client 与 Cluster 分工。</li>
+    <li>对照图 <strong>B1→B3</strong>：数清 StreamGraph 节点数、JobGraph 的 Vertex 数；可选 <code>mvn -q exec:java -Dexec.args=4</code>，在 Web UI 核对 Subtask 数量。</li>
+    <li>在 Web UI Task Graph 找图 <strong>B2</strong> 的 Vertex 与 keyBy 后的 Shuffle 边；观察 <code>print</code> 输出，同用户名（key）是否落在相同 subtask 索引（图 <strong>C1</strong>）。</li>
+    <li>（可选）<code>mvn package</code> 后 <code>flink run</code> 提交 Standalone，在 Jobs 列表对照图 <strong>A1</strong> 的作业状态变化。</li>
+  </ol>
+
+
+<div class="demo-box">
+    <h3>Demo：转换与分区实验室</h3>
+    <p>目录：<code>demos/basics-03-datastream-transform-lab/</code>。演示 <strong>flatMap → map → filter → keyBy → print</strong>；本地运行对照 <strong>B1</strong> 拓扑，提交集群后对照 <strong>B2–B4</strong> 与 Web UI。</p>
+    <p>命令：<code>cd demos/basics-03-datastream-transform-lab &amp;&amp; mvn -q exec:java</code>；指定并行度：<code>mvn -q exec:java -Dexec.args=4</code></p>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/joining/" target="_blank" rel="noopener">Joining — connect / union / join</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/partition/" target="_blank" rel="noopener">Partitioning — rebalance / rescale / broadcast</a></li>
+      <li><a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/execution/parallel/" target="_blank" rel="noopener">Parallel Execution — 并行度详解</a></li>
+    </ul>
+  </div>
+</section>

@@ -1,70 +1,203 @@
-<h2 class="quiz-panel-title">章节测验</h2>
-<p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。切换章节时自动显示对应测验。</p>
-
 <section id="quiz-basics-01-overview-quiz" class="quiz-section" data-quiz="basics-01-overview-quiz" data-chapter="basics-01-overview">
-  <h3>测验：RocketMQ 定位与架构鸟瞰</h3>
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
 
   <article class="quiz-item" data-qid="q1" data-answer="C">
-    <p class="stem"><strong>1.</strong> （单选）下列哪一项<strong>不是</strong>本章强调的 RocketMQ 典型价值？</p>
+    <p class="stem"><strong>1.</strong> （单选）下列哪一项<strong>不是</strong>本章强调的流处理典型诉求？</p>
     <ul class="options">
-      <li><label><input type="radio" name="rq-b01-q1" value="A"> 异步解耦，上下游不必同步等待</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="B"> 削峰填谷，缓冲突发流量</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="C"> 替代所有同步 HTTP/RPC，成为唯一调用方式</label></li>
-      <li><label><input type="radio" name="rq-b01-q1" value="D"> 配合事务消息等能力实现最终一致</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="A"> 对持续到达的无界数据做低延迟计算</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="B"> 在算子中维护会话、累计等状态</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="C"> 只支持 T+1 离线批报表，不能实时输出</label></li>
+      <li><label><input type="radio" name="flink-b01-q1" value="D"> 故障后借助 Checkpoint 尽量保证精确一次</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">消息队列是<strong>补充</strong>同步调用，不是取代一切 RPC。</p>
-    <p class="answer hidden"><strong>答案：</strong>C — MQ 解决异步与削峰，不是把所有调用都改成消息。</p>
+    <p class="hint hidden">对照「流处理 vs 批处理」：Flink 面向实时流，不是只能离线。</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 流处理强调低延迟与持续计算，而非只能等离线批。</p>
   </article>
 
-  <article class="quiz-item" data-qid="q2" data-answer="NameServer">
-    <p class="stem"><strong>2.</strong> （填空）Producer 与 Consumer 在收发消息前，通常先向 ______ 查询 Topic 的路由信息（Broker 与 Queue 列表）。</p>
+  <article class="quiz-item" data-qid="q2" data-answer="TaskManager">
+    <p class="stem"><strong>2.</strong> （填空）真正在集群上执行算子 Task、并在 Slot 间交换数据的进程是 ______。</p>
     <input type="text" class="fill-input" aria-label="填空答案" placeholder="组件英文名" />
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">轻量、无状态的路由注册中心，不是 ZooKeeper。</p>
-    <p class="answer hidden"><strong>答案：</strong>NameServer（也接受 nameserver，大小写不敏感）</p>
+    <p class="hint hidden">JobManager 负责调度与容错；Worker 进程执行算子。</p>
+    <p class="answer hidden"><strong>答案：</strong>TaskManager（大小写不敏感）</p>
   </article>
 
-  <article class="quiz-item" data-qid="q3" data-answer="A,B,D,E">
-    <p class="stem"><strong>3.</strong> （多选）下列属于 RocketMQ 架构中「四大角色」的是？</p>
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,C">
+    <p class="stem"><strong>3.</strong> （多选）关于 Flink 运行时角色，下列描述<strong>正确</strong>的是？</p>
     <ul class="options">
-      <li><label><input type="checkbox" name="rq-b01-q3" value="A"> Producer 生产者</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="B"> NameServer</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="C"> ZooKeeper</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="D"> Broker</label></li>
-      <li><label><input type="checkbox" name="rq-b01-q3" value="E"> Consumer 消费者</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="A"> Client 解析程序并提交 JobGraph</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="B"> JobManager 协调调度与 Checkpoint</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="C"> Slot 是 TaskManager 内的调度资源切片</label></li>
+      <li><label><input type="checkbox" name="flink-b01-q3" value="D"> Client 直接在 Slot 上长期运行所有算子</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">Kafka 依赖 ZooKeeper/KRaft；RocketMQ 用 NameServer 做路由。</p>
-    <p class="answer hidden"><strong>答案：</strong>A, B, D, E — Producer、NameServer、Broker、Consumer；不含 ZooKeeper。</p>
+    <p class="hint hidden">Client 只提交；算子在 TaskManager 的 Slot 上跑。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, C — D 错在 Client 不直接执行算子。</p>
   </article>
 
   <article class="quiz-item" data-qid="q4" data-answer="B">
-    <p class="stem"><strong>4.</strong> （单选）关于消息流转，下列描述<strong>正确</strong>的是？</p>
+    <p class="stem"><strong>4.</strong> （单选）团队以「表」思维做实时 ETL、希望优化器自动选算子，本章建议优先哪一层 API？</p>
     <ul class="options">
-      <li><label><input type="radio" name="rq-b01-q4" value="A"> Producer 与 Consumer 必须直连，不经 Broker</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="B"> 先查路由，再向 Broker 收发；消息落在 Broker 的 MessageQueue</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="C"> NameServer 负责持久化 CommitLog</label></li>
-      <li><label><input type="radio" name="rq-b01-q4" value="D"> 同一消费组内，每条消息会被组内所有实例各消费一次</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="A"> 仅 DataStream，禁止 Table/SQL</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="B"> Table API / Flink SQL</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="C"> 只能写 MapReduce 作业</label></li>
+      <li><label><input type="radio" name="flink-b01-q4" value="D"> 必须手写所有物理执行计划</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">对照本章时序图四步：查路由 → 发/收 → Broker 存储。</p>
-    <p class="answer hidden"><strong>答案：</strong>B — D 错在同组是负载均衡（一条只被一个实例消费），C 错在存储在 Broker。</p>
+    <p class="hint hidden">多数分析从 Table/SQL 起步；DataStream 用于细粒度控制。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 复杂状态机、自定义时间语义时再深入 DataStream。</p>
+  </article>
+</section>
+
+<section id="quiz-basics-02-env-quiz" class="quiz-section" data-quiz="basics-02-env-quiz" data-chapter="basics-02-env">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="A">
+    <p class="stem"><strong>1.</strong> （单选）在 IDE 中直接 Run <code>FraudDetectionJob</code> 时，<code>StreamExecutionEnvironment.getExecutionEnvironment()</code> 通常对应哪种运行方式？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b02-q1" value="A"> 内置本地 MiniCluster</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="B"> 必须先下载完整发行包并 start-cluster</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="C"> 只能在 YARN 上运行</label></li>
+      <li><label><input type="radio" name="flink-b02-q1" value="D"> 不会创建任何集群进程</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照「方式 A：IDE 直接 Run」示意图。</p>
+    <p class="answer hidden"><strong>答案：</strong>A — IDE 默认嵌入式 MiniCluster；需要 Web UI 时可另启 Standalone。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="8081">
+    <p class="stem"><strong>2.</strong> （填空）本地 Standalone 集群 Web UI 默认端口是 ______。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="端口号" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">浏览器访问 http://localhost:____</p>
+    <p class="answer hidden"><strong>答案：</strong>8081</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）运行官方欺诈检测 Walkthrough 前，本章推荐已具备的是？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="flink-b02-q3" value="A"> JDK 17 与 Maven 3.9+</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="B"> 通过 Archetype 生成含 TransactionSource 的工程</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="C"> 必须先掌握 Kafka 生产集群</label></li>
+      <li><label><input type="checkbox" name="flink-b02-q3" value="D"> 理解 Source → keyBy → Process → Sink 管道</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Kafka 在后续章节；学习阶段 Maven 依赖即可。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, D — 不必先装 Kafka 或完整发行包（IDE Run 时）。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）欺诈检测 Walkthrough 中，<code>KeyedProcessFunction</code>（FraudDetector）应放在管道的哪个位置？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b02-q4" value="A"> TransactionSource 之前</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="B"> keyBy(accountId) 之后、AlertSink 之前</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="C"> 无需 keyBy，任意位置均可</label></li>
+      <li><label><input type="radio" name="flink-b02-q4" value="D"> 仅作为 Sink 输出告警</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">有状态规则按账户分区，再输出到 AlertSink。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — TS → keyBy → FraudDetector → AlertSink。</p>
+  </article>
+</section>
+
+<section id="quiz-basics-03-datastream-quiz" class="quiz-section" data-quiz="basics-03-datastream-quiz" data-chapter="basics-03-datastream">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）下列算子中，输入 1 条记录可能输出<strong>多条</strong>的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b03-q1" value="A"> map</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="B"> filter</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="C"> flatMap</label></li>
+      <li><label><input type="radio" name="flink-b03-q1" value="D"> keyBy</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照算子表「输入:输出」列。</p>
+    <p class="answer hidden"><strong>答案：</strong>C — flatMap 为 1:N；map 为 1:1，filter 为 0 或 1。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="shuffle">
+    <p class="stem"><strong>2.</strong> （填空）在物理执行图上，<code>keyBy</code> 会引入网络 ______，把相同 key 的数据发到同一 Subtask。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="英文术语" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">本章摘要：keyBy 会引入网络 ___。</p>
+    <p class="answer hidden"><strong>答案：</strong>shuffle（接受「网络 shuffle」等包含 shuffle 的表述）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,C">
+    <p class="stem"><strong>3.</strong> （多选）下列属于设置 Flink 并行度的方式有？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="flink-b03-q3" value="A"> <code>env.setParallelism(n)</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="B"> 单算子 <code>.setParallelism(n)</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="C"> 提交时 <code>flink run -p n</code></label></li>
+      <li><label><input type="checkbox" name="flink-b03-q3" value="D"> 在 Sink 里写 <code>setSlotCount</code></label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">并行度受 Slot 总数约束；无 setSlotCount API。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, C — D 不是合法 API。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）Client 提交作业后，JobMaster 将逻辑图按并行度展开并部署到 TaskManager，对应的概念是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="flink-b03-q4" value="A"> 仅 StreamGraph，不再变化</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="B"> ExecutionGraph（由 JobGraph 展开）</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="C"> NameServer 路由表</label></li>
+      <li><label><input type="radio" name="flink-b03-q4" value="D"> Checkpoint 屏障文件</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">StreamGraph → JobGraph → ExecutionGraph。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — ExecutionGraph 含并行 Subtask；可在 Web UI Task 视图对照。</p>
   </article>
 </section>

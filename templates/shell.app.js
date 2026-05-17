@@ -5,6 +5,17 @@
   const KEY_DONE = slug + '_completed';
   const KEY_THEME = slug + '_theme';
   const KEY_SCROLL = slug + '_scroll';
+  const KEY_CHAPTER_TOC_OPEN = slug + '_chapter_toc_open';
+  var chapterTocObserver = null;
+  var chapterTocTopObserver = null;
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
   function storageGet(key) {
     try {
@@ -99,6 +110,315 @@
     } catch (e2) { /* ignore */ }
   }
 
+  function ensureChapterHeadingIds(section) {
+    var chId = section.getAttribute('data-chapter') || 'ch';
+    var counts = { h3: 0, h4: 0 };
+    section.querySelectorAll('h3, h4').forEach(function (heading) {
+      if (heading.closest('.chapter-header')) return;
+      if (heading.closest('.code-toolbar')) return;
+      if (heading.id) return;
+      var tag = heading.tagName.toLowerCase();
+      counts[tag] += 1;
+      var prefix = tag === 'h3' ? 'sec' : 'sub';
+      heading.id = chId + '-' + prefix + '-' + counts[tag];
+    });
+  }
+
+  function isChapterTocOpenPref() {
+    return storageGet(KEY_CHAPTER_TOC_OPEN) !== '0';
+  }
+
+  function setChapterTocOpenPref(open) {
+    storageSet(KEY_CHAPTER_TOC_OPEN, open ? '1' : '0');
+  }
+
+  function applyChapterTocVisibility() {
+    var toc = document.getElementById('chapter-toc');
+    var fab = document.getElementById('chapter-toc-fab');
+    var toggle = document.getElementById('btn-chapter-toc-toggle');
+    if (!toc || toc.hidden) {
+      document.documentElement.classList.remove('chapter-toc-open');
+      if (fab) {
+        fab.classList.remove('is-shown');
+        fab.hidden = true;
+      }
+      return;
+    }
+    var open = isChapterTocOpenPref();
+    toc.classList.toggle('is-collapsed', !open);
+    document.documentElement.classList.toggle('chapter-toc-open', open);
+    if (fab) {
+      if (open) {
+        fab.classList.remove('is-shown');
+        fab.hidden = true;
+      } else {
+        fab.hidden = false;
+        requestAnimationFrame(function () {
+          fab.classList.add('is-shown');
+        });
+      }
+    }
+    if (toggle) {
+      toggle.textContent = open ? '隐藏' : '显示';
+      toggle.setAttribute('aria-label', open ? '隐藏大纲' : '显示大纲');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+  }
+
+  function toggleChapterTocPanel() {
+    setChapterTocOpenPref(!isChapterTocOpenPref());
+    applyChapterTocVisibility();
+  }
+
+  function hideChapterToc() {
+    var toc = document.getElementById('chapter-toc');
+    var fab = document.getElementById('chapter-toc-fab');
+    document.documentElement.classList.remove('chapter-toc-open');
+    if (toc) {
+      toc.hidden = true;
+      toc.classList.remove('is-collapsed');
+    }
+    if (fab) {
+      fab.classList.remove('is-shown');
+      fab.hidden = true;
+    }
+    disconnectChapterTocObservers();
+  }
+
+  function disconnectChapterTocObservers() {
+    if (chapterTocObserver) {
+      chapterTocObserver.disconnect();
+      chapterTocObserver = null;
+    }
+    if (chapterTocTopObserver) {
+      chapterTocTopObserver.disconnect();
+      chapterTocTopObserver = null;
+    }
+  }
+
+  function scrollChapterToTop(section) {
+    var anchor = section.querySelector('.chapter-header') || section;
+    anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function getChapterQuizSection(chapterId) {
+    var panel = document.getElementById('quiz-panel');
+    if (!panel || !chapterId) return null;
+    return panel.querySelector('.quiz-section[data-chapter="' + chapterId + '"]');
+  }
+
+  function ensureQuizTocHeading(chapterId) {
+    var quiz = getChapterQuizSection(chapterId);
+    if (!quiz) return null;
+    var h = quiz.querySelector('h3');
+    if (!h) {
+      h = document.createElement('h3');
+      h.textContent = '章节测验';
+      quiz.insertBefore(h, quiz.firstChild);
+    }
+    if (!h.id) h.id = 'toc-' + chapterId + '-quiz';
+    return h;
+  }
+
+  function isQuizTocTarget(section, target) {
+    if (!section || !target) return false;
+    var quiz = getChapterQuizSection(section.getAttribute('data-chapter'));
+    return !!(quiz && quiz.contains(target));
+  }
+
+  function buildChapterTocGroups(items) {
+    var groups = [];
+    var current = null;
+    items.forEach(function (it) {
+      if (it.level === 'h3') {
+        current = { h3: it, children: [] };
+        groups.push(current);
+      } else if (it.level === 'h4') {
+        if (!current) {
+          groups.push({ h3: null, children: [it] });
+        } else {
+          current.children.push(it);
+        }
+      }
+    });
+    return groups;
+  }
+
+  function renderChapterTocNavHtml(groups) {
+    var html = '<ul class="chapter-toc-root">';
+    groups.forEach(function (g) {
+      if (g.h3 && g.children.length) {
+        html +=
+          '<li class="toc-block"><a class="toc-l1" href="#' +
+          escapeHtml(g.h3.id) +
+          '">' +
+          escapeHtml(g.h3.text) +
+          '</a><ul>';
+        g.children.forEach(function (c) {
+          html +=
+            '<li><a class="toc-l2" href="#' +
+            escapeHtml(c.id) +
+            '">' +
+            escapeHtml(c.text) +
+            '</a></li>';
+        });
+        html += '</ul></li>';
+      } else if (g.h3) {
+        html +=
+          '<li><a class="toc-l1" href="#' +
+          escapeHtml(g.h3.id) +
+          '">' +
+          escapeHtml(g.h3.text) +
+          '</a></li>';
+      } else {
+        g.children.forEach(function (c) {
+          html +=
+            '<li><a class="toc-l2" href="#' +
+            escapeHtml(c.id) +
+            '">' +
+            escapeHtml(c.text) +
+            '</a></li>';
+        });
+      }
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  function bindChapterTocNav(section) {
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav) return;
+    var firstTocLink = nav.querySelector('a[href^="#"]');
+    nav.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (firstTocLink && link === firstTocLink) {
+          scrollChapterToTop(section);
+          nav.querySelectorAll('a.is-active').forEach(function (a) {
+            a.classList.remove('is-active');
+          });
+          link.classList.add('is-active');
+          return;
+        }
+        var id = link.getAttribute('href').slice(1);
+        var target = id ? document.getElementById(id) : null;
+        if (!target || (!section.contains(target) && !isQuizTocTarget(section, target))) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        nav.querySelectorAll('a.is-active').forEach(function (a) {
+          a.classList.remove('is-active');
+        });
+        link.classList.add('is-active');
+      });
+    });
+  }
+
+  function setChapterTocActiveLink(nav, activeLink) {
+    nav.querySelectorAll('a.is-active').forEach(function (a) {
+      a.classList.remove('is-active');
+    });
+    if (activeLink) activeLink.classList.add('is-active');
+  }
+
+  function initChapterTocSpy(section) {
+    disconnectChapterTocObservers();
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav || typeof IntersectionObserver === 'undefined') return;
+    var links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+    if (!links.length) return;
+    var firstTocLink = nav.querySelector('a[href^="#"]');
+    var headings = links
+      .map(function (a) {
+        return document.getElementById(a.getAttribute('href').slice(1));
+      })
+      .filter(Boolean);
+    var spyRaf = 0;
+    chapterTocObserver = new IntersectionObserver(
+      function (entries) {
+        if (spyRaf) cancelAnimationFrame(spyRaf);
+        spyRaf = requestAnimationFrame(function () {
+          spyRaf = 0;
+          var visible = entries
+            .filter(function (en) { return en.isIntersecting; })
+            .sort(function (a, b) { return a.target.offsetTop - b.target.offsetTop; });
+          if (!visible.length) return;
+          var id = visible[0].target.id;
+          links.forEach(function (link) {
+            var on = link.getAttribute('href') === '#' + id;
+            if (on) link.classList.add('is-active');
+            else link.classList.remove('is-active');
+          });
+        });
+      },
+      { root: null, rootMargin: '-18% 0px -62% 0px', threshold: [0, 1] }
+    );
+    headings.forEach(function (h) { chapterTocObserver.observe(h); });
+
+    var header = section.querySelector('.chapter-header');
+    if (firstTocLink && header) {
+      chapterTocTopObserver = new IntersectionObserver(
+        function (entries) {
+          if (!entries.some(function (en) { return en.isIntersecting; })) return;
+          var firstHeading = document.getElementById(firstTocLink.getAttribute('href').slice(1));
+          if (firstHeading && firstHeading.getBoundingClientRect().top <= 120) return;
+          setChapterTocActiveLink(nav, firstTocLink);
+        },
+        { root: null, rootMargin: '-8% 0px -72% 0px', threshold: 0 }
+      );
+      chapterTocTopObserver.observe(header);
+    }
+  }
+
+  function renderChapterToc(section) {
+    var toc = document.getElementById('chapter-toc');
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!toc || !nav || !section) return;
+    ensureChapterHeadingIds(section);
+    var items = [];
+    section.querySelectorAll('h3, h4').forEach(function (heading) {
+      if (heading.closest('.chapter-header')) return;
+      if (heading.closest('.code-toolbar')) return;
+      if (!heading.id) return;
+      items.push({
+        id: heading.id,
+        text: heading.textContent.trim(),
+        level: heading.tagName.toLowerCase()
+      });
+    });
+    var chapterId = section.getAttribute('data-chapter');
+    var quizHeading = ensureQuizTocHeading(chapterId);
+    if (quizHeading) {
+      items.push({
+        id: quizHeading.id,
+        text: '章节测验',
+        level: 'h3'
+      });
+    }
+    if (!items.length) {
+      hideChapterToc();
+      return;
+    }
+    var groups = buildChapterTocGroups(items);
+    nav.innerHTML = renderChapterTocNavHtml(groups);
+    toc.hidden = false;
+    applyChapterTocVisibility();
+    bindChapterTocNav(section);
+    initChapterTocSpy(section);
+  }
+
+  function initChapterTocControls() {
+    var toggle = document.getElementById('btn-chapter-toc-toggle');
+    var fab = document.getElementById('chapter-toc-fab');
+    if (toggle) {
+      toggle.addEventListener('click', toggleChapterTocPanel);
+    }
+    if (fab) {
+      fab.addEventListener('click', function () {
+        setChapterTocOpenPref(true);
+        applyChapterTocVisibility();
+      });
+    }
+  }
+
   function showWelcome() {
     document.getElementById('welcome').style.display = '';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
@@ -111,7 +431,8 @@
     if (homeLi) homeLi.classList.add('active-ch');
     storageRemove(KEY_SCROLL);
     syncQuizVisibility(null);
-    document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' });
+    hideChapterToc();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showChapter(id) {
@@ -132,7 +453,8 @@
     });
     renderMermaidIn(section);
     syncQuizVisibility(id);
-    section.scrollIntoView({ behavior: 'smooth' });
+    renderChapterToc(section);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function syncQuizVisibility(chapterId) {
@@ -150,10 +472,6 @@
       if (on) matched = true;
     });
     panel.style.display = matched ? '' : 'none';
-    var title = panel.querySelector('.quiz-panel-title');
-    var lead = panel.querySelector('.quiz-panel-lead');
-    if (title) title.style.display = matched ? '' : 'none';
-    if (lead) lead.style.display = matched ? '' : 'none';
   }
 
   function normalizeQuizText(s) {
@@ -258,7 +576,7 @@
         icon.className = 'ch-done-icon';
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = '✓';
-        a.insertBefore(icon, a.firstChild);
+        a.appendChild(icon);
       } else if (!isDone && icon) {
         icon.remove();
       }
@@ -275,11 +593,11 @@
       '</li></ul>';
     nav.innerHTML = homeNav + COURSE_DATA.outline.map(function (phase) {
       return '<details class="phase" open>' +
-        '<summary>' + phase.phaseTitle + '（' + phase.chapters.length + ' 章）</summary>' +
+        '<summary>' + escapeHtml(phase.phaseTitle) + '</summary>' +
         '<ul>' + phase.chapters.map(function (ch) {
           const cls = done.has(ch.id) ? 'done' : 'pending';
           const badge = done.has(ch.id) ? '<span class="ch-done-icon" aria-hidden="true">✓</span>' : '';
-          return '<li class="' + cls + '"><a href="#ch-' + ch.id + '" data-ch-id="' + ch.id + '">' + badge + '<span class="ch-link-title">' + ch.title + '</span></a></li>';
+          return '<li class="' + cls + '"><a href="#ch-' + ch.id + '" data-ch-id="' + ch.id + '"><span class="ch-link-title">' + escapeHtml(ch.title) + '</span>' + badge + '</a></li>';
         }).join('') + '</ul></details>';
     }).join('');
     var homeLink = document.getElementById('nav-home');
@@ -304,13 +622,50 @@
     const tbody = document.getElementById('outline-summary-body');
     if (!tbody) return;
     const phaseClass = { basics: 'basics', practice: 'practice', advanced: 'advanced' };
-    tbody.innerHTML = COURSE_DATA.outline.map(function (phase) {
-      return phase.chapters.map(function (ch, i) {
-        const tag = i === 0 ? '<span class="phase-tag ' + (phaseClass[phase.phaseId] || '') + '">' + phase.phaseTitle + '</span>' : '';
-        const sections = ch.sections.join('、');
-        return '<tr><td>' + tag + '</td><td><strong>' + ch.title + '</strong></td><td>' + sections + '</td></tr>';
-      }).join('');
-    }).join('');
+    const rows = [];
+    COURSE_DATA.outline.forEach(function (phase) {
+      const chapterCount = phase.chapters.length;
+      const phaseId = phase.phaseId || '';
+      phase.chapters.forEach(function (ch, i) {
+        let cells = '';
+        if (i === 0) {
+          const goalHtml = phase.phaseGoal
+            ? '<p class="outline-phase-goal">' + escapeHtml(phase.phaseGoal) + '</p>'
+            : '';
+          cells +=
+            '<td class="outline-phase" rowspan="' + chapterCount + '">' +
+            '<div class="outline-phase-inner">' +
+            '<span class="phase-tag ' + (phaseClass[phaseId] || '') + '">' +
+            escapeHtml(phase.phaseTitle) +
+            '</span>' +
+            goalHtml +
+            '</div></td>';
+        }
+        const sectionsHtml =
+          '<ul class="outline-section-list">' +
+          ch.sections
+            .map(function (section) {
+              return '<li>' + escapeHtml(section) + '</li>';
+            })
+            .join('') +
+          '</ul>';
+        const chIndex = String(i + 1).padStart(2, '0');
+        cells +=
+          '<td class="outline-chapter">' +
+          '<div class="outline-chapter-cell">' +
+          '<span class="outline-ch-index" aria-hidden="true">' + chIndex + '</span>' +
+          '<span class="outline-chapter-title">' + escapeHtml(ch.title) + '</span>' +
+          '</div></td>' +
+          '<td class="outline-sections">' + sectionsHtml + '</td>';
+        const rowClasses = ['outline-row'];
+        if (i === chapterCount - 1) rowClasses.push('outline-row-phase-end');
+        const rowAttr =
+          ' class="' + rowClasses.join(' ') + '"' +
+          (phaseId ? ' data-phase="' + escapeHtml(phaseId) + '"' : '');
+        rows.push('<tr' + rowAttr + '>' + cells + '</tr>');
+      });
+    });
+    tbody.innerHTML = rows.join('');
   }
 
   function initMermaid() {
@@ -375,11 +730,31 @@
     });
   }
 
+  function getMermaidDiagramHost(wrap) {
+    var pre = wrap.querySelector(':scope > pre.mermaid, :scope > div.mermaid');
+    if (!pre) {
+      pre = wrap.querySelector('pre.mermaid, div.mermaid');
+    }
+    if (!pre) return null;
+    var diagram = wrap.querySelector('.mermaid-diagram');
+    if (!diagram) {
+      diagram = document.createElement('div');
+      diagram.className = 'mermaid-diagram';
+      wrap.insertBefore(diagram, pre);
+      diagram.appendChild(pre);
+    }
+    var bar = wrap.querySelector(':scope > .mermaid-toolbar');
+    if (bar) diagram.appendChild(bar);
+    return diagram;
+  }
+
   function injectMermaidFullscreenUi(root) {
     var scope = root || document;
     if (!scope.querySelectorAll) return;
     scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-      if (wrap.querySelector('.mermaid-toolbar')) return;
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      if (diagram.querySelector('.mermaid-toolbar')) return;
       var bar = document.createElement('div');
       bar.className = 'mermaid-toolbar';
       var btn = document.createElement('button');
@@ -389,35 +764,35 @@
       btn.setAttribute('aria-label', '图表全屏');
       btn.setAttribute('aria-expanded', 'false');
       bar.appendChild(btn);
-      wrap.insertBefore(bar, wrap.firstChild);
+      diagram.appendChild(bar);
     });
   }
 
-  function isPseudoFs(wrap) {
-    return wrap.classList.contains('is-pseudo-fullscreen');
+  function isPseudoFs(diagram) {
+    return diagram.classList.contains('is-pseudo-fullscreen');
   }
 
-  function closePseudoFs(wrap) {
-    wrap.classList.remove('is-pseudo-fullscreen');
-    if (!document.querySelector('.mermaid-wrap.is-pseudo-fullscreen')) {
+  function closePseudoFs(diagram) {
+    diagram.classList.remove('is-pseudo-fullscreen');
+    if (!document.querySelector('.mermaid-diagram.is-pseudo-fullscreen')) {
       document.body.style.overflow = '';
     }
   }
 
-  function openPseudoFs(wrap) {
+  function openPseudoFs(diagram) {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
     }
-    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
-      if (w !== wrap) closePseudoFs(w);
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+      if (d !== diagram) closePseudoFs(d);
     });
-    wrap.classList.add('is-pseudo-fullscreen');
+    diagram.classList.add('is-pseudo-fullscreen');
     document.body.style.overflow = 'hidden';
   }
 
-  function syncFsButton(wrap, btn) {
-    var native = document.fullscreenElement === wrap;
-    var pseudo = isPseudoFs(wrap);
+  function syncFsButton(diagram, btn) {
+    var native = document.fullscreenElement === diagram;
+    var pseudo = isPseudoFs(diagram);
     var on = native || pseudo;
     btn.textContent = on ? '退出全屏' : '全屏';
     btn.setAttribute('aria-expanded', on ? 'true' : 'false');
@@ -428,10 +803,10 @@
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
     }
-    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
-      closePseudoFs(wrap);
-      var btn = wrap.querySelector('.mermaid-fs-btn');
-      if (btn) syncFsButton(wrap, btn);
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+      closePseudoFs(diagram);
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
     });
   }
 
@@ -439,66 +814,69 @@
     var scope = root || document;
     if (!scope.querySelectorAll) return;
     scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-      var btn = wrap.querySelector('.mermaid-fs-btn');
-      if (!btn || wrap.dataset.fsBound) return;
-      wrap.dataset.fsBound = '1';
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (!btn || diagram.dataset.fsBound) return;
+      diagram.dataset.fsBound = '1';
       btn.addEventListener('click', function () {
-        var pre = wrap.querySelector('pre.mermaid, div.mermaid');
+        var pre = diagram.querySelector('pre.mermaid, div.mermaid');
         if (!pre || !pre.querySelector('svg')) {
           showToast('图表尚未渲染完成，请稍候再试', 'error');
           return;
         }
-        var native = document.fullscreenElement === wrap;
-        var pseudo = isPseudoFs(wrap);
+        var native = document.fullscreenElement === diagram;
+        var pseudo = isPseudoFs(diagram);
         if (native || pseudo) {
           if (native) document.exitFullscreen().catch(function () {});
-          if (pseudo) closePseudoFs(wrap);
-          syncFsButton(wrap, btn);
+          if (pseudo) closePseudoFs(diagram);
+          syncFsButton(diagram, btn);
           return;
         }
-        document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
-          closePseudoFs(w);
-          var b = w.querySelector('.mermaid-fs-btn');
-          if (b) syncFsButton(w, b);
+        document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+          closePseudoFs(d);
+          var b = d.querySelector('.mermaid-fs-btn');
+          if (b) syncFsButton(d, b);
         });
-        var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        var req = diagram.requestFullscreen || diagram.webkitRequestFullscreen;
         if (typeof req === 'function') {
-          Promise.resolve(req.call(wrap)).then(function () {
-            syncFsButton(wrap, btn);
+          Promise.resolve(req.call(diagram)).then(function () {
+            syncFsButton(diagram, btn);
           }).catch(function () {
-            openPseudoFs(wrap);
-            syncFsButton(wrap, btn);
+            openPseudoFs(diagram);
+            syncFsButton(diagram, btn);
           });
         } else {
-          openPseudoFs(wrap);
-          syncFsButton(wrap, btn);
+          openPseudoFs(diagram);
+          syncFsButton(diagram, btn);
         }
       });
     });
   }
 
+  function syncAllMermaidFsButtons() {
+    document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var diagram = wrap.querySelector('.mermaid-diagram');
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
+    });
+  }
+
   function initMermaidFullscreen() {
     document.addEventListener('fullscreenchange', function () {
-      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
-      });
+      syncAllMermaidFsButtons();
       if (!document.fullscreenElement) {
-        document.body.style.overflow = document.querySelector('.mermaid-wrap.is-pseudo-fullscreen') ? 'hidden' : '';
+        document.body.style.overflow = document.querySelector('.mermaid-diagram.is-pseudo-fullscreen') ? 'hidden' : '';
       }
     });
-    document.addEventListener('webkitfullscreenchange', function () {
-      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
-      });
-    });
+    document.addEventListener('webkitfullscreenchange', syncAllMermaidFsButtons);
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
-        closePseudoFs(wrap);
-        var btn = wrap.querySelector('.mermaid-fs-btn');
-        if (btn) syncFsButton(wrap, btn);
+      document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+        closePseudoFs(diagram);
+        var btn = diagram.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(diagram, btn);
       });
     });
   }
@@ -715,6 +1093,7 @@
     injectMermaidFullscreenUi(document);
     bindMermaidFullscreen(document);
     initQuiz();
+    initChapterTocControls();
     initMermaid();
     highlightIn(document);
     syncAllProgressUI();

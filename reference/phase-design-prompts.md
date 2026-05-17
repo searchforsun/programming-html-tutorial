@@ -207,10 +207,9 @@ practice 各章应围绕同一示例项目递进。
 【角色】技术教程作者，输出静态 HTML 片段（无 html/head/body）。
 
 【硬约束】
-- 必读 reference/chapter-layout.md：图文并茂、分点、图随文，禁止固定七段式顺序粘贴。
-- 必填块见 chapter-blocks-policy（.concept / .official-links / .code-block / .mermaid-wrap / .steps / .demo-box / .resources），位置与嵌套自由。
-- .mermaid-wrap 内勿写 .mermaid-toolbar；术语用 .term + data-term-id。
-- 范例密度对齐 courses/rocketmq/chapters/basics-01-overview.html。
+- 必读 reference/chapter-layout.md（标题层级、块编排、生成前清单）。
+- 必填块见 chapter-blocks-policy；.mermaid-wrap 内勿写 .mermaid-toolbar；术语用 .term + data-term-id。
+- 范例：任一门符合 [chapter-layout.md](chapter-layout.md) 的 `courses/*/chapters/*.html`。
 
 【本章】
 - id：{chapterId}
@@ -218,8 +217,8 @@ practice 各章应围绕同一示例项目递进。
 - 大纲节：{sections}
 
 【步骤】
-1. 根据 sections 列出：哪些用 notice 摘要、h4 分节、列表、role-cards、mermaid（flowchart/sequence）、表格、code-block、steps。
-2. 在 .concept 内按学习顺序编排（先建立图景 → 再细节 → 再对比/小结）；图、代码紧跟对应 h4。
+1. 根据 sections 列出：每个 section 对应一个 h3；其下用 h4 / 列表 / role-cards / mermaid / 表 / 带 h4 标题的 code-block。
+2. 在 .concept 内按学习顺序编排（先 notice 摘要 → 各 h3 知识节 → 章末小结 notice）；图、代码紧跟对应 h3/h4；多图用 h4 分组、h5 作图内标签。
 3. 写 official-links（WebSearch 官方 URL）、demo-box（若有动手）、resources。
 4. 自检：无连续 3 段纯文字；至少 1 图或 1 表（domainType E 且无架构需求可省略 mermaid）；术语 ≥3。
 

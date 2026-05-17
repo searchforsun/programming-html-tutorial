@@ -17,7 +17,7 @@
 
 1. 标题 + lead 段落  
 2. `meta-cards`（版本、章数、前置、官方文档等）  
-3. `h3` + `table.outline-table` + **`tbody#outline-summary-body`**（空表体，由 JS 填）  
+3. `h3` + `div.outline-table-wrap` > `table.outline-table`（`thead` 列：阶段 / 章节 / 小节概要）+ **`tbody#outline-summary-body`**  
 4. 可选 `notice` / `role-cards` 学习路径说明  
 
 ## 生成后

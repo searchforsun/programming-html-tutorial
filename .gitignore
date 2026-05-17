@@ -10,3 +10,5 @@ Thumbs.db
 
 # Local learner progress (optional per course)
 **/progress.json
+courses/**
+!courses/README.md

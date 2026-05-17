@@ -25,9 +25,12 @@ function applyThemePreset() {
 | `getCompleted` / `setCompleted` / `toggleComplete` | 章节完成 localStorage |
 | `syncMarkDoneButtons()` | 「标记完成」↔「取消标记」+ `.is-done` |
 | `syncSidebarDone()` | 侧栏 done/pending |
-| `showWelcome()` | 显示欢迎页、隐藏章节、侧栏「课程首页」高亮、清除 `KEY_SCROLL` |
-| `showChapter(id)` | 切换章节、`.active-ch`、隐藏 welcome |
-| `updateProgressBar` / `totalChapters` / `renderSidebar` / `renderOutlineSummary` | 进度与侧栏 |
+| `showWelcome()` | 欢迎页、隐藏章节/测验/右栏大纲、侧栏「课程首页」高亮、清除 `KEY_SCROLL` |
+| `showChapter(id)` | 切换章节、`.active-ch`；末尾 `renderMermaidIn`、`syncQuizVisibility`、`renderChapterToc` |
+| `updateProgressBar` / `totalChapters` / `renderSidebar` / `renderOutlineSummary` | 进度与侧栏（`details.phase` + `phaseTitle`） |
+| `renderChapterToc` / `bindChapterTocNav` / `initChapterTocSpy` | 右栏本章大纲；首项滚章首；末条「章节测验」 |
+| `initChapterTocControls` / `applyChapterTocVisibility` | 右栏开合、`KEY_CHAPTER_TOC_OPEN`、FAB |
+| `syncQuizVisibility` / `initQuiz` / `checkQuizAnswer` | 按 `data-chapter` 显示测验；检查/提示/答案 |
 | `showToast(msg, type)` | 底部 Toast，`success` / `error` |
 | `flashCopyButton(btn, state)` | 复制钮「已复制 ✓」/「复制失败」，2s 后恢复 `data-label` |
 | `copyText(text, btn, okMsg, failMsg)` | `clipboard` + `execCommand` 降级 |
@@ -52,9 +55,14 @@ function applyThemePreset() {
 
 ### 复制反馈
 
-- `.btn-copy`：`copyFromButton` → Toast「代码已复制到剪贴板」
+- `.btn-copy`：`copyFromButton` → Toast「代码已复制到剪贴板」；`flashCopyButton` 切换 `.copied` / `.copy-fail` 与文案「已复制 ✓」
 - `#btn-copy-prompt`：`copyText(..., '提示词已复制到剪贴板', ...)`
 - 失败时 Toast 错误样式 + 按钮「复制失败」
+- 暗色下实心主按钮为浅底描边；`.btn-copy.copied` 与 `:hover` 分轨，避免悬停盖住已复制态（见 `shell.base.css` `[data-theme="dark"]`）
+
+### `renderOutlineSummary`
+
+输出列：阶段（`rowspan` + `phase-tag` + `outline-phase-goal`）、章节（`outline-ch-index` + `outline-chapter-title`）、小节列表。行 class：`outline-row`、`outline-row-phase-end`；`data-phase` 取自 `phaseId`。
 
 ### 术语弹窗
 
@@ -81,8 +89,9 @@ function applyHljsTheme(theme) {
 
 - `initMermaid()`：`startOnLoad: false`，`theme` 随 `data-theme`（`dark` / `default`），可配 `themeVariables` 贴近本课 CSS。
 - **首次渲染须在章节可见后**：`showChapter(id)` 末尾调用 `renderMermaidIn(section)`；**不要**在 `display:none` 的章节上先 `mermaid.run`。
-- `renderMermaidIn(root)`：保存 `data-mermaid-src` → 清 SVG → `mermaid.run({ nodes })` → `injectMermaidFullscreenUi` + `bindMermaidFullscreen`。
-- **Mermaid 全屏（§6b）**：脚本注入 `.mermaid-toolbar` / `.mermaid-fs-btn`（章节 **勿手写** 工具栏）。优先 `wrap.requestFullscreen()`，失败则 `.is-pseudo-fullscreen`（`z-index: 10000`）。`initMermaidFullscreen()` 处理 `fullscreenchange` / `Esc`；`applyTheme` 先 `closeAllMermaidFullscreen()`。
+- `getMermaidDiagramHost(wrap)`：将 `pre.mermaid` 包入 `.mermaid-diagram`，工具栏挂在 diagram 内。
+- `renderMermaidIn(root)`：保存 `data-mermaid-src` → 清 SVG → `mermaid.run` → `injectMermaidFullscreenUi` + `bindMermaidFullscreen`。
+- **Mermaid 全屏**：章节 **勿手写** 工具栏。全屏对象为 **`.mermaid-diagram`**（非整块 `.mermaid-wrap`）；`h5` / `.diagram-caption` 留在外。失败则 `.is-pseudo-fullscreen`。详见 [mermaid-fullscreen.md](mermaid-fullscreen.md)。
 - `applyTheme` 内：`initMermaid()` 后 `rerenderActiveMermaid()`，使亮暗切换时图表重绘。
 - `afterChapterInserted(el)`：仅当 `el.classList.contains('active')` 时调用 `renderMermaidIn`。
 - `highlightIn` 选择器：`pre:not(.mermaid) > code`，避免误高亮 Mermaid 源码。
@@ -106,11 +115,10 @@ function resetMermaidNode(el) {
 
 1. `applyThemePreset()`
 2. 标题、`applyTheme(localStorage 或 light)`
-3. `renderSidebar`、`renderOutlineSummary`、`updateProgressBar`
-4. `bindCopyButtons`、`initTermModal`、`initMermaidFullscreen`、`injectMermaidFullscreenUi`、`bindMermaidFullscreen`、`initMermaid`、`highlightIn(document)`
-5. `syncMarkDoneButtons()`
-6. `syncAllProgressUI()`；有 `KEY_SCROLL` 则 `showChapter`，否则 `showWelcome()`（不再默认跳进第一章）
-7. 顶栏 `.course-title` 点击/Enter/Space → `showWelcome()`；侧栏首项「课程首页」同效
+3. `renderSidebar`、`renderOutlineSummary`
+4. `bindCopyButtons`、`initTermModal`、`initMermaidFullscreen`、`injectMermaidFullscreenUi`、`bindMermaidFullscreen`、`initQuiz`、`initChapterTocControls`、`initMermaid`、`highlightIn(document)`
+5. `syncAllProgressUI()`；有 `KEY_SCROLL` 则 `showChapter`，否则 `showWelcome()`（不默认跳进第一章）
+6. 顶栏 `.course-title`、侧栏「课程首页」→ `showWelcome()`
 
 暴露：`window.toggleComplete`、`window.afterChapterInserted`。
 
@@ -124,6 +132,7 @@ function resetMermaidNode(el) {
   var KEY_DONE = slug + '_completed';
   var KEY_THEME = slug + '_theme';
   var KEY_SCROLL = slug + '_scroll';
+  var KEY_CHAPTER_TOC_OPEN = slug + '_chapter_toc_open';
   var copyResetTimer = null;
 
   function applyThemePreset() { /* 见上 */ }
@@ -152,7 +161,5 @@ function resetMermaidNode(el) {
 
 ## 禁止
 
-- 无效 HTML 标签
 - 复制/标记完成/复制提示词无视觉或 Toast 反馈
 - 在组件 CSS 中写死某技术品牌色（应使用 CSS 变量 + 本课 theme 块）
-- 引用某一已生成教程路径作为「金标准」；以本 reference 与 [shell-styles.md](shell-styles.md) 为准
