@@ -1,18 +1,53 @@
-[data-theme-preset="minimal-example"][data-theme="light"] {
-  --accent: #0969da;
-  --accent-hover: #0550ae;
-  --accent-soft: #ddf4ff;
-  --accent-glow: rgba(9,105,218,.25);
-  --accent-alt: #58a6ff;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
-  --phase-basics: #0969da;
+[data-theme-preset="rocketmq"][data-theme="light"] {
+  --accent: #d4380d;
+  --accent-hover: #ad2102;
+  --accent-soft: #fff2e8;
+  --accent-glow: rgba(212, 56, 13, 0.28);
+  --accent-alt: #fa8c16;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 56, 13, 0.12), transparent);
+  --phase-basics: #d4380d;
 }
-[data-theme-preset="minimal-example"][data-theme="dark"] {
-  --accent: #58a6ff;
-  --accent-hover: #79b8ff;
-  --accent-soft: #132d4a;
-  --accent-glow: rgba(88,166,255,.2);
-  --accent-alt: #a371f7;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
-  --phase-basics: #58a6ff;
+[data-theme-preset="rocketmq"][data-theme="dark"] {
+  --accent: #ff7a45;
+  --accent-hover: #ff9c6e;
+  --accent-soft: #2b1d14;
+  --accent-glow: rgba(255, 122, 69, 0.22);
+  --accent-alt: #ffc069;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 122, 69, 0.1), transparent);
+  --phase-basics: #ff7a45;
+}
+
+/* 章节内角色卡片：避免复用 .meta-card strong 的「小号大写标签」样式 */
+.role-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.role-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  box-shadow: var(--shadow-sm);
+}
+.role-card .role-card-title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--accent);
+  margin: 0 0 0.45rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.role-card .role-card-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+.role-card .role-card-desc .term {
+  font-size: inherit;
+  font-weight: 500;
 }

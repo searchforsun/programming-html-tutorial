@@ -1,65 +1,64 @@
-# 示例 · 最小教程
+# Apache RocketMQ 入门到进阶
 
-## 三步开始预览
+## 三步开始学习
 
 ```bash
-cd examples/minimal-course
+cd courses/rocketmq
 npx --yes serve .
 ```
 
-浏览器打开终端中的地址（一般为 **http://localhost:3000/**）。
+在浏览器打开 **http://localhost:3000**（或终端提示的端口），进入 [index.html](index.html) 即可学习。
 
-| 方式 | 做法 | 注意 |
-|------|------|------|
-| **推荐** | 上表命令 + 浏览器访问 | 进度、主题可保存在 localStorage |
-| 备选 | 双击 [index.html](index.html) | 无需命令行；部分能力在 `file://` 下可能受限 |
+| 方式 | 说明 |
+|------|------|
+| **推荐** | 本地静态服务（`npx serve`），进度与主题可正常保存到 localStorage |
+| **备选** | 直接双击 `index.html`（`file://`），部分浏览器可能限制 localStorage |
 
-**学习入口**：[index.html](index.html)（请优先用本地静态服务打开）。
-
----
+**学习入口**：[index.html](index.html)
 
 ## 这门课是什么
 
-本目录**不是**真实技术课程，而是 `programming-html-tutorial` 技能的**最小集成样例**。
+面向 **Apache RocketMQ 5.4.0** 的交互式 HTML 教程，共 **11 章**、**3 阶段**：消息模型与本地跑通 → 业务集成与可靠投递 → 集群高可用与生产治理。适合有 Java 与 Maven 基础、希望系统掌握消息中间件的开发者。
 
-- **Shell 版本**：2.0.0（与 `templates/` 一致）
-- **domainType**：`E`（窄专题）— 章节可不写 Mermaid / Demo 块
-- **大纲**：3 阶段、5 章（仅第 1 章有正文与测验，其余章仅侧栏占位）
-- **用途**：验证组装脚本、侧栏导航、进度条、术语弹窗、章节测验联动
+- 官方文档：[Quick Start](https://rocketmq.apache.org/docs/quickStart/01quickstart/)
+- 当前状态：已生成 **1/11** 章正文（`basics-01-overview`），其余章为目录占位
 
----
+## Demo
+
+```bash
+cd demos/basics-01-overview-arch-lab
+docker compose up -d
+docker exec rmq-broker sh mqadmin clusterList -n namesrv:9876
+```
+
+详见 [demos/basics-01-overview-arch-lab/README.md](demos/basics-01-overview-arch-lab/README.md)。
 
 ## 文件是干什么的
 
-| 文件 / 目录 | 你要不要碰 | 说明 |
-|-------------|------------|------|
-| **index.html** | 只打开 | assemble 生成，勿手改 |
-| **course.json** | 改大纲/测验元数据时 | 课程数据与 `quizzes` |
-| **welcome.partial.html** | 改首页文案时 | 欢迎区 HTML 片段 |
-| **chapters/*.html** | 改正文时 | 单章内容片段 |
-| **quiz.partial.html** | 改测验时 | 注入 `#quiz-panel`，`data-chapter` 对齐章节 id |
-| **theme.css** | 改主题色时 | `themePreset` 对应选择器 |
-| **README.md** | 阅读 | 本说明 |
-
----
+| 文件 | 你要不要碰 | 说明 |
+|------|------------|------|
+| `index.html` | 只打开阅读 | 浏览器入口（由脚本组装生成） |
+| `course.json` | 一般不用 | 大纲、术语、测验元数据 |
+| `chapters/` | 只读学习 | 各章 HTML 片段（生成后出现） |
+| `theme.css` | 不用 | 本课主题色 |
+| `demos/` | 按需运行 | 章节配套 Demo（生成后出现） |
 
 <details>
-<summary>维护：改源文件后如何重新生成 index.html</summary>
+<summary>维护信息（生成者与贡献者）</summary>
 
-在仓库根目录执行：
+重新组装页面：
 
 ```bash
-node scripts/assemble-index.mjs --dir examples/minimal-course
-node scripts/validate-tutorial.mjs --dir examples/minimal-course
+node .claude/skills/programming-html-tutorial/scripts/assemble-index.mjs --dir courses/rocketmq
+node .claude/skills/programming-html-tutorial/scripts/validate-tutorial.mjs --dir courses/rocketmq
 ```
 
-</details>
+可配置项：
 
-<details>
-<summary>维护：与正式教程目录的差异</summary>
-
-- 正式课程路径：`courses/<slug>/`（如 `courses/spring-boot/`）
-- 本示例路径：`examples/minimal-course/`
-- 二者目录结构相同；assemble / validate 命令仅 `--dir` 不同
+- `course.json` → `meta.version`：对齐官方稳定版
+- `meta.hljsLanguages`：代码高亮语言列表
+- `outline`：三阶段章节结构
+- `terms`：术语 AI 探索提示词
+- `theme.css`：`--accent` 等主题变量
 
 </details>

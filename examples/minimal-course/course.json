@@ -1,92 +1,207 @@
 {
   "meta": {
-    "title": "示例 · 最小教程",
-    "slug": "minimal-example",
-    "domain": "示例技术",
-    "themePreset": "minimal-example",
+    "title": "Apache RocketMQ 入门到进阶",
+    "slug": "rocketmq",
+    "domain": "Apache RocketMQ",
+    "themePreset": "rocketmq",
     "shellVersion": "2.0.0",
-    "domainType": "E",
-    "hljsLanguages": ["bash"],
+    "version": "5.4.0",
+    "generatedAt": "2026-05-17",
+    "officialDocs": "https://rocketmq.apache.org/docs/quickStart/01quickstart/",
+    "domainType": "C",
+    "hljsLanguages": ["java", "bash", "json", "xml"],
     "learningNotes": {
-      "assumptions": ["窄专题示例，每阶段 2 章"],
+      "assumptions": [
+        "具备 Java 基础与 Maven/Gradle 使用经验",
+        "了解分布式系统中异步通信的基本概念",
+        "本地可安装 JDK 8+ 并运行 Docker 或解压版 Broker（教程以 5.x 为主）"
+      ],
       "phaseGoals": {
-        "basics": "理解最小概念集",
-        "practice": "完成一个简单场景",
-        "advanced": "了解边界与衔接"
+        "basics": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
+        "practice": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
+        "advanced": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点"
       }
     }
   },
   "outline": [
     {
       "phaseId": "basics",
-      "phaseTitle": "核心概念速览",
-      "phaseGoal": "理解最小概念集",
+      "phaseTitle": "消息模型与本地跑通",
+      "phaseGoal": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
       "chapters": [
         {
-          "id": "basics-01-intro",
-          "title": "入门介绍",
-          "sections": ["是什么", "何时使用"]
+          "id": "basics-01-overview",
+          "title": "RocketMQ 定位与架构鸟瞰",
+          "sections": [
+            "分布式消息中间件要解决什么问题",
+            "NameServer、Broker、Producer、Consumer 职责",
+            "与 Kafka、RabbitMQ 的差异对照"
+          ]
         },
         {
-          "id": "basics-02-syntax",
-          "title": "基本语法",
-          "sections": ["规则", "常见误用"]
+          "id": "basics-02-env",
+          "title": "环境搭建与第一次收发",
+          "sections": [
+            "下载 5.x 与 JDK 要求",
+            "启动 NameServer 与 Broker",
+            "mqadmin 与 RocketMQ Dashboard 初探"
+          ]
+        },
+        {
+          "id": "basics-03-model",
+          "title": "Topic、Queue、Tag 与消息属性",
+          "sections": [
+            "Topic 与 MessageQueue 分区",
+            "Tag、Keys 与属性过滤",
+            "消息存储与消费位点概念"
+          ]
+        },
+        {
+          "id": "basics-04-api",
+          "title": "Java 客户端：生产与消费入门",
+          "sections": [
+            "依赖引入与客户端生命周期",
+            "同步、异步与单向发送",
+            "Push 消费、消费组与重平衡"
+          ]
         }
       ]
     },
     {
       "phaseId": "practice",
-      "phaseTitle": "场景演练",
-      "phaseGoal": "完成一个简单场景",
+      "phaseTitle": "业务集成与可靠投递",
+      "phaseGoal": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
       "chapters": [
         {
-          "id": "practice-01-lab",
-          "title": "动手实验",
-          "sections": ["步骤", "验证"]
+          "id": "practice-01-patterns",
+          "title": "典型场景：解耦、削峰与事件驱动",
+          "sections": [
+            "异步解耦与最终一致性",
+            "削峰填谷与流量整形",
+            "广播、集群消费模式选择"
+          ]
+        },
+        {
+          "id": "practice-02-order-delay",
+          "title": "顺序消息、延迟与定时",
+          "sections": [
+            "全局顺序与分区顺序",
+            "delayLevel 与 Timer 消息（5.x）",
+            "消费幂等与重复消息处理"
+          ]
+        },
+        {
+          "id": "practice-03-transaction",
+          "title": "事务消息与可靠投递",
+          "sections": [
+            "半消息与事务回查机制",
+            "本地事务表配合模式",
+            "失败重试、死信与人工介入"
+          ]
+        },
+        {
+          "id": "practice-04-spring",
+          "title": "Spring Boot 集成实战",
+          "sections": [
+            "rocketmq-spring-boot-starter 配置",
+            "注解式发送与监听",
+            "多环境、多集群与测试替身"
+          ]
         }
       ]
     },
     {
       "phaseId": "advanced",
-      "phaseTitle": "延伸与边界",
-      "phaseGoal": "了解边界与衔接",
+      "phaseTitle": "集群高可用与生产治理",
+      "phaseGoal": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点",
       "chapters": [
         {
-          "id": "advanced-01-edge",
-          "title": "边界情况",
-          "sections": ["陷阱", "与其他工具衔接"]
+          "id": "advanced-01-cluster",
+          "title": "集群部署与高可用架构",
+          "sections": [
+            "主从复制与 Controller 模式概览",
+            "多副本、故障切换与容灾",
+            "跨机房与异地多活思路"
+          ]
+        },
+        {
+          "id": "advanced-02-tuning",
+          "title": "性能调优、存储与可观测性",
+          "sections": [
+            "同步/异步刷盘与存储引擎",
+            "批量发送、消费线程与背压",
+            "消息轨迹、Metrics 与常见瓶颈"
+          ]
+        },
+        {
+          "id": "advanced-03-ops",
+          "title": "安全、ACL 2.0 与运维治理",
+          "sections": [
+            "ACL 2.0 与权限模型（5.3+ 迁移要点）",
+            "配额、限流与资源隔离",
+            "版本升级、RIP 特性与生产 checklist"
+          ]
         }
       ]
     }
   ],
   "chapters": {
-    "basics-01-intro": {
-      "title": "入门介绍",
-      "summary": "minimal-course 示例章：assemble 流程与 domainType E"
+    "basics-01-overview": {
+      "title": "RocketMQ 定位与架构鸟瞰",
+      "summary": "理解 RocketMQ 在分布式系统中的角色、四大核心组件及与 Kafka/RabbitMQ 的差异。"
     }
   },
   "terms": {
-    "assemble": {
-      "label": "assemble",
-      "prompt": "我在阅读 programming-html-tutorial 示例。请用简短中文说明 assemble-index.mjs 如何把 course.json、welcome.partial、chapters、quiz.partial 合并成 index.html。"
+    "nameserver": {
+      "label": "NameServer",
+      "prompt": "我在学习 Apache RocketMQ 5.x，已了解分布式系统基础。请用通俗中文解释 NameServer 的职责、与 ZooKeeper 类注册中心的区别、为何 RocketMQ 选择轻量级路由服务，并说明 Broker 上下线时客户端如何感知。"
     },
-    "domain-type-e": {
-      "label": "domainType E",
-      "prompt": "我在阅读 programming-html-tutorial 的 chapter-blocks-policy。请说明 domainType E（窄专题）可省略哪些章节 HTML 块，以及仍必须保留哪些块。"
+    "message-queue": {
+      "label": "MessageQueue",
+      "prompt": "我在学习 RocketMQ。请解释 MessageQueue 与 Kafka Partition 的异同、一个 Topic 下 Queue 数量如何影响并行度与顺序性，并给一个选择 Queue 数量的实践建议。"
     },
-    "quiz-partial": {
-      "label": "quiz.partial.html",
-      "prompt": "我在学习 programming-html-tutorial 测验工作流。请说明 quiz.partial.html 如何注入页面、data-chapter 与章节 id 如何对应，以及 course.json 的 quizzes 字段作用。"
+    "consumer-group": {
+      "label": "消费组 Consumer Group",
+      "prompt": "我在学习 RocketMQ 消费模型。请解释消费组的作用、集群消费与广播消费的区别、Rebalance 何时触发及对业务的影响，并提醒 3 个常见踩坑。"
+    },
+    "half-message": {
+      "label": "半消息（事务消息）",
+      "prompt": "我在学习 RocketMQ 事务消息。请用步骤图式文字说明半消息提交、本地事务执行、commit/rollback 与回查检查的完整流程，并对比本地消息表方案的优劣。"
+    },
+    "acl-2": {
+      "label": "ACL 2.0",
+      "prompt": "我在准备 RocketMQ 5.3+ 生产环境。请说明 ACL 2.0 相对 ACL 1.0 的主要变化、为何 5.3.3 移除 ACL 1.0、迁移时需要注意的配置项与验证步骤。"
     }
   },
   "quizzes": {
-    "basics-01-quiz": {
-      "chapterId": "basics-01-intro",
-      "title": "入门介绍测验",
+    "basics-01-overview-quiz": {
+      "chapterId": "basics-01-overview",
+      "title": "RocketMQ 定位与架构鸟瞰",
       "questions": [
-        { "id": "q1", "type": "single", "answer": "B", "hint": "assemble 产出" },
-        { "id": "q2", "type": "fill", "answer": "assemble", "hint": "assemble-index.mjs" },
-        { "id": "q3", "type": "multi", "answer": "A,C", "hint": "index.html 为生成物" }
+        {
+          "id": "q1",
+          "type": "single",
+          "answer": "C",
+          "hint": "消息队列补充同步调用，不是取代一切 RPC"
+        },
+        {
+          "id": "q2",
+          "type": "fill",
+          "answer": "NameServer",
+          "hint": "轻量无状态路由服务"
+        },
+        {
+          "id": "q3",
+          "type": "multiple",
+          "answer": "A,B,D,E",
+          "hint": "不含 ZooKeeper"
+        },
+        {
+          "id": "q4",
+          "type": "single",
+          "answer": "B",
+          "hint": "先查路由再连 Broker；同组负载均衡"
+        }
       ]
     }
   }

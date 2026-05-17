@@ -86,16 +86,16 @@
     #sidebar .ch-done-icon {
       flex-shrink: 0; width: 1.15rem; height: 1.15rem; line-height: 1.15rem;
       text-align: center; font-size: .68rem; font-weight: 700;
-      border-radius: 50%; background: var(--success); color: #fff;
+      border-radius: 50%; background: var(--accent); color: #fff;
     }
     #sidebar li.done a {
-      background: color-mix(in srgb, var(--success) 14%, var(--surface));
-      border-left-color: var(--success);
+      background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+      border-left-color: var(--accent);
       color: var(--text);
       font-weight: 600;
     }
     #sidebar li.done a:hover {
-      background: color-mix(in srgb, var(--success) 22%, var(--surface));
+      background: color-mix(in srgb, var(--accent) 22%, var(--surface));
     }
     #sidebar li.pending a { color: var(--muted); }
     #sidebar li.active-ch a {
@@ -104,8 +104,8 @@
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
     }
     #sidebar li.active-ch.done a {
-      background: color-mix(in srgb, var(--success) 12%, var(--accent-soft));
-      border-left-color: var(--success);
+      background: color-mix(in srgb, var(--accent) 12%, var(--accent-soft));
+      border-left-color: var(--accent);
     }
     #main-content {
       width: 100%; max-width: 900px; padding: 2rem 2.25rem 4rem; flex-shrink: 0;
@@ -175,13 +175,13 @@
       transition: border-color .2s, background .2s, box-shadow .2s;
     }
     section[data-chapter].done .chapter-header {
-      border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
       background: linear-gradient(
         135deg,
-        color-mix(in srgb, var(--success) 10%, var(--surface)),
+        color-mix(in srgb, var(--accent) 10%, var(--surface)),
         var(--surface)
       );
-      box-shadow: var(--shadow-md), inset 4px 0 0 var(--success);
+      box-shadow: var(--shadow-md), inset 4px 0 0 var(--accent);
     }
     .chapter-header h2 {
       margin: 0; font-size: 1.55rem; font-weight: 700; letter-spacing: -.02em;
@@ -190,7 +190,7 @@
     .chapter-done-badge {
       display: none; font-size: .72rem; font-weight: 600;
       padding: .2rem .55rem; border-radius: 99px;
-      background: var(--success); color: #fff;
+      background: var(--accent); color: #fff;
       letter-spacing: .02em; vertical-align: middle;
     }
     section[data-chapter].done .chapter-done-badge { display: inline-block; }
@@ -205,6 +205,59 @@
       color: var(--text);
     }
     .concept p { margin: .65rem 0; }
+    .concept h4 {
+      margin: 1.75rem 0 .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0;
+      border: none;
+    }
+    .concept h4:first-of-type { margin-top: 1rem; }
+    .concept ul,
+    .concept ol:not(.steps) {
+      margin: .5rem 0 1rem;
+      padding-left: 1.2rem;
+      line-height: 1.85;
+    }
+    .concept li { margin: .35rem 0; }
+    .diagram-caption {
+      margin: .75rem 0 0;
+      font-size: .88rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .role-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .role-card .role-card-title {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--accent);
+      margin: 0 0 0.45rem;
+    }
+    .role-card .role-card-desc {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .role-card .role-card-desc .term {
+      font-size: inherit;
+      font-weight: 500;
+    }
     .term {
       color: var(--accent); cursor: pointer; font-weight: 500;
       border-bottom: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
@@ -250,8 +303,8 @@
     }
     .btn-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .btn-copy.copied {
-      border-color: var(--success); background: var(--success); color: #fff;
-      transform: scale(1.05); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 30%, transparent);
+      border-color: var(--accent); background: var(--accent); color: #fff;
+      transform: scale(1.05); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     }
     .btn-copy.copy-fail { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
     .code-block pre {
@@ -280,21 +333,122 @@
       background: var(--code-bg); border: 1px solid var(--border);
       word-break: break-word;
     }
+    /* Mermaid：§6b 全屏（requestFullscreen → 失败则 is-pseudo-fullscreen，z-index 高于顶栏） */
     .mermaid-wrap {
-      margin: 1.25rem 0; padding: 1.25rem;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow-sm);
-    }
-    .mermaid-wrap h3 { width: 100%; }
-    .mermaid-wrap pre.mermaid {
-      display: flex; justify-content: center; align-items: center;
-      margin: 0.75rem 0 0; padding: 0; width: 100%;
-      background: transparent !important; border: none;
+      position: relative;
+      margin: 1.25rem 0;
+      padding: 2.25rem 1rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
       overflow-x: auto;
     }
+    .mermaid-wrap h3,
+    .mermaid-wrap h4 {
+      width: 100%;
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .mermaid-toolbar {
+      position: absolute;
+      top: 0.45rem;
+      right: 0.45rem;
+      z-index: 2;
+      display: flex;
+      gap: 0.35rem;
+    }
+    .mermaid-fs-btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .mermaid-fs-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .mermaid-fs-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .mermaid-wrap pre.mermaid,
+    .mermaid-wrap div.mermaid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: transparent !important;
+      border: none;
+      text-align: center;
+    }
     .mermaid-wrap pre.mermaid svg {
-      display: block; max-width: 100%; height: auto;
+      display: block;
+      max-width: 100%;
+      height: auto;
       margin: 0 auto;
+    }
+    .mermaid-wrap:fullscreen {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 2.5rem 1rem 1rem;
+      overflow: hidden;
+      border-radius: 0;
+      background: var(--bg);
+      z-index: 10000;
+    }
+    .mermaid-wrap:fullscreen .mermaid-toolbar {
+      position: fixed;
+      top: 0.65rem;
+      right: 0.65rem;
+    }
+    .mermaid-wrap:fullscreen pre.mermaid,
+    .mermaid-wrap:fullscreen div.mermaid,
+    .mermaid-wrap.is-pseudo-fullscreen pre.mermaid,
+    .mermaid-wrap.is-pseudo-fullscreen div.mermaid {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mermaid-wrap:fullscreen svg,
+    .mermaid-wrap.is-pseudo-fullscreen svg {
+      max-width: min(96vw, 1400px) !important;
+      max-height: min(88vh, 900px) !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    .mermaid-wrap.is-pseudo-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      margin: 0;
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 2.5rem 1rem 1rem;
+      background: var(--bg);
+      border: none;
+      box-shadow: none;
+    }
+    .mermaid-wrap.is-pseudo-fullscreen .mermaid-toolbar {
+      position: fixed;
+      top: 0.65rem;
+      right: 0.65rem;
     }
     .steps { padding-left: 0; list-style: none; counter-reset: step; }
     .steps li {
@@ -324,13 +478,13 @@
     .btn-mark-done:hover { transform: translateY(-1px); box-shadow: 0 4px 14px var(--accent-glow); }
     .btn-mark-done:active { transform: translateY(0); }
     .btn-mark-done.is-done {
-      background: color-mix(in srgb, var(--success) 18%, var(--surface));
-      color: var(--success); border: 1px solid var(--success);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 20%, transparent);
+      background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+      color: var(--accent); border: 1px solid var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
     }
     .btn-mark-done.is-done:hover {
-      color: var(--success); border-color: var(--success);
-      background: color-mix(in srgb, var(--success) 28%, var(--surface));
+      color: var(--accent); border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 28%, var(--surface));
       transform: none;
     }
     #toast {
@@ -344,7 +498,7 @@
     }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     #toast.toast-error { background: var(--danger); color: #fff; }
-    #toast.toast-success { background: var(--success); color: #fff; }
+    #toast.toast-success { background: var(--accent); color: #fff; }
     .hidden { display: none !important; }
     #quiz-panel {
       margin-top: 2.5rem; padding-top: 2rem;
@@ -384,9 +538,9 @@
       font-size: .88rem; line-height: 1.5;
     }
     .quiz-item .hint { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); }
-    .quiz-item .answer { background: color-mix(in srgb, var(--success) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border)); }
+    .quiz-item .answer { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); }
     .quiz-item .feedback { margin: .65rem 0 0; font-size: .88rem; font-weight: 600; }
-    .quiz-item .feedback-ok { color: var(--success); }
+    .quiz-item .feedback-ok { color: var(--accent); }
     .quiz-item .feedback-fail { color: var(--danger); }
     @media (max-width: 768px) {
       .layout { grid-template-columns: 1fr; }
@@ -440,7 +594,7 @@
     }
     #btn-copy-prompt:hover { filter: brightness(1.05); color: #fff; }
     #btn-copy-prompt.copied {
-      background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 30%, transparent);
+      background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     }
     #btn-copy-prompt.copy-fail {
       background: color-mix(in srgb, var(--danger) 12%, transparent);

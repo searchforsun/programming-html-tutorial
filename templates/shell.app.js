@@ -302,6 +302,7 @@
 
   function renderOutlineSummary() {
     const tbody = document.getElementById('outline-summary-body');
+    if (!tbody) return;
     const phaseClass = { basics: 'basics', practice: 'practice', advanced: 'advanced' };
     tbody.innerHTML = COURSE_DATA.outline.map(function (phase) {
       return phase.chapters.map(function (ch, i) {
@@ -366,8 +367,139 @@
       if (resetMermaidNode(el)) list.push(el);
     });
     if (!list.length) return Promise.resolve();
-    return mermaid.run({ nodes: list }).catch(function (err) {
+    return mermaid.run({ nodes: list }).then(function () {
+      injectMermaidFullscreenUi(root);
+      bindMermaidFullscreen(root);
+    }).catch(function (err) {
       console.warn('Mermaid render failed:', err);
+    });
+  }
+
+  function injectMermaidFullscreenUi(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      if (wrap.querySelector('.mermaid-toolbar')) return;
+      var bar = document.createElement('div');
+      bar.className = 'mermaid-toolbar';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mermaid-fs-btn';
+      btn.textContent = '全屏';
+      btn.setAttribute('aria-label', '图表全屏');
+      btn.setAttribute('aria-expanded', 'false');
+      bar.appendChild(btn);
+      wrap.insertBefore(bar, wrap.firstChild);
+    });
+  }
+
+  function isPseudoFs(wrap) {
+    return wrap.classList.contains('is-pseudo-fullscreen');
+  }
+
+  function closePseudoFs(wrap) {
+    wrap.classList.remove('is-pseudo-fullscreen');
+    if (!document.querySelector('.mermaid-wrap.is-pseudo-fullscreen')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function openPseudoFs(wrap) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
+      if (w !== wrap) closePseudoFs(w);
+    });
+    wrap.classList.add('is-pseudo-fullscreen');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function syncFsButton(wrap, btn) {
+    var native = document.fullscreenElement === wrap;
+    var pseudo = isPseudoFs(wrap);
+    var on = native || pseudo;
+    btn.textContent = on ? '退出全屏' : '全屏';
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? '退出图表全屏' : '图表全屏');
+  }
+
+  function closeAllMermaidFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
+      closePseudoFs(wrap);
+      var btn = wrap.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(wrap, btn);
+    });
+  }
+
+  function bindMermaidFullscreen(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var btn = wrap.querySelector('.mermaid-fs-btn');
+      if (!btn || wrap.dataset.fsBound) return;
+      wrap.dataset.fsBound = '1';
+      btn.addEventListener('click', function () {
+        var pre = wrap.querySelector('pre.mermaid, div.mermaid');
+        if (!pre || !pre.querySelector('svg')) {
+          showToast('图表尚未渲染完成，请稍候再试', 'error');
+          return;
+        }
+        var native = document.fullscreenElement === wrap;
+        var pseudo = isPseudoFs(wrap);
+        if (native || pseudo) {
+          if (native) document.exitFullscreen().catch(function () {});
+          if (pseudo) closePseudoFs(wrap);
+          syncFsButton(wrap, btn);
+          return;
+        }
+        document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
+          closePseudoFs(w);
+          var b = w.querySelector('.mermaid-fs-btn');
+          if (b) syncFsButton(w, b);
+        });
+        var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        if (typeof req === 'function') {
+          Promise.resolve(req.call(wrap)).then(function () {
+            syncFsButton(wrap, btn);
+          }).catch(function () {
+            openPseudoFs(wrap);
+            syncFsButton(wrap, btn);
+          });
+        } else {
+          openPseudoFs(wrap);
+          syncFsButton(wrap, btn);
+        }
+      });
+    });
+  }
+
+  function initMermaidFullscreen() {
+    document.addEventListener('fullscreenchange', function () {
+      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
+      if (!document.fullscreenElement) {
+        document.body.style.overflow = document.querySelector('.mermaid-wrap.is-pseudo-fullscreen') ? 'hidden' : '';
+      }
+    });
+    document.addEventListener('webkitfullscreenchange', function () {
+      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
+        closePseudoFs(wrap);
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
     });
   }
 
@@ -489,6 +621,7 @@
   }
 
   function applyTheme(theme) {
+    closeAllMermaidFullscreen();
     document.documentElement.setAttribute('data-theme', theme);
     storageSet(KEY_THEME, theme);
     applyHljsTheme(theme);
@@ -578,6 +711,9 @@
     renderOutlineSummary();
     bindCopyButtons();
     initTermModal();
+    initMermaidFullscreen();
+    injectMermaidFullscreenUi(document);
+    bindMermaidFullscreen(document);
     initQuiz();
     initMermaid();
     highlightIn(document);

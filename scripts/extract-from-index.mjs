@@ -56,7 +56,7 @@ if (springLight && springDark) {
   themeCss = `/* TODO: theme for ${presetSlug} */\n`;
 }
 
-course.meta.shellVersion = '2.0.0';
+course.meta.shellVersion = '2.1.0';
 course.meta.themePreset = presetSlug;
 delete course.meta.theme;
 

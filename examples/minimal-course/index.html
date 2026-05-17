@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>示例 · 最小教程</title>
+  <title>Apache RocketMQ 入门到进阶</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" id="hljs-light">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-dark" disabled>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -152,16 +155,16 @@
     #sidebar .ch-done-icon {
       flex-shrink: 0; width: 1.15rem; height: 1.15rem; line-height: 1.15rem;
       text-align: center; font-size: .68rem; font-weight: 700;
-      border-radius: 50%; background: var(--success); color: #fff;
+      border-radius: 50%; background: var(--accent); color: #fff;
     }
     #sidebar li.done a {
-      background: color-mix(in srgb, var(--success) 14%, var(--surface));
-      border-left-color: var(--success);
+      background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+      border-left-color: var(--accent);
       color: var(--text);
       font-weight: 600;
     }
     #sidebar li.done a:hover {
-      background: color-mix(in srgb, var(--success) 22%, var(--surface));
+      background: color-mix(in srgb, var(--accent) 22%, var(--surface));
     }
     #sidebar li.pending a { color: var(--muted); }
     #sidebar li.active-ch a {
@@ -170,8 +173,8 @@
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
     }
     #sidebar li.active-ch.done a {
-      background: color-mix(in srgb, var(--success) 12%, var(--accent-soft));
-      border-left-color: var(--success);
+      background: color-mix(in srgb, var(--accent) 12%, var(--accent-soft));
+      border-left-color: var(--accent);
     }
     #main-content {
       width: 100%; max-width: 900px; padding: 2rem 2.25rem 4rem; flex-shrink: 0;
@@ -241,13 +244,13 @@
       transition: border-color .2s, background .2s, box-shadow .2s;
     }
     section[data-chapter].done .chapter-header {
-      border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
       background: linear-gradient(
         135deg,
-        color-mix(in srgb, var(--success) 10%, var(--surface)),
+        color-mix(in srgb, var(--accent) 10%, var(--surface)),
         var(--surface)
       );
-      box-shadow: var(--shadow-md), inset 4px 0 0 var(--success);
+      box-shadow: var(--shadow-md), inset 4px 0 0 var(--accent);
     }
     .chapter-header h2 {
       margin: 0; font-size: 1.55rem; font-weight: 700; letter-spacing: -.02em;
@@ -256,7 +259,7 @@
     .chapter-done-badge {
       display: none; font-size: .72rem; font-weight: 600;
       padding: .2rem .55rem; border-radius: 99px;
-      background: var(--success); color: #fff;
+      background: var(--accent); color: #fff;
       letter-spacing: .02em; vertical-align: middle;
     }
     section[data-chapter].done .chapter-done-badge { display: inline-block; }
@@ -271,6 +274,59 @@
       color: var(--text);
     }
     .concept p { margin: .65rem 0; }
+    .concept h4 {
+      margin: 1.75rem 0 .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0;
+      border: none;
+    }
+    .concept h4:first-of-type { margin-top: 1rem; }
+    .concept ul,
+    .concept ol:not(.steps) {
+      margin: .5rem 0 1rem;
+      padding-left: 1.2rem;
+      line-height: 1.85;
+    }
+    .concept li { margin: .35rem 0; }
+    .diagram-caption {
+      margin: .75rem 0 0;
+      font-size: .88rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .role-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .role-card .role-card-title {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--accent);
+      margin: 0 0 0.45rem;
+    }
+    .role-card .role-card-desc {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .role-card .role-card-desc .term {
+      font-size: inherit;
+      font-weight: 500;
+    }
     .term {
       color: var(--accent); cursor: pointer; font-weight: 500;
       border-bottom: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
@@ -316,8 +372,8 @@
     }
     .btn-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .btn-copy.copied {
-      border-color: var(--success); background: var(--success); color: #fff;
-      transform: scale(1.05); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 30%, transparent);
+      border-color: var(--accent); background: var(--accent); color: #fff;
+      transform: scale(1.05); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     }
     .btn-copy.copy-fail { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
     .code-block pre {
@@ -346,21 +402,122 @@
       background: var(--code-bg); border: 1px solid var(--border);
       word-break: break-word;
     }
+    /* Mermaid：§6b 全屏（requestFullscreen → 失败则 is-pseudo-fullscreen，z-index 高于顶栏） */
     .mermaid-wrap {
-      margin: 1.25rem 0; padding: 1.25rem;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow-sm);
-    }
-    .mermaid-wrap h3 { width: 100%; }
-    .mermaid-wrap pre.mermaid {
-      display: flex; justify-content: center; align-items: center;
-      margin: 0.75rem 0 0; padding: 0; width: 100%;
-      background: transparent !important; border: none;
+      position: relative;
+      margin: 1.25rem 0;
+      padding: 2.25rem 1rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
       overflow-x: auto;
     }
+    .mermaid-wrap h3,
+    .mermaid-wrap h4 {
+      width: 100%;
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .mermaid-toolbar {
+      position: absolute;
+      top: 0.45rem;
+      right: 0.45rem;
+      z-index: 2;
+      display: flex;
+      gap: 0.35rem;
+    }
+    .mermaid-fs-btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .mermaid-fs-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .mermaid-fs-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .mermaid-wrap pre.mermaid,
+    .mermaid-wrap div.mermaid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: transparent !important;
+      border: none;
+      text-align: center;
+    }
     .mermaid-wrap pre.mermaid svg {
-      display: block; max-width: 100%; height: auto;
+      display: block;
+      max-width: 100%;
+      height: auto;
       margin: 0 auto;
+    }
+    .mermaid-wrap:fullscreen {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 2.5rem 1rem 1rem;
+      overflow: hidden;
+      border-radius: 0;
+      background: var(--bg);
+      z-index: 10000;
+    }
+    .mermaid-wrap:fullscreen .mermaid-toolbar {
+      position: fixed;
+      top: 0.65rem;
+      right: 0.65rem;
+    }
+    .mermaid-wrap:fullscreen pre.mermaid,
+    .mermaid-wrap:fullscreen div.mermaid,
+    .mermaid-wrap.is-pseudo-fullscreen pre.mermaid,
+    .mermaid-wrap.is-pseudo-fullscreen div.mermaid {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mermaid-wrap:fullscreen svg,
+    .mermaid-wrap.is-pseudo-fullscreen svg {
+      max-width: min(96vw, 1400px) !important;
+      max-height: min(88vh, 900px) !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    .mermaid-wrap.is-pseudo-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      margin: 0;
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 2.5rem 1rem 1rem;
+      background: var(--bg);
+      border: none;
+      box-shadow: none;
+    }
+    .mermaid-wrap.is-pseudo-fullscreen .mermaid-toolbar {
+      position: fixed;
+      top: 0.65rem;
+      right: 0.65rem;
     }
     .steps { padding-left: 0; list-style: none; counter-reset: step; }
     .steps li {
@@ -390,13 +547,13 @@
     .btn-mark-done:hover { transform: translateY(-1px); box-shadow: 0 4px 14px var(--accent-glow); }
     .btn-mark-done:active { transform: translateY(0); }
     .btn-mark-done.is-done {
-      background: color-mix(in srgb, var(--success) 18%, var(--surface));
-      color: var(--success); border: 1px solid var(--success);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 20%, transparent);
+      background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+      color: var(--accent); border: 1px solid var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
     }
     .btn-mark-done.is-done:hover {
-      color: var(--success); border-color: var(--success);
-      background: color-mix(in srgb, var(--success) 28%, var(--surface));
+      color: var(--accent); border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 28%, var(--surface));
       transform: none;
     }
     #toast {
@@ -410,7 +567,7 @@
     }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     #toast.toast-error { background: var(--danger); color: #fff; }
-    #toast.toast-success { background: var(--success); color: #fff; }
+    #toast.toast-success { background: var(--accent); color: #fff; }
     .hidden { display: none !important; }
     #quiz-panel {
       margin-top: 2.5rem; padding-top: 2rem;
@@ -450,9 +607,9 @@
       font-size: .88rem; line-height: 1.5;
     }
     .quiz-item .hint { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border)); }
-    .quiz-item .answer { background: color-mix(in srgb, var(--success) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border)); }
+    .quiz-item .answer { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); }
     .quiz-item .feedback { margin: .65rem 0 0; font-size: .88rem; font-weight: 600; }
-    .quiz-item .feedback-ok { color: var(--success); }
+    .quiz-item .feedback-ok { color: var(--accent); }
     .quiz-item .feedback-fail { color: var(--danger); }
     @media (max-width: 768px) {
       .layout { grid-template-columns: 1fr; }
@@ -506,7 +663,7 @@
     }
     #btn-copy-prompt:hover { filter: brightness(1.05); color: #fff; }
     #btn-copy-prompt.copied {
-      background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 30%, transparent);
+      background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     }
     #btn-copy-prompt.copy-fail {
       background: color-mix(in srgb, var(--danger) 12%, transparent);
@@ -516,30 +673,65 @@
     #btn-close-term { margin-left: auto; color: var(--muted); }
     #btn-close-term:hover { color: var(--text); background: var(--code-header); border-color: var(--muted); }
 
-[data-theme-preset="minimal-example"][data-theme="light"] {
-  --accent: #0969da;
-  --accent-hover: #0550ae;
-  --accent-soft: #ddf4ff;
-  --accent-glow: rgba(9,105,218,.25);
-  --accent-alt: #58a6ff;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
-  --phase-basics: #0969da;
+[data-theme-preset="rocketmq"][data-theme="light"] {
+  --accent: #d4380d;
+  --accent-hover: #ad2102;
+  --accent-soft: #fff2e8;
+  --accent-glow: rgba(212, 56, 13, 0.28);
+  --accent-alt: #fa8c16;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 56, 13, 0.12), transparent);
+  --phase-basics: #d4380d;
 }
-[data-theme-preset="minimal-example"][data-theme="dark"] {
-  --accent: #58a6ff;
-  --accent-hover: #79b8ff;
-  --accent-soft: #132d4a;
-  --accent-glow: rgba(88,166,255,.2);
-  --accent-alt: #a371f7;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
-  --phase-basics: #58a6ff;
+[data-theme-preset="rocketmq"][data-theme="dark"] {
+  --accent: #ff7a45;
+  --accent-hover: #ff9c6e;
+  --accent-soft: #2b1d14;
+  --accent-glow: rgba(255, 122, 69, 0.22);
+  --accent-alt: #ffc069;
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 122, 69, 0.1), transparent);
+  --phase-basics: #ff7a45;
+}
+
+/* 章节内角色卡片：避免复用 .meta-card strong 的「小号大写标签」样式 */
+.role-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.role-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  box-shadow: var(--shadow-sm);
+}
+.role-card .role-card-title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--accent);
+  margin: 0 0 0.45rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.role-card .role-card-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+.role-card .role-card-desc .term {
+  font-size: inherit;
+  font-weight: 500;
 }
   </style>
 </head>
 <body>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <header class="topbar">
-    <h1 class="course-title">示例 · 最小教程</h1>
+    <h1 class="course-title">Apache RocketMQ 入门到进阶</h1>
     <div class="topbar-actions">
       <div class="progress-wrap" aria-label="学习进度">
         <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -558,128 +750,282 @@
     <div class="main-area">
       <main id="main-content">
         <div id="welcome" class="welcome">
-<h2>最小教程示例</h2>
-<p class="lead">用于验证 <strong>assemble → index.html</strong> 流程与 Shell 2.0 能力：三阶段侧栏、章节切换、进度 localStorage、亮暗主题、术语弹窗、<strong>章节测验</strong>（按章显示）。</p>
+<h2>Apache RocketMQ 交互教程</h2>
+<p class="lead">从<strong>消息模型与本地跑通</strong>到<strong>业务集成与可靠投递</strong>，再到<strong>集群高可用与生产治理</strong>——按三阶段循序渐进，支持章节进度、亮暗主题与术语 AI 探索。</p>
 
 <div class="meta-cards">
   <div class="meta-card">
-    <strong>当前样例</strong>
-    5 章大纲 · 1 章正文 · 1 套测验
+    <strong>当前版本</strong>
+    Apache RocketMQ 5.4.0
   </div>
   <div class="meta-card">
-    <strong>domainType</strong>
-    E — 可无 Mermaid / Demo 块
+    <strong>大纲规模</strong>
+    11 章 · 3 阶段 · 已生成 1 章正文
   </div>
   <div class="meta-card">
-    <strong>源文件目录</strong>
-    <code>programming-html-tutorial/examples/minimal-course/</code>
+    <strong>前置要求</strong>
+    Java 基础 · Maven · 分布式异步概念
+  </div>
+</div>
+
+<div class="meta-cards">
+  <div class="meta-card">
+    <strong>官方文档</strong>
+    <a href="https://rocketmq.apache.org/docs/quickStart/01quickstart/" target="_blank" rel="noopener">Quick Start</a>
+  </div>
+  <div class="meta-card">
+    <strong>领域类型</strong>
+    C — 平台 / 中间件
+  </div>
+  <div class="meta-card">
+    <strong>学习路径</strong>
+    本地 Broker → 典型场景 → 集群与运维
   </div>
 </div>
 
 <h3>三阶段大纲摘要</h3>
 <table class="outline-table">
-  <thead><tr><th>阶段</th><th>章节</th><th>核心内容</th></tr></thead>
+  <thead><tr><th>阶段</th><th>章节</th><th>阶段目标</th></tr></thead>
   <tbody id="outline-summary-body"></tbody>
 </table>
 
 <div class="notice">
-  <strong>试玩：</strong>点击左侧「入门介绍」阅读示例章节；向下滚动可做测验。维护者修改 <code>chapters/</code>、<code>quiz.partial.html</code> 后请重新 assemble，详见本目录 <code>README.md</code>。
+  <strong>开始学习：</strong>点击左侧「RocketMQ 定位与架构鸟瞰」阅读第 1 章；学完后可标记完成，或回复<strong>继续下一章</strong>生成「环境搭建与第一次收发」。
 </div>
         </div>
         <div id="content">
-<section id="ch-basics-01-intro" class="chapter" data-chapter="basics-01-intro">
+<section id="ch-basics-01-overview" class="chapter" data-chapter="basics-01-overview">
   <header class="chapter-header">
-    <h2><span class="chapter-done-badge">已完成</span>入门介绍</h2>
-    <button type="button" class="btn-mark-done" data-chapter="basics-01-intro" aria-label="标记本章完成">标记完成</button>
+    <h2><span class="chapter-done-badge">已完成</span>RocketMQ 定位与架构鸟瞰</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-01-overview" aria-label="标记本章完成">标记完成</button>
   </header>
 
   <div class="concept content-section">
     <h3>概念</h3>
-    <p>这是 <strong>minimal-course</strong> 的唯一示例章节，用于演示章节片段如何被 <span class="term" data-term-id="assemble" tabindex="0">assemble</span> 进 <code>index.html</code>。真实教程在 <code>courses/&lt;slug&gt;/chapters/</code> 下按同样格式扩展。</p>
-    <p>本样例 <span class="term" data-term-id="domain-type-e" tabindex="0">domainType E</span> 因此本章省略 Mermaid 与 Demo 块，校验仍可通过；章末可配合 <span class="term" data-term-id="quiz-partial" tabindex="0">quiz.partial.html</span> 做测验。</p>
+
+    <div class="notice">
+      <strong>本章先记住 3 件事</strong>
+      <ul style="margin: .5rem 0 0; padding-left: 1.2rem;">
+        <li><strong>干什么</strong>：让业务系统<strong>异步解耦</strong>，不必同步等所有下游完成。</li>
+        <li><strong>谁协作</strong>：Producer、Broker、Consumer、NameServer 四个角色分工明确。</li>
+        <li><strong>怎么走</strong>：先向 NameServer 查路由，再直连 Broker 收发消息。</li>
+      </ul>
+    </div>
+
+    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">① 解决什么问题？</h4>
+    <p style="margin-top: 0;">Apache RocketMQ 是<strong>分布式消息中间件</strong>：上游把事件「投递出去」即可返回，下游按自己的节奏消费。</p>
+    <ul style="margin: .5rem 0 1rem; padding-left: 1.2rem; line-height: 1.85;">
+      <li><strong>异步解耦</strong> — 下单后发消息，库存/短信/积分各自消费，互不强依赖。</li>
+      <li><strong>削峰填谷</strong> — 秒杀流量先写入队列，后台慢慢处理，保护数据库。</li>
+      <li><strong>最终一致</strong> — 配合事务消息等能力，在分布式场景下保证业务一致。</li>
+    </ul>
+
+    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">② 四大角色（对照下图）</h4>
+    <div class="role-cards">
+      <div class="role-card">
+        <span class="role-card-title">Producer 生产者</span>
+        <p class="role-card-desc">业务系统内负责发消息的客户端，只配置 NameServer 地址。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Broker 代理</span>
+        <p class="role-card-desc">存消息、投递消息的核心服务；CommitLog 持久化，支持主从复制。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">Consumer 消费者</span>
+        <p class="role-card-desc">在<span class="term" data-term-id="consumer-group" tabindex="0">消费组</span>内收消息，同组负载均衡，不同组互不影响。</p>
+      </div>
+      <div class="role-card">
+        <span class="role-card-title">NameServer</span>
+        <p class="role-card-desc"><span class="term" data-term-id="nameserver" tabindex="0">NameServer</span> 维护 Topic→Broker 路由表，无状态、可集群，类似轻量注册中心。</p>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap" style="margin: 1rem 0 1.5rem;">
+      <h4 style="margin: 0 0 .75rem; font-size: .95rem; font-weight: 600;">架构总览图</h4>
+      <pre class="mermaid">flowchart TB
+  subgraph clients["业务应用"]
+    P[Producer]
+    C[Consumer]
+  end
+  NS[NameServer\n路由表]
+  subgraph broker_cluster["Broker 集群"]
+    B1[Broker Master]
+    B2[Broker Slave]
+    Store[(CommitLog)]
+  end
+  P -->|① 查路由| NS
+  C -->|① 查路由| NS
+  P -->|② 发消息| B1
+  B1 --> Store
+  B1 -.复制.-> B2
+  C -->|② 收消息| B1
+  B1 -->|③ 注册| NS</pre>
+      <p style="margin: .75rem 0 0; font-size: .88rem; color: var(--muted);">看图记忆：客户端<strong>不直连彼此</strong>，都通过 NameServer 找到 Broker；消息落在 Broker 的 <span class="term" data-term-id="message-queue" tabindex="0">MessageQueue</span> 中分区存储。</p>
+    </div>
+
+    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">③ 一条消息怎么走？（4 步）</h4>
+    <div class="mermaid-wrap" style="margin: 0 0 1rem; padding: 1rem;">
+      <pre class="mermaid">sequenceDiagram
+  autonumber
+  participant P as Producer
+  participant NS as NameServer
+  participant B as Broker
+  participant C as Consumer
+  P->>NS: 查询 Topic 路由
+  NS-->>P: 返回 Broker 与 Queue
+  P->>B: 发送消息
+  C->>NS: 查询 Topic 路由
+  C->>B: 拉取 / 接收消息</pre>
+    </div>
+
+    <ol class="steps" style="margin-top: 0;">
+      <li><strong>Producer 问路由</strong> — 带着 Topic 名问 NameServer：这个 Topic 在哪些 Broker、哪些 Queue？</li>
+      <li><strong>Producer 发消息</strong> — 按路由选一个 MessageQueue，把消息写到 Broker。</li>
+      <li><strong>Consumer 问路由</strong> — 同组 Consumer 也向 NameServer 拿同一份路由。</li>
+      <li><strong>Consumer 收消息</strong> — 从 Broker 拉取或 Push 投递，业务处理完后提交消费位点。</li>
+    </ol>
+
+    <h4 style="margin: 1.75rem 0 .75rem; font-size: 1rem; font-weight: 600;">④ 和 Kafka / RabbitMQ 怎么选？</h4>
+    <table class="outline-table">
+      <thead>
+        <tr><th>对比项</th><th>RocketMQ</th><th>Kafka</th><th>RabbitMQ</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>典型场景</td><td>电商/金融、事务与定时消息</td><td>日志采集、流式计算</td><td>复杂路由、AMQP 生态</td></tr>
+        <tr><td>分区单元</td><td>MessageQueue</td><td>Partition</td><td>Queue（经 Exchange 路由）</td></tr>
+        <tr><td>元数据/路由</td><td>NameServer（轻量）</td><td>ZooKeeper / KRaft</td><td>Broker 内置</td></tr>
+        <tr><td>特色能力</td><td>顺序、延迟、事务消息原生支持</td><td>超高吞吐、生态成熟</td><td>灵活路由、低延迟小消息</td></tr>
+        <tr><td>何时优先选</td><td>Java/Spring 栈 + 事务/定时/顺序</td><td>大数据管道、流处理</td><td>协议标准、路由规则复杂</td></tr>
+      </tbody>
+    </table>
+
+    <div class="notice" style="margin-top: 1.5rem;">
+      <strong>本章小结</strong>：能口头说出「四大角色 + 四步流转」即可过关；配置细节留到下一章动手时再记。下一章将在本地启动 NameServer 与 Broker，完成第一次收发。
+    </div>
   </div>
 
   <div class="official-links content-section">
-    <h3>参考</h3>
+    <h3>官方文档</h3>
     <ul>
-      <li><a href="../../reference/assembly.md" target="_blank" rel="noopener">assembly.md — 组装说明</a></li>
-      <li><a href="../../reference/chapter-template.md" target="_blank" rel="noopener">chapter-template.md — 章节模板</a></li>
+      <li><a href="https://rocketmq.apache.org/docs/introduction/02concepts/" target="_blank" rel="noopener">Concepts — 核心概念</a></li>
+      <li><a href="https://github.com/apache/rocketmq/blob/develop/docs/en/architecture.md" target="_blank" rel="noopener">Architecture — 架构说明</a></li>
+      <li><a href="https://rocketmq.apache.org/docs/domainModel/01main/" target="_blank" rel="noopener">Domain Model — 领域模型总览（5.x）</a></li>
     </ul>
   </div>
 
   <div class="code-block">
     <div class="code-toolbar">
-      <span class="lang-tag">bash</span>
+      <span class="lang-tag">java</span>
       <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
     </div>
-    <pre><code class="language-bash">cd programming-html-tutorial
-node scripts/assemble-index.mjs --dir examples/minimal-course
-node scripts/validate-tutorial.mjs --dir examples/minimal-course</code></pre>
+    <pre><code id="code-basics-01-overview-1" class="language-java">// 代码印证「只配 NameServer」：Broker 地址由路由动态获得
+DefaultMQProducer producer = new DefaultMQProducer("order_producer_group");
+producer.setNamesrvAddr("127.0.0.1:9876");
+producer.start();
+
+Message msg = new Message("TopicOrder", "TagCreate",
+    "order-1001".getBytes(StandardCharsets.UTF_8));
+producer.send(msg);  // 内部：查路由 → 选 Queue → 发往 Broker
+
+DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("order_consumer_group");
+consumer.setNamesrvAddr("127.0.0.1:9876");
+consumer.subscribe("TopicOrder", "TagCreate || TagPay");
+consumer.registerMessageListener((msgs, ctx) ->
+    ConsumeConcurrentlyStatus.CONSUME_SUCCESS);
+consumer.start();</code></pre>
   </div>
 
   <ol class="steps">
-    <li>在侧栏点击各章，确认仅本章有正文。</li>
-    <li>向下滚动完成章节测验（单选 / 填空 / 多选）。</li>
-    <li>点击「标记完成」，观察顶栏进度与侧栏 ✓。</li>
+    <li>先看「本章先记住 3 件事」，再对照<strong>架构总览图</strong>说出四个角色各干什么。</li>
+    <li>按<strong>时序图 4 步</strong>，在纸上画一遍 Producer → NameServer → Broker → Consumer。</li>
+    <li>阅读下方 Java 代码，指出哪一行体现「只配置 NameServer」。</li>
+    <li>（可选）运行 Demo：<code>demos/basics-01-overview-arch-lab</code>，用 <code>clusterList</code> 观察 Broker 注册。</li>
   </ol>
 
+  <div class="demo-box">
+    <h3>Demo：架构实验室</h3>
+    <p>目录：<code>demos/basics-01-overview-arch-lab/</code>。Docker 启动 NameServer + Broker，执行 <code>mqadmin clusterList</code> 验证「Broker 向 NameServer 注册」。</p>
+    <p>命令：<code>cd demos/basics-01-overview-arch-lab &amp;&amp; docker compose up -d</code></p>
+  </div>
+
   <div class="resources content-section">
-    <h3>延伸</h3>
+    <h3>延伸学习</h3>
     <ul>
-      <li><a href="../README.md">minimal-course README</a> — 本样例目录说明</li>
+      <li><a href="https://rocketmq.apache.org/docs/introduction/03features/" target="_blank" rel="noopener">Features</a> — 5.x 特性一览</li>
+      <li><a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Kafka 文档</a> — 对比 Partition 模型</li>
     </ul>
   </div>
 </section>
         </div>
         <div id="quiz-panel">
 <h2 class="quiz-panel-title">章节测验</h2>
-<p class="quiz-panel-lead">仅「入门介绍」配有示例测验；其他章节无 <code>quiz.partial.html</code> 区块时不会显示测验区。</p>
+<p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。切换章节时自动显示对应测验。</p>
 
-<section id="quiz-basics-01-quiz" class="quiz-section" data-quiz="basics-01-quiz" data-chapter="basics-01-intro">
-  <h3>测验：入门介绍</h3>
+<section id="quiz-basics-01-overview-quiz" class="quiz-section" data-quiz="basics-01-overview-quiz" data-chapter="basics-01-overview">
+  <h3>测验：RocketMQ 定位与架构鸟瞰</h3>
 
-  <article class="quiz-item" data-qid="q1" data-answer="B">
-    <p class="stem"><strong>1.</strong> （单选）assemble 生成的浏览器入口文件是？</p>
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）下列哪一项<strong>不是</strong>本章强调的 RocketMQ 典型价值？</p>
     <ul class="options">
-      <li><label><input type="radio" name="minimal-q1" value="A"> course.json</label></li>
-      <li><label><input type="radio" name="minimal-q1" value="B"> index.html</label></li>
-      <li><label><input type="radio" name="minimal-q1" value="C"> welcome.partial.html</label></li>
+      <li><label><input type="radio" name="rq-b01-q1" value="A"> 异步解耦，上下游不必同步等待</label></li>
+      <li><label><input type="radio" name="rq-b01-q1" value="B"> 削峰填谷，缓冲突发流量</label></li>
+      <li><label><input type="radio" name="rq-b01-q1" value="C"> 替代所有同步 HTTP/RPC，成为唯一调用方式</label></li>
+      <li><label><input type="radio" name="rq-b01-q1" value="D"> 配合事务消息等能力实现最终一致</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">由 <code>assemble-index.mjs</code> 写出</p>
-    <p class="answer hidden"><strong>答案：</strong>B — index.html</p>
+    <p class="hint hidden">消息队列是<strong>补充</strong>同步调用，不是取代一切 RPC。</p>
+    <p class="answer hidden"><strong>答案：</strong>C — MQ 解决异步与削峰，不是把所有调用都改成消息。</p>
   </article>
 
-  <article class="quiz-item" data-qid="q2" data-answer="assemble">
-    <p class="stem"><strong>2.</strong> （填空）将 partial 合并为单页的脚本命令是 <code>node scripts/____-index.mjs</code>。</p>
-    <input type="text" class="fill-input" aria-label="填空答案" />
+  <article class="quiz-item" data-qid="q2" data-answer="NameServer">
+    <p class="stem"><strong>2.</strong> （填空）Producer 与 Consumer 在收发消息前，通常先向 ______ 查询 Topic 的路由信息（Broker 与 Queue 列表）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="组件英文名" />
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">与 validate-tutorial 成对使用</p>
-    <p class="answer hidden"><strong>答案：</strong>assemble</p>
+    <p class="hint hidden">轻量、无状态的路由注册中心，不是 ZooKeeper。</p>
+    <p class="answer hidden"><strong>答案：</strong>NameServer（也接受 nameserver，大小写不敏感）</p>
   </article>
 
-  <article class="quiz-item" data-qid="q3" data-answer="A,C">
-    <p class="stem"><strong>3.</strong> （多选）下列属于教程源文件、不应手改 assemble 产物的有？</p>
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D,E">
+    <p class="stem"><strong>3.</strong> （多选）下列属于 RocketMQ 架构中「四大角色」的是？</p>
     <ul class="options">
-      <li><label><input type="checkbox" name="minimal-q3" value="A"> chapters/*.html</label></li>
-      <li><label><input type="checkbox" name="minimal-q3" value="B"> index.html</label></li>
-      <li><label><input type="checkbox" name="minimal-q3" value="C"> quiz.partial.html</label></li>
+      <li><label><input type="checkbox" name="rq-b01-q3" value="A"> Producer 生产者</label></li>
+      <li><label><input type="checkbox" name="rq-b01-q3" value="B"> NameServer</label></li>
+      <li><label><input type="checkbox" name="rq-b01-q3" value="C"> ZooKeeper</label></li>
+      <li><label><input type="checkbox" name="rq-b01-q3" value="D"> Broker</label></li>
+      <li><label><input type="checkbox" name="rq-b01-q3" value="E"> Consumer 消费者</label></li>
     </ul>
     <div class="quiz-actions">
       <button type="button" class="btn-check">检查</button>
       <button type="button" class="btn-hint">提示</button>
       <button type="button" class="btn-answer">答案</button>
     </div>
-    <p class="hint hidden">index.html 由脚本生成</p>
-    <p class="answer hidden"><strong>答案：</strong>A, C — 章节与测验片段；B 为生成结果</p>
+    <p class="hint hidden">Kafka 依赖 ZooKeeper/KRaft；RocketMQ 用 NameServer 做路由。</p>
+    <p class="answer hidden"><strong>答案：</strong>A, B, D, E — Producer、NameServer、Broker、Consumer；不含 ZooKeeper。</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）关于消息流转，下列描述<strong>正确</strong>的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="rq-b01-q4" value="A"> Producer 与 Consumer 必须直连，不经 Broker</label></li>
+      <li><label><input type="radio" name="rq-b01-q4" value="B"> 先查路由，再向 Broker 收发；消息落在 Broker 的 MessageQueue</label></li>
+      <li><label><input type="radio" name="rq-b01-q4" value="C"> NameServer 负责持久化 CommitLog</label></li>
+      <li><label><input type="radio" name="rq-b01-q4" value="D"> 同一消费组内，每条消息会被组内所有实例各消费一次</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照本章时序图四步：查路由 → 发/收 → Broker 存储。</p>
+    <p class="answer hidden"><strong>答案：</strong>B — D 错在同组是负载均衡（一条只被一个实例消费），C 错在存储在 Broker。</p>
   </article>
 </section>
         </div>
@@ -707,123 +1053,212 @@ node scripts/validate-tutorial.mjs --dir examples/minimal-course</code></pre>
   <script id="course-data" type="application/json">
 {
   "meta": {
-    "title": "示例 · 最小教程",
-    "slug": "minimal-example",
-    "domain": "示例技术",
-    "themePreset": "minimal-example",
-    "shellVersion": "2.0.0",
-    "domainType": "E",
+    "title": "Apache RocketMQ 入门到进阶",
+    "slug": "rocketmq",
+    "domain": "Apache RocketMQ",
+    "themePreset": "rocketmq",
+    "shellVersion": "2.1.3",
+    "version": "5.4.0",
+    "generatedAt": "2026-05-17",
+    "officialDocs": "https://rocketmq.apache.org/docs/quickStart/01quickstart/",
+    "domainType": "C",
     "hljsLanguages": [
-      "bash"
+      "java",
+      "bash",
+      "json",
+      "xml"
     ],
     "learningNotes": {
       "assumptions": [
-        "窄专题示例，每阶段 2 章"
+        "具备 Java 基础与 Maven/Gradle 使用经验",
+        "了解分布式系统中异步通信的基本概念",
+        "本地可安装 JDK 8+ 并运行 Docker 或解压版 Broker（教程以 5.x 为主）"
       ],
       "phaseGoals": {
-        "basics": "理解最小概念集",
-        "practice": "完成一个简单场景",
-        "advanced": "了解边界与衔接"
+        "basics": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
+        "practice": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
+        "advanced": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点"
       }
     }
   },
   "outline": [
     {
       "phaseId": "basics",
-      "phaseTitle": "核心概念速览",
-      "phaseGoal": "理解最小概念集",
+      "phaseTitle": "消息模型与本地跑通",
+      "phaseGoal": "理解 RocketMQ 架构与核心模型，能在本地完成收发消息",
       "chapters": [
         {
-          "id": "basics-01-intro",
-          "title": "入门介绍",
+          "id": "basics-01-overview",
+          "title": "RocketMQ 定位与架构鸟瞰",
           "sections": [
-            "是什么",
-            "何时使用"
+            "分布式消息中间件要解决什么问题",
+            "NameServer、Broker、Producer、Consumer 职责",
+            "与 Kafka、RabbitMQ 的差异对照"
           ]
         },
         {
-          "id": "basics-02-syntax",
-          "title": "基本语法",
+          "id": "basics-02-env",
+          "title": "环境搭建与第一次收发",
           "sections": [
-            "规则",
-            "常见误用"
+            "下载 5.x 与 JDK 要求",
+            "启动 NameServer 与 Broker",
+            "mqadmin 与 RocketMQ Dashboard 初探"
+          ]
+        },
+        {
+          "id": "basics-03-model",
+          "title": "Topic、Queue、Tag 与消息属性",
+          "sections": [
+            "Topic 与 MessageQueue 分区",
+            "Tag、Keys 与属性过滤",
+            "消息存储与消费位点概念"
+          ]
+        },
+        {
+          "id": "basics-04-api",
+          "title": "Java 客户端：生产与消费入门",
+          "sections": [
+            "依赖引入与客户端生命周期",
+            "同步、异步与单向发送",
+            "Push 消费、消费组与重平衡"
           ]
         }
       ]
     },
     {
       "phaseId": "practice",
-      "phaseTitle": "场景演练",
-      "phaseGoal": "完成一个简单场景",
+      "phaseTitle": "业务集成与可靠投递",
+      "phaseGoal": "掌握顺序/延迟/事务等典型场景，能在 Spring 项目中集成",
       "chapters": [
         {
-          "id": "practice-01-lab",
-          "title": "动手实验",
+          "id": "practice-01-patterns",
+          "title": "典型场景：解耦、削峰与事件驱动",
           "sections": [
-            "步骤",
-            "验证"
+            "异步解耦与最终一致性",
+            "削峰填谷与流量整形",
+            "广播、集群消费模式选择"
+          ]
+        },
+        {
+          "id": "practice-02-order-delay",
+          "title": "顺序消息、延迟与定时",
+          "sections": [
+            "全局顺序与分区顺序",
+            "delayLevel 与 Timer 消息（5.x）",
+            "消费幂等与重复消息处理"
+          ]
+        },
+        {
+          "id": "practice-03-transaction",
+          "title": "事务消息与可靠投递",
+          "sections": [
+            "半消息与事务回查机制",
+            "本地事务表配合模式",
+            "失败重试、死信与人工介入"
+          ]
+        },
+        {
+          "id": "practice-04-spring",
+          "title": "Spring Boot 集成实战",
+          "sections": [
+            "rocketmq-spring-boot-starter 配置",
+            "注解式发送与监听",
+            "多环境、多集群与测试替身"
           ]
         }
       ]
     },
     {
       "phaseId": "advanced",
-      "phaseTitle": "延伸与边界",
-      "phaseGoal": "了解边界与衔接",
+      "phaseTitle": "集群高可用与生产治理",
+      "phaseGoal": "了解集群高可用、性能调优与 ACL 2.0 等生产治理要点",
       "chapters": [
         {
-          "id": "advanced-01-edge",
-          "title": "边界情况",
+          "id": "advanced-01-cluster",
+          "title": "集群部署与高可用架构",
           "sections": [
-            "陷阱",
-            "与其他工具衔接"
+            "主从复制与 Controller 模式概览",
+            "多副本、故障切换与容灾",
+            "跨机房与异地多活思路"
+          ]
+        },
+        {
+          "id": "advanced-02-tuning",
+          "title": "性能调优、存储与可观测性",
+          "sections": [
+            "同步/异步刷盘与存储引擎",
+            "批量发送、消费线程与背压",
+            "消息轨迹、Metrics 与常见瓶颈"
+          ]
+        },
+        {
+          "id": "advanced-03-ops",
+          "title": "安全、ACL 2.0 与运维治理",
+          "sections": [
+            "ACL 2.0 与权限模型（5.3+ 迁移要点）",
+            "配额、限流与资源隔离",
+            "版本升级、RIP 特性与生产 checklist"
           ]
         }
       ]
     }
   ],
   "chapters": {
-    "basics-01-intro": {
-      "title": "入门介绍",
-      "summary": "minimal-course 示例章：assemble 流程与 domainType E"
+    "basics-01-overview": {
+      "title": "RocketMQ 定位与架构鸟瞰",
+      "summary": "理解 RocketMQ 在分布式系统中的角色、四大核心组件及与 Kafka/RabbitMQ 的差异。"
     }
   },
   "terms": {
-    "assemble": {
-      "label": "assemble",
-      "prompt": "我在阅读 programming-html-tutorial 示例。请用简短中文说明 assemble-index.mjs 如何把 course.json、welcome.partial、chapters、quiz.partial 合并成 index.html。"
+    "nameserver": {
+      "label": "NameServer",
+      "prompt": "我在学习 Apache RocketMQ 5.x，已了解分布式系统基础。请用通俗中文解释 NameServer 的职责、与 ZooKeeper 类注册中心的区别、为何 RocketMQ 选择轻量级路由服务，并说明 Broker 上下线时客户端如何感知。"
     },
-    "domain-type-e": {
-      "label": "domainType E",
-      "prompt": "我在阅读 programming-html-tutorial 的 chapter-blocks-policy。请说明 domainType E（窄专题）可省略哪些章节 HTML 块，以及仍必须保留哪些块。"
+    "message-queue": {
+      "label": "MessageQueue",
+      "prompt": "我在学习 RocketMQ。请解释 MessageQueue 与 Kafka Partition 的异同、一个 Topic 下 Queue 数量如何影响并行度与顺序性，并给一个选择 Queue 数量的实践建议。"
     },
-    "quiz-partial": {
-      "label": "quiz.partial.html",
-      "prompt": "我在学习 programming-html-tutorial 测验工作流。请说明 quiz.partial.html 如何注入页面、data-chapter 与章节 id 如何对应，以及 course.json 的 quizzes 字段作用。"
+    "consumer-group": {
+      "label": "消费组 Consumer Group",
+      "prompt": "我在学习 RocketMQ 消费模型。请解释消费组的作用、集群消费与广播消费的区别、Rebalance 何时触发及对业务的影响，并提醒 3 个常见踩坑。"
+    },
+    "half-message": {
+      "label": "半消息（事务消息）",
+      "prompt": "我在学习 RocketMQ 事务消息。请用步骤图式文字说明半消息提交、本地事务执行、commit/rollback 与回查检查的完整流程，并对比本地消息表方案的优劣。"
+    },
+    "acl-2": {
+      "label": "ACL 2.0",
+      "prompt": "我在准备 RocketMQ 5.3+ 生产环境。请说明 ACL 2.0 相对 ACL 1.0 的主要变化、为何 5.3.3 移除 ACL 1.0、迁移时需要注意的配置项与验证步骤。"
     }
   },
   "quizzes": {
-    "basics-01-quiz": {
-      "chapterId": "basics-01-intro",
-      "title": "入门介绍测验",
+    "basics-01-overview-quiz": {
+      "chapterId": "basics-01-overview",
+      "title": "RocketMQ 定位与架构鸟瞰",
       "questions": [
         {
           "id": "q1",
           "type": "single",
-          "answer": "B",
-          "hint": "assemble 产出"
+          "answer": "C",
+          "hint": "消息队列补充同步调用，不是取代一切 RPC"
         },
         {
           "id": "q2",
           "type": "fill",
-          "answer": "assemble",
-          "hint": "assemble-index.mjs"
+          "answer": "NameServer",
+          "hint": "轻量无状态路由服务"
         },
         {
           "id": "q3",
-          "type": "multi",
-          "answer": "A,C",
-          "hint": "index.html 为生成物"
+          "type": "multiple",
+          "answer": "A,B,D,E",
+          "hint": "不含 ZooKeeper"
+        },
+        {
+          "id": "q4",
+          "type": "single",
+          "answer": "B",
+          "hint": "先查路由再连 Broker；同组负载均衡"
         }
       ]
     }
@@ -1199,8 +1634,139 @@ node scripts/validate-tutorial.mjs --dir examples/minimal-course</code></pre>
       if (resetMermaidNode(el)) list.push(el);
     });
     if (!list.length) return Promise.resolve();
-    return mermaid.run({ nodes: list }).catch(function (err) {
+    return mermaid.run({ nodes: list }).then(function () {
+      injectMermaidFullscreenUi(root);
+      bindMermaidFullscreen(root);
+    }).catch(function (err) {
       console.warn('Mermaid render failed:', err);
+    });
+  }
+
+  function injectMermaidFullscreenUi(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      if (wrap.querySelector('.mermaid-toolbar')) return;
+      var bar = document.createElement('div');
+      bar.className = 'mermaid-toolbar';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mermaid-fs-btn';
+      btn.textContent = '全屏';
+      btn.setAttribute('aria-label', '图表全屏');
+      btn.setAttribute('aria-expanded', 'false');
+      bar.appendChild(btn);
+      wrap.insertBefore(bar, wrap.firstChild);
+    });
+  }
+
+  function isPseudoFs(wrap) {
+    return wrap.classList.contains('is-pseudo-fullscreen');
+  }
+
+  function closePseudoFs(wrap) {
+    wrap.classList.remove('is-pseudo-fullscreen');
+    if (!document.querySelector('.mermaid-wrap.is-pseudo-fullscreen')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function openPseudoFs(wrap) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
+      if (w !== wrap) closePseudoFs(w);
+    });
+    wrap.classList.add('is-pseudo-fullscreen');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function syncFsButton(wrap, btn) {
+    var native = document.fullscreenElement === wrap;
+    var pseudo = isPseudoFs(wrap);
+    var on = native || pseudo;
+    btn.textContent = on ? '退出全屏' : '全屏';
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? '退出图表全屏' : '图表全屏');
+  }
+
+  function closeAllMermaidFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
+      closePseudoFs(wrap);
+      var btn = wrap.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(wrap, btn);
+    });
+  }
+
+  function bindMermaidFullscreen(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var btn = wrap.querySelector('.mermaid-fs-btn');
+      if (!btn || wrap.dataset.fsBound) return;
+      wrap.dataset.fsBound = '1';
+      btn.addEventListener('click', function () {
+        var pre = wrap.querySelector('pre.mermaid, div.mermaid');
+        if (!pre || !pre.querySelector('svg')) {
+          showToast('图表尚未渲染完成，请稍候再试', 'error');
+          return;
+        }
+        var native = document.fullscreenElement === wrap;
+        var pseudo = isPseudoFs(wrap);
+        if (native || pseudo) {
+          if (native) document.exitFullscreen().catch(function () {});
+          if (pseudo) closePseudoFs(wrap);
+          syncFsButton(wrap, btn);
+          return;
+        }
+        document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (w) {
+          closePseudoFs(w);
+          var b = w.querySelector('.mermaid-fs-btn');
+          if (b) syncFsButton(w, b);
+        });
+        var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        if (typeof req === 'function') {
+          Promise.resolve(req.call(wrap)).then(function () {
+            syncFsButton(wrap, btn);
+          }).catch(function () {
+            openPseudoFs(wrap);
+            syncFsButton(wrap, btn);
+          });
+        } else {
+          openPseudoFs(wrap);
+          syncFsButton(wrap, btn);
+        }
+      });
+    });
+  }
+
+  function initMermaidFullscreen() {
+    document.addEventListener('fullscreenchange', function () {
+      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
+      if (!document.fullscreenElement) {
+        document.body.style.overflow = document.querySelector('.mermaid-wrap.is-pseudo-fullscreen') ? 'hidden' : '';
+      }
+    });
+    document.addEventListener('webkitfullscreenchange', function () {
+      document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.mermaid-wrap.is-pseudo-fullscreen').forEach(function (wrap) {
+        closePseudoFs(wrap);
+        var btn = wrap.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(wrap, btn);
+      });
     });
   }
 
@@ -1322,6 +1888,7 @@ node scripts/validate-tutorial.mjs --dir examples/minimal-course</code></pre>
   }
 
   function applyTheme(theme) {
+    closeAllMermaidFullscreen();
     document.documentElement.setAttribute('data-theme', theme);
     storageSet(KEY_THEME, theme);
     applyHljsTheme(theme);
@@ -1411,6 +1978,9 @@ node scripts/validate-tutorial.mjs --dir examples/minimal-course</code></pre>
     renderOutlineSummary();
     bindCopyButtons();
     initTermModal();
+    initMermaidFullscreen();
+    injectMermaidFullscreenUi(document);
+    bindMermaidFullscreen(document);
     initQuiz();
     initMermaid();
     highlightIn(document);

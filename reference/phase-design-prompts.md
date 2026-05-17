@@ -196,3 +196,32 @@ practice 各章应围绕同一示例项目递进。
 | basics | 元字符与匹配模式 |
 | practice | 提取、替换与文本流水线 |
 | advanced | 引擎差异、性能与可读性 |
+
+---
+
+## 工作流 B：单章正文（内部提示，生成 HTML 前执行）
+
+将 `{chapterId}`、`{title}`、`{sections}`、`{domain}` 替换后，先列「呈现清单」再写 `chapters/{chapterId}.html`：
+
+```text
+【角色】技术教程作者，输出静态 HTML 片段（无 html/head/body）。
+
+【硬约束】
+- 必读 reference/chapter-layout.md：图文并茂、分点、图随文，禁止固定七段式顺序粘贴。
+- 必填块见 chapter-blocks-policy（.concept / .official-links / .code-block / .mermaid-wrap / .steps / .demo-box / .resources），位置与嵌套自由。
+- .mermaid-wrap 内勿写 .mermaid-toolbar；术语用 .term + data-term-id。
+- 范例密度对齐 courses/rocketmq/chapters/basics-01-overview.html。
+
+【本章】
+- id：{chapterId}
+- 标题：{title}
+- 大纲节：{sections}
+
+【步骤】
+1. 根据 sections 列出：哪些用 notice 摘要、h4 分节、列表、role-cards、mermaid（flowchart/sequence）、表格、code-block、steps。
+2. 在 .concept 内按学习顺序编排（先建立图景 → 再细节 → 再对比/小结）；图、代码紧跟对应 h4。
+3. 写 official-links（WebSearch 官方 URL）、demo-box（若有动手）、resources。
+4. 自检：无连续 3 段纯文字；至少 1 图或 1 表（domainType E 且无架构需求可省略 mermaid）；术语 ≥3。
+
+【输出】仅输出 <section id="ch-...">…</section> 完整片段，不要 markdown 包裹。
+```

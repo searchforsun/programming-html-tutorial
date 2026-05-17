@@ -91,7 +91,18 @@ if (course) {
     }
   }
   if (!fs.existsSync(path.join(dir, 'theme.css'))) warn('missing theme.css');
-  if (!fs.existsSync(path.join(dir, 'welcome.partial.html'))) warn('missing welcome.partial.html');
+  const welcomePath = path.join(dir, 'welcome.partial.html');
+  if (!fs.existsSync(welcomePath)) {
+    err('missing welcome.partial.html (required for shell init)');
+  } else {
+    const welcomeHtml = fs.readFileSync(welcomePath, 'utf8');
+    if (!welcomeHtml.includes('id="outline-summary-body"')) {
+      err('welcome.partial.html missing #outline-summary-body (breaks renderOutlineSummary / shell UI)');
+    }
+    if (/\bid=["']welcome["']/i.test(welcomeHtml)) {
+      err('welcome.partial.html must not use id="welcome" (reserved by index.shell.html wrapper)');
+    }
+  }
 }
 
 if (fs.existsSync(indexPath)) {
@@ -100,6 +111,13 @@ if (fs.existsSync(indexPath)) {
   if (!html.includes('id="term-modal"')) err('index.html missing #term-modal');
   if (!html.includes('id="course-data"')) err('index.html missing #course-data');
   if (html.includes('THEME_KEYWORDS')) err('index.html still contains THEME_KEYWORDS (stale shell)');
+  if (!html.includes('id="outline-summary-body"')) {
+    err('assembled index.html missing #outline-summary-body — fix welcome.partial.html and re-run assemble');
+  }
+  const welcomeIdCount = (html.match(/\bid=["']welcome["']/gi) || []).length;
+  if (welcomeIdCount > 1) {
+    err(`duplicate id="welcome" in index.html (${welcomeIdCount} found); remove from welcome.partial.html`);
+  }
   const dataMatch = html.match(/<script id="course-data"[^>]*>([\s\S]*?)<\/script>/);
   if (dataMatch) {
     try {

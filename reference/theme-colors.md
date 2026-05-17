@@ -28,6 +28,7 @@
 
 4. **实践 / 进阶** 阶段色可在 `:root` / `[data-theme]` 层统一写（如紫、琥珀），与主色协调即可。
 5. 保证亮/暗模式下文字与背景对比度可读；禁止在 `.btn-copy`、`.chapter-header` 等组件规则里写死某一技术的 hex。
+6. **完成态 / 正向反馈**（侧栏 ✓、章首「已完成」、复制成功、Toast 成功、标记完成、**测验答对**与答案区）在 `shell.base.css` 中统一使用 `var(--accent*)`，**不要**用 `var(--success)`，否则会与课程主色脱节。`--danger` 保留给测验答错（`.feedback-fail`）。
 
 ## `COURSE_DATA.meta` 示例
 

@@ -101,7 +101,9 @@
 
 ## 欢迎页
 
-`#welcome`：简介、meta 卡片、三阶段表（`outline-summary-body` 由 JS 填充）。勿写需随章节进度变化的静态 `.notice` 提示。
+外壳已有 `<div id="welcome">`；片段写 `welcome.partial.html`，**勿**在片段内再用 `id="welcome"`。
+
+必填：`tbody#outline-summary-body`（`renderOutlineSummary` 依赖，缺失会导致复制/术语/标记完成等壳交互全部失效）。模板见 [welcome-partial-template.md](welcome-partial-template.md)；交付前见 [delivery-review.md](delivery-review.md)。
 
 ## 文件体积
 

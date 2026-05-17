@@ -81,7 +81,8 @@ function applyHljsTheme(theme) {
 
 - `initMermaid()`：`startOnLoad: false`，`theme` 随 `data-theme`（`dark` / `default`），可配 `themeVariables` 贴近本课 CSS。
 - **首次渲染须在章节可见后**：`showChapter(id)` 末尾调用 `renderMermaidIn(section)`；**不要**在 `display:none` 的章节上先 `mermaid.run`。
-- `renderMermaidIn(root)`：对 `pre.mermaid`、`div.mermaid` 保存 `data-mermaid-src` → 清除 `data-processed` 与 SVG → `mermaid.run({ nodes })`。
+- `renderMermaidIn(root)`：保存 `data-mermaid-src` → 清 SVG → `mermaid.run({ nodes })` → `injectMermaidFullscreenUi` + `bindMermaidFullscreen`。
+- **Mermaid 全屏（§6b）**：脚本注入 `.mermaid-toolbar` / `.mermaid-fs-btn`（章节 **勿手写** 工具栏）。优先 `wrap.requestFullscreen()`，失败则 `.is-pseudo-fullscreen`（`z-index: 10000`）。`initMermaidFullscreen()` 处理 `fullscreenchange` / `Esc`；`applyTheme` 先 `closeAllMermaidFullscreen()`。
 - `applyTheme` 内：`initMermaid()` 后 `rerenderActiveMermaid()`，使亮暗切换时图表重绘。
 - `afterChapterInserted(el)`：仅当 `el.classList.contains('active')` 时调用 `renderMermaidIn`。
 - `highlightIn` 选择器：`pre:not(.mermaid) > code`，避免误高亮 Mermaid 源码。
@@ -106,7 +107,7 @@ function resetMermaidNode(el) {
 1. `applyThemePreset()`
 2. 标题、`applyTheme(localStorage 或 light)`
 3. `renderSidebar`、`renderOutlineSummary`、`updateProgressBar`
-4. `bindCopyButtons`、`initTermModal`、`initMermaid`、`highlightIn(document)`
+4. `bindCopyButtons`、`initTermModal`、`initMermaidFullscreen`、`injectMermaidFullscreenUi`、`bindMermaidFullscreen`、`initMermaid`、`highlightIn(document)`
 5. `syncMarkDoneButtons()`
 6. `syncAllProgressUI()`；有 `KEY_SCROLL` 则 `showChapter`，否则 `showWelcome()`（不再默认跳进第一章）
 7. 顶栏 `.course-title` 点击/Enter/Space → `showWelcome()`；侧栏首项「课程首页」同效

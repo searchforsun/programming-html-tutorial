@@ -1,4 +1,4 @@
-﻿# 教程站组件样式（参考）
+# 教程站组件样式（参考）
 
 实现源文件：`templates/shell.base.css`。每课主题变量见 [theme-colors.md](theme-colors.md)，写入 `theme.css` 后由 assemble 注入。
 
@@ -292,22 +292,8 @@
       background: var(--code-bg); border: 1px solid var(--border);
     }
     #term-prompt { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.65; }
-    .mermaid-wrap {
-      margin: 1.25rem 0; padding: 1.25rem;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow-sm);
-    }
-    .mermaid-wrap h3 { width: 100%; }
-    .mermaid-wrap pre.mermaid {
-      display: flex; justify-content: center; align-items: center;
-      margin: 0.75rem 0 0; padding: 0; width: 100%;
-      background: transparent !important; border: none;
-      overflow-x: auto;
-    }
-    .mermaid-wrap pre.mermaid svg {
-      display: block; max-width: 100%; height: auto;
-      margin: 0 auto;
-    }
+    /* Mermaid 全屏：见 templates/shell.base.css（.mermaid-toolbar / .is-pseudo-fullscreen） */
+    .mermaid-wrap { position: relative; padding: 2.25rem 1rem 1rem; /* …完整规则见 shell.base.css */ }
     .steps { padding-left: 0; list-style: none; counter-reset: step; }
     .steps li {
       counter-increment: step; margin: .65rem 0; padding: .65rem .85rem .65rem 2.75rem;
