@@ -2,13 +2,35 @@
 /**
  * Validate tutorial source or assembled index.html
  * Usage:
- *   node scripts/validate-tutorial.mjs --dir courses/my-course
- *   node scripts/validate-tutorial.mjs --dir examples/minimal-course --strict
+ *   node scripts/validate-tutorial.mjs --dir <project>/courses/<slug>
+ *   node scripts/validate-tutorial.mjs --dir <project>/courses/<slug> --strict
  */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getRequiredBlocks, checkChapterHtml } from './lib/chapter-blocks.mjs';
+import {
+  loadQualityConfig,
+  getChapterOutlineEntry,
+  reviewChapter,
+  countTerms,
+  extractTermIds,
+  isTheoryChapter,
+} from './lib/chapter-quality.mjs';
+import {
+  courseExpectsCjk,
+  validateEncoding,
+  validateIndexChapterSync,
+} from './lib/encoding-quality.mjs';
+
+function getChapterPhaseId(course, chapterId) {
+  for (const phase of course.outline || []) {
+    for (const ch of phase.chapters || []) {
+      if (ch.id === chapterId) return phase.phaseId;
+    }
+  }
+  return null;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.join(__dirname, '..');
@@ -66,6 +88,23 @@ if (course) {
 
   const domainType = course.meta?.domainType || 'B';
   const requiredBlocks = getRequiredBlocks(defaults, domainType);
+  const welcomePath = path.join(dir, 'welcome.partial.html');
+  const quizPartialPath = path.join(dir, 'quiz.partial.html');
+  const expectCjk = courseExpectsCjk(course);
+  const quizHtmlForQuality = fs.existsSync(quizPartialPath)
+    ? fs.readFileSync(quizPartialPath, 'utf8')
+    : '';
+  if (quizHtmlForQuality) {
+    validateEncoding({
+      label: 'quiz.partial.html',
+      text: quizHtmlForQuality,
+      expectCjk,
+      onError: err,
+    });
+  }
+  const welcomeHtmlForQuality =
+    fs.existsSync(welcomePath) ? fs.readFileSync(welcomePath, 'utf8') : '';
+  const qualityConfig = strict ? loadQualityConfig(SKILL_ROOT) : null;
 
   const allIds = new Set();
   for (const phase of course.outline) {
@@ -80,22 +119,62 @@ if (course) {
         continue;
       }
       const chHtml = fs.readFileSync(chFile, 'utf8');
+      validateEncoding({
+        label: `chapters/${ch.id}.html`,
+        text: chHtml,
+        expectCjk,
+        onError: err,
+      });
       const missingBlocks = checkChapterHtml(chHtml, requiredBlocks);
       if (missingBlocks.length) {
         err(`chapters/${ch.id}.html missing blocks (domainType ${domainType}): ${missingBlocks.join(', ')}`);
       }
-      const termCount = (chHtml.match(/class="term"/g) || []).length;
-      if (termCount < 3) {
-        warn(`chapters/${ch.id}.html has ${termCount} terms (recommended ≥3)`);
+      const phaseId = getChapterPhaseId(course, ch.id);
+      const isTheory = isTheoryChapter(phaseId, ch.id, qualityConfig || {});
+      const minSpans = isTheory
+        ? (qualityConfig?.terms?.minSpansConcept ?? 8)
+        : (qualityConfig?.terms?.minSpansPractice ?? 5);
+      const termCount = countTerms(chHtml);
+      if (termCount < minSpans) {
+        warn(
+          `chapters/${ch.id}.html has ${termCount} .term spans (${isTheory ? 'theory' : 'practice'} recommended ≥${minSpans})`
+        );
+      }
+      const termIds = extractTermIds(chHtml);
+      for (const tid of termIds) {
+        if (!course.terms?.[tid]) {
+          err(`chapters/${ch.id}.html: unknown data-term-id="${tid}"`);
+        }
+      }
+      if (strict && qualityConfig) {
+        const outlineChapter = getChapterOutlineEntry(course, ch.id);
+        const report = reviewChapter({
+          html: chHtml,
+          chapterId: ch.id,
+          outlineChapter,
+          quizHtml: quizHtmlForQuality + welcomeHtmlForQuality,
+          quizzes: course.quizzes,
+          config: qualityConfig,
+          terms: course.terms || {},
+          phaseId,
+        });
+        for (const e of report.errors || []) {
+          err(`chapters/${ch.id}.html (quality): ${e}`);
+        }
       }
     }
   }
   if (!fs.existsSync(path.join(dir, 'theme.css'))) warn('missing theme.css');
-  const welcomePath = path.join(dir, 'welcome.partial.html');
   if (!fs.existsSync(welcomePath)) {
     err('missing welcome.partial.html (required for shell init)');
   } else {
     const welcomeHtml = fs.readFileSync(welcomePath, 'utf8');
+    validateEncoding({
+      label: 'welcome.partial.html',
+      text: welcomeHtml,
+      expectCjk,
+      onError: err,
+    });
     if (!welcomeHtml.includes('id="outline-summary-body"')) {
       err('welcome.partial.html missing #outline-summary-body (breaks renderOutlineSummary / shell UI)');
     }
@@ -107,6 +186,12 @@ if (course) {
 
 if (fs.existsSync(indexPath)) {
   const html = fs.readFileSync(indexPath, 'utf8');
+  validateEncoding({
+    label: 'index.html',
+    text: html,
+    expectCjk: course ? courseExpectsCjk(course) : false,
+    onError: err,
+  });
   if (!html.includes('id="toast"')) err('index.html missing #toast');
   if (!html.includes('id="term-modal"')) err('index.html missing #term-modal');
   if (!html.includes('id="course-data"')) err('index.html missing #course-data');
@@ -129,6 +214,24 @@ if (fs.existsSync(indexPath)) {
       }
     } catch (e) {
       err('embedded course-data JSON invalid');
+    }
+  }
+
+  if (course) {
+    const expectCjkIndex = courseExpectsCjk(course);
+    for (const phase of course.outline || []) {
+      for (const ch of phase.chapters || []) {
+        const chFile = path.join(dir, 'chapters', `${ch.id}.html`);
+        if (!fs.existsSync(chFile)) continue;
+        const chHtml = fs.readFileSync(chFile, 'utf8');
+        validateIndexChapterSync({
+          indexHtml: html,
+          chapterId: ch.id,
+          sourceHtml: chHtml,
+          expectCjk: expectCjkIndex,
+          onError: err,
+        });
+      }
     }
   }
 }

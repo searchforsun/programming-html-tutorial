@@ -1,0 +1,193 @@
+/* UI 风格包 · cyber（独立加载，互斥启用） */
+
+:root {
+--radius: 0px;
+  --radius-sm: 0px;
+  --radius-xs: 0px;
+  --radius-pill: 0px;
+  --radius-marker: 0px;
+  --font-sans: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "Noto Sans SC", monospace;
+  --style-card-bar: 1;
+  --style-title-gradient: 0;
+  --glass-blur: 0px;
+  --style-hover-scale: 1.02;
+  --style-card-shadow: 0 0 18px var(--accent-glow);
+  --style-heading-mark: cyber;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: 0.08em;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1.015);
+  --style-hover-shadow: var(--shadow-md), 0 0 28px var(--accent-glow);
+  --style-hover-border: color-mix(in srgb, var(--accent) 65%, var(--border));
+  --style-hover-duration: 0.16s;
+  --style-hover-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body {
+background-size: 24px 24px, 24px 24px, 100% 100%;
+  background-image: var(--bg-accent), var(--bg-accent), none;
+}
+
+.meta-card,
+.role-card,
+.course-card,
+.chapter-header,
+.chapter .content-section,
+.chapter .section-block,
+.quiz-item {
+border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: var(--style-card-shadow), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+opacity: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.topbar {
+border-bottom: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 55%, transparent);
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: none;
+  border-image: none;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-glow);
+  padding-left: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  padding-bottom: 0.35rem;
+}
+
+.welcome-header h2,
+.course-title,
+.portal-hero h2 {
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+.course-title::before {
+width: 4px;
+  height: 1em;
+  background: linear-gradient(180deg, var(--accent), var(--accent-alt));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.btn-mark-done:not(.is-done),
+.quiz-actions .btn-check {
+text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.code-toolbar {
+background: var(--code-toolbar-bg, var(--code-header));
+  border-bottom-color: var(--code-toolbar-border, var(--border));
+}
+
+.code-toolbar .lang-tag {
+color: var(--code-toolbar-fg, var(--muted));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.phase-tag {
+text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+body {
+background-size: 24px 24px, 24px 24px, 100% 100% !important;
+}
+
+:is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block, .quiz-item) {
+clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)) !important;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+:is(.meta-card, .role-card, .course-card)::before {
+opacity: 1 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt)) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
+}
+
+.topbar {
+border-bottom-color: color-mix(in srgb, var(--accent) 50%, var(--border)) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 55%, transparent) !important;
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: none !important;
+  border-image: none !important;
+  text-transform: uppercase !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.1em !important;
+  color: var(--accent) !important;
+  text-shadow: 0 0 14px var(--accent-glow) !important;
+  padding-left: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+  border-radius: 0 !important;
+}
+
+:is(.welcome-header h2, .portal-hero h2, .course-title) {
+background: none !important;
+  -webkit-text-fill-color: unset !important;
+  color: var(--accent) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  text-shadow: 0 0 20px var(--accent-glow) !important;
+}
+
+:is(.btn-mark-done, .quiz-actions .btn-check, .phase-tag) {
+text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  font-size: 0.78rem !important;
+  box-shadow: 0 0 16px var(--accent-glow) !important;
+}
+
+.outline-table thead th {
+background: var(--table-head-bg, var(--code-header)) !important;
+  color: var(--table-head-fg, var(--muted)) !important;
+  border-bottom-color: var(--table-head-border, var(--border)) !important;
+}
+
+.code-toolbar {
+background: var(--code-toolbar-bg, var(--code-header)) !important;
+  border-bottom-color: var(--code-toolbar-border, var(--border)) !important;
+}
+
+.code-toolbar .lang-tag {
+color: var(--code-toolbar-fg, var(--muted)) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+}
+
+.quiz-item .fill-input {
+background: var(--input-bg, var(--surface)) !important;
+  color: var(--input-fg, var(--text)) !important;
+  border-color: var(--input-border, var(--border)) !important;
+}
+
+.quiz-item .fill-input::placeholder {
+color: var(--input-placeholder, var(--muted)) !important;
+}

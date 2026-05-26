@@ -1,0 +1,184 @@
+/* UI 风格包 · minimal（独立加载，互斥启用） */
+
+:root {
+--radius: 6px;
+  --radius-sm: 4px;
+  --radius-xs: 2px;
+  --radius-pill: 4px;
+  --radius-marker: 4px;
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --style-card-bar: 0;
+  --style-title-gradient: 0;
+  --glass-blur: 0px;
+  --style-hover-scale: 1;
+  --style-card-shadow: none;
+  --style-heading-mark: flat;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: -0.02em;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1.012);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent) 22%, var(--border));
+  --style-hover-duration: 0.2s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+--bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-glow: rgba(37, 99, 235, 0.12);
+  --accent-alt: #6366f1;
+  --border: #e2e8f0;
+  --code-bg: #f8fafc;
+  --code-header: #f1f5f9;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.1);
+  --success: #059669;
+  --danger: #dc2626;
+  --progress-gradient: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 75%, var(--accent-alt)));
+  --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(37, 99, 235, 0.06), transparent);
+  --scrollbar-thumb: #cbd5e1;
+}
+
+[data-theme="dark"] {
+--bg: #0f1419;
+  --surface: #1a222d;
+  --surface-elevated: #222c3a;
+  --text: #e6edf3;
+  --muted: #8b9cb3;
+  --accent: #539bf5;
+  --accent-hover: #6cb0ff;
+  --accent-soft: #1c2836;
+  --accent-glow: rgba(83, 155, 245, 0.15);
+  --accent-alt: #8b9cf7;
+  --border: #30363d;
+  --code-bg: #161b22;
+  --code-header: #1c2128;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.4);
+  --success: #3fb950;
+  --danger: #f85149;
+  --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(83, 155, 245, 0.07), transparent);
+  --scrollbar-thumb: #484f58;
+}
+
+.meta-card,
+.role-card,
+.chapter-header,
+.chapter .content-section,
+.quiz-item,
+.outline-table-wrap,
+.demo-box,
+.steps li,
+.code-block,
+.course-card {
+box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-width: 1px;
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+display: none;
+}
+
+.topbar {
+backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface);
+  box-shadow: none;
+  border-bottom-width: 2px;
+}
+
+.chapter-header {
+box-shadow: none;
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
+}
+
+section[data-chapter].done .chapter-header {
+border-left: 3px solid var(--accent);
+  box-shadow: none;
+}
+
+section[data-chapter].in-progress:not(.done) .chapter-header {
+border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: none;
+}
+
+.chapter h3,
+.chapter .section-block > h3 {
+border-left: none;
+  border-image: none;
+  padding-left: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.35rem;
+}
+
+.btn-mark-done:not(.is-done) {
+background: var(--accent);
+  box-shadow: none;
+}
+
+.welcome-header h2,
+.course-title,
+.portal-hero h2 {
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.course-title::before {
+border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+:is(.meta-card, .role-card, .course-card, .chapter .section-block, .code-block) {
+box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.chapter-header {
+box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+section[data-chapter].done .chapter-header {
+border-left: 3px solid var(--accent) !important;
+}
+
+section[data-chapter].in-progress:not(.done) .chapter-header {
+border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+}
+
+.topbar {
+backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+}
+
+body.page-course.page-chapter #sidebar {
+border-right: 2px solid var(--border) !important;
+}

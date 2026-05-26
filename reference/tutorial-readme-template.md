@@ -1,6 +1,8 @@
 # 教程目录 README 模板
 
-在 `courses/<slug>/README.md` 生成**短文档**：重点置顶，全文建议 **80 行以内**。
+在 `<workspace>/courses/<slug>/README.md` 生成**短文档**：重点置顶，全文建议 **80 行以内**。
+
+**启动方式**写在 `<workspace>/courses/README.md`（见 `templates/courses-README.template.md`），单课 README **不要**重复 `npx serve` 说明。
 
 ## 结构（必须按此顺序）
 
@@ -8,12 +10,9 @@
 
 `# {meta.title}`
 
-### 2. 「三步开始学习」（第一节，最重要）
+### 2. 指向课程中心（一行）
 
-- 一条 `cd` + 一条启动命令（优先 `npx --yes serve .`）
-- 写明浏览器打开的 URL（如 localhost:3000）
-- **表格两行**：推荐（本地服务）vs 备选（双击 index.html + 进度可能丢失）
-- 一行：**学习入口** = `index.html`（相对链接）
+> 启动本地服务、打开课程选择页等说明见上级目录 [courses/README.md](../README.md)。
 
 ### 3. 「这门课是什么」（3–5 行）
 
@@ -27,19 +26,19 @@
 
 | 文件 | 你要不要碰 | 说明 |
 
-只列学习者关心的：`index.html`、`course.json`、`chapters/`、`theme.css`、`demos/`。  
-**不要**在此节展开 meta 字段全集。
+只列学习者关心的：`index.html`、`course.json`、`chapters/`（标注「不用」）、`theme.css`、`demos/`。  
+**不要**在此节展开 meta 字段全集；**不要**写 assemble 命令、skill 路径或「改完 chapters 后执行…」。
 
-### 6. 维护信息（用 `<details>` 折叠）
+### 6. 维护信息
 
-- 重新 assemble 命令
-- 可配置项 3–5 条 bullet 即可
+**学员 README 不写本节。** 组装、UTF-8、Gate 等仅见技能包 `reference/delivery-review.md` 与 `reference/assembly.md`（Agent 执行）。
 
 ## 禁止
 
 - 长目录树 ASCII 图占半页
-- 可配置项大表放在正文前部
-- 与「三步开始」重复的「快速链接」章节
+- 单课 README 内写「三步开始学习」或 `cd courses/<slug> && npx serve`（已移至 `courses/README.md`）
+- 与上级 README 重复的启动表格
+- 在 `<workspace>/courses/<slug>/README.md` 中出现 `assemble-index.mjs`、本机绝对路径、或维护者工作流说明
 
 ## Agent 占位符
 

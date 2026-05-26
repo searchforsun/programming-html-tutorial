@@ -1,0 +1,317 @@
+/* UI 风格包 · terminal（独立加载，互斥启用） */
+
+:root {
+--radius: 4px;
+  --radius-sm: 3px;
+  --radius-xs: 2px;
+  --radius-pill: 4px;
+  --radius-marker: 2px;
+  --font-sans: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "Cascadia Code", "Noto Sans SC", monospace;
+  --style-card-bar: 0;
+  --style-title-gradient: 0;
+  --glass-blur: 0px;
+  --style-hover-scale: 1;
+  --style-card-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, var(--border));
+  --style-heading-mark: mono;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: 0.02em;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1);
+  --style-hover-shadow: var(--shadow-md), 0 0 20px var(--accent-glow);
+  --style-hover-border: color-mix(in srgb, var(--accent) 65%, var(--border));
+  --style-hover-duration: 0.14s;
+  --style-hover-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-theme="light"] {
+--bg: #f4f4f5;
+  --surface: #fafafa;
+  --surface-elevated: #ffffff;
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --muted: #71717a;
+  --accent: #15803d;
+  --accent-hover: #166534;
+  --accent-soft: #ecfdf5;
+  --accent-glow: rgba(21, 128, 61, 0.2);
+  --accent-alt: #a16207;
+  --border: #d4d4d8;
+  --code-bg: #f8fafc;
+  --code-header: #f1f5f9;
+  --code-toolbar-bg: var(--surface-elevated);
+  --code-toolbar-fg: var(--text);
+  --code-toolbar-border: color-mix(in srgb, var(--accent) 30%, var(--border));
+  --code-inline-bg: #e4e4e7;
+  --code-inline-fg: #18181b;
+  --code-inline-border: #a1a1aa;
+  --term-prompt: #18181b;
+  --table-head-bg: var(--surface-elevated);
+  --table-head-fg: var(--text);
+  --table-head-border: color-mix(in srgb, var(--accent) 35%, var(--border));
+  --input-bg: var(--surface-elevated);
+  --input-fg: var(--text);
+  --input-border: color-mix(in srgb, var(--accent) 28%, var(--border));
+  --input-placeholder: #71717a;
+  --shadow-sm: 0 0 0 1px #d4d4d8;
+  --shadow-md: 0 0 0 1px #a1a1aa, 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 0 0 1px #71717a, 0 8px 24px rgba(0, 0, 0, 0.1);
+  --success: #15803d;
+  --danger: #dc2626;
+  --progress-gradient: linear-gradient(90deg, #15803d, #ca8a04);
+  --bg-accent:
+    linear-gradient(rgba(21, 128, 61, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 128, 61, 0.04) 1px, transparent 1px);
+  --scrollbar-thumb: #a1a1aa;
+}
+
+[data-theme="dark"] {
+--bg: #09090b;
+  --surface: #0c0c0e;
+  --surface-elevated: #18181b;
+  --text: #d4d4d8;
+  --text-secondary: #a1a1aa;
+  --muted: #71717a;
+  --accent: #4ade80;
+  --accent-hover: #86efac;
+  --accent-soft: rgba(74, 222, 128, 0.1);
+  --accent-glow: rgba(74, 222, 128, 0.35);
+  --accent-alt: #facc15;
+  --border: #27272a;
+  --code-bg: #000000;
+  --code-header: #18181b;
+  --code-toolbar-bg: var(--code-header);
+  --code-toolbar-fg: #cbd5e1;
+  --code-toolbar-border: color-mix(in srgb, var(--accent) 40%, var(--border));
+  --code-inline-bg: #18181b;
+  --code-inline-fg: #4ade80;
+  --code-inline-border: #3f3f46;
+  --term-prompt: #4ade80;
+  --table-head-bg: var(--code-header);
+  --table-head-fg: #e4e4e7;
+  --table-head-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+  --input-bg: #0c0c0e;
+  --input-fg: var(--text);
+  --input-border: color-mix(in srgb, var(--accent) 40%, var(--border));
+  --input-placeholder: #71717a;
+  --shadow-sm: 0 0 12px rgba(74, 222, 128, 0.08);
+  --shadow-md: 0 0 24px rgba(74, 222, 128, 0.12);
+  --shadow-lg: 0 0 36px rgba(74, 222, 128, 0.16);
+  --success: #4ade80;
+  --danger: #f87171;
+  --progress-gradient: linear-gradient(90deg, #4ade80, #facc15);
+  --bg-accent:
+    linear-gradient(rgba(74, 222, 128, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 222, 128, 0.05) 1px, transparent 1px);
+  --scrollbar-thumb: #3f3f46;
+}
+
+body {
+background-size: 20px 20px, 20px 20px, 100% 100%;
+}
+
+body {
+font-family: var(--font-sans);
+}
+
+.meta-card,
+.role-card,
+.course-card,
+.chapter-header,
+.chapter .content-section,
+.chapter .section-block,
+.quiz-item {
+border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: var(--style-card-shadow);
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+opacity: 1;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.topbar {
+border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 40%, transparent);
+}
+
+.topbar::before {
+content: "> ";
+  position: absolute;
+  left: 1rem;
+  bottom: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--term-prompt, var(--accent));
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: 2px solid var(--accent);
+  border-image: none;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-transform: none;
+}
+
+[data-theme="dark"] .chapter .section-block > h3,
+[data-theme="dark"] .chapter h3 {
+color: var(--accent);
+}
+
+.welcome-header h2,
+.course-title,
+.portal-hero h2 {
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--text);
+  font-family: var(--font-sans);
+  letter-spacing: 0.03em;
+}
+
+[data-theme="dark"] .welcome-header h2,
+[data-theme="dark"] .course-title,
+[data-theme="dark"] .portal-hero h2 {
+color: var(--accent);
+}
+
+.course-title::before {
+content: "$";
+  width: auto;
+  height: auto;
+  background: none;
+  color: var(--term-prompt, var(--accent-alt));
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+:is(.chapter :not(pre) > code, .demo-box code, .steps code, .notice code, .quiz-item code) {
+background: var(--code-inline-bg, var(--code-bg));
+  color: var(--code-inline-fg, var(--text));
+  border-color: var(--code-inline-border, var(--border));
+}
+
+.code-toolbar {
+background: var(--code-toolbar-bg, var(--code-header));
+  border-bottom-color: var(--code-toolbar-border, var(--border));
+}
+
+.code-toolbar .lang-tag {
+color: var(--code-toolbar-fg, var(--muted));
+}
+
+[data-theme="light"] .code-toolbar {
+border-bottom-width: 2px;
+}
+
+[data-theme="light"] .code-block {
+border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .code-toolbar .btn-copy {
+background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.quiz-item .fill-input {
+font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
+
+.outline-table thead th {
+font-family: var(--font-sans);
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+[data-theme="light"] .outline-table thead th {
+background: var(--table-head-bg);
+  color: var(--table-head-fg);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+[data-theme="dark"] .outline-table thead th {
+background: var(--table-head-bg);
+  color: var(--table-head-fg);
+}
+
+.btn-mark-done:not(.is-done) {
+box-shadow: 0 0 12px var(--accent-glow);
+}
+
+body {
+font-family: var(--font-sans) !important;
+}
+
+:is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+box-shadow: var(--style-card-shadow) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  backdrop-filter: none !important;
+}
+
+:is(.welcome-header h2, .portal-hero h2, .course-title) {
+color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  letter-spacing: 0.03em !important;
+}
+
+[data-theme="dark"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+color: var(--accent) !important;
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: 2px solid var(--accent) !important;
+  color: var(--text) !important;
+  font-size: 0.85rem !important;
+}
+
+[data-theme="dark"] .chapter .section-block > h3,
+[data-theme="dark"] .chapter h3 {
+color: var(--accent) !important;
+}
+
+:is(.chapter :not(pre) > code, .demo-box code, .steps code, .notice code, .quiz-item code) {
+background: var(--code-inline-bg, var(--code-bg)) !important;
+  color: var(--code-inline-fg, var(--text)) !important;
+  border-color: var(--code-inline-border, var(--border)) !important;
+}
+
+.outline-table thead th {
+background: var(--table-head-bg, var(--code-header)) !important;
+  color: var(--table-head-fg, var(--muted)) !important;
+  border-bottom-color: var(--table-head-border, var(--border)) !important;
+}
+
+.code-toolbar {
+background: var(--code-toolbar-bg, var(--code-header)) !important;
+  border-bottom-color: var(--code-toolbar-border, var(--border)) !important;
+}
+
+.code-toolbar .lang-tag {
+color: var(--code-toolbar-fg, var(--muted)) !important;
+}
+
+.code-block pre {
+background: var(--code-bg) !important;
+}
+
+.quiz-item .fill-input {
+background: var(--input-bg, var(--surface)) !important;
+  color: var(--input-fg, var(--text)) !important;
+  border-color: var(--input-border, var(--border)) !important;
+}
+
+.quiz-item .fill-input::placeholder {
+color: var(--input-placeholder, var(--muted)) !important;
+}

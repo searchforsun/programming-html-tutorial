@@ -1,15 +1,13 @@
 {
   "name": "programming-html-tutorial",
-  "version": "1.0.0",
+  "version": "1.7.6",
   "description": "Generate static HTML interactive programming tutorial sites",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "assemble": "node scripts/assemble-index.mjs",
     "validate": "node scripts/validate-tutorial.mjs",
-    "extract": "node scripts/extract-from-index.mjs",
-    "assemble:example": "node scripts/assemble-index.mjs --dir examples/minimal-course",
-    "validate:example": "node scripts/validate-tutorial.mjs --dir examples/minimal-course"
+    "extract": "node scripts/extract-from-index.mjs"
   },
   "repository": {
     "type": "git",

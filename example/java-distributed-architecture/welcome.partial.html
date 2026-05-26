@@ -1,0 +1,198 @@
+﻿<section class="welcome-panel">
+  <header class="welcome-header">
+    <h2>Java 分布式架构设计</h2>
+    <p class="welcome-lead">
+      从 CAP、领域建模与通信模式，到 Spring Cloud 微服务实战（ShopFlow 示例），再到韧性、可观测与架构演进——按三阶段系统掌握 Java 分布式架构设计与落地。
+    </p>
+  </header>
+
+  <div class="meta-cards">
+    <div class="meta-card">
+      <strong>当前版本</strong>
+      Java 21 LTS；Spring Boot 3.5.x；Spring Cloud 2025.0.x
+    </div>
+    <div class="meta-card">
+      <strong>大纲规模</strong>
+      15 章 · 3 阶段 · 已生成 1 章正文
+    </div>
+    <div class="meta-card">
+      <strong>前置要求</strong>
+      Java 17+ · Spring Boot · HTTP/REST · Maven
+    </div>
+  </div>
+
+  <div class="meta-cards">
+    <div class="meta-card">
+      <strong>官方文档</strong>
+      <a href="https://docs.spring.io/spring-cloud/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud Reference</a>
+    </div>
+    <div class="meta-card">
+      <strong>领域类型</strong>
+      F — 横切能力（架构设计 + Java 微服务栈）
+    </div>
+    <div class="meta-card">
+      <strong>学习路径</strong>
+      原理与建模 → ShopFlow 实战 → 生产治理与演进
+    </div>
+  </div>
+
+  <div class="notice welcome-notice">
+    <strong>版本说明（2026-05-18）：</strong>
+    实践章以 Spring Boot 3.5 与 Spring Cloud 2025 发布列车为准；对接企业内旧版集群时请以实际 BOM 与官方发行说明为准。
+  </div>
+
+  <h3>三阶段大纲摘要</h3>
+  <div class="outline-table-wrap">
+    <table class="outline-table">
+      <thead>
+        <tr><th scope="col">阶段</th><th scope="col">章节</th><th scope="col">小节概要</th></tr>
+      </thead>
+      <tbody id="outline-summary-body"></tbody>
+    </table>
+  </div>
+
+  <div class="role-cards welcome-phases">
+    <article class="role-card" data-phase="basics">
+      <h3>阶段一 · 分布式基石</h3>
+      <p>CAP/BASE、架构风格选型、DDD 边界与 API 契约、同步/异步通信模式；为 ShopFlow 拆分打底。</p>
+    </article>
+    <article class="role-card" data-phase="practice">
+      <h3>阶段二 · ShopFlow 微服务实战</h3>
+      <p>Spring Cloud 脚手架、注册发现与网关、OpenFeign 调用、Kafka/Redis、分布式事务与 Saga mini 项目。</p>
+    </article>
+    <article class="role-card" data-phase="advanced">
+      <h3>阶段三 · 生产治理与演进</h3>
+      <p>熔断限流、可观测性、安全与 K8s 部署、容量扩展、CQRS/反模式与架构评审。</p>
+    </article>
+  </div>
+
+  <p class="welcome-cta">
+    请从左侧目录选择章节；建议从「分布式系统本质与挑战」读起。打开过的章节侧栏显示<strong>圆点（进行中）</strong>，测验与过关清单完成后可点章首<strong>标记完成</strong>（✓）。进度与清单勾选可通过顶栏导出/导入。
+  </p>
+  <script>
+(function () {
+  var SLUG =
+    (window.COURSE_DATA && window.COURSE_DATA.meta && window.COURSE_DATA.meta.slug) || 'course';
+
+  function storageGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function initChecklists(root) {
+    root.querySelectorAll('.learn-checklist').forEach(function (box) {
+      var baseKey = box.getAttribute('data-storage-key') || SLUG + '_checklist';
+      var inputs = box.querySelectorAll('input[type="checkbox"][data-id]');
+      inputs.forEach(function (input) {
+        var key = baseKey + '_' + input.getAttribute('data-id');
+        input.checked = storageGet(key) === '1';
+        input.addEventListener('change', function () {
+          storageSet(key, input.checked ? '1' : '0');
+          updateChecklistProgress(box);
+        });
+      });
+      updateChecklistProgress(box);
+    });
+  }
+
+  function updateChecklistProgress(box) {
+    var inputs = box.querySelectorAll('input[type="checkbox"][data-id]');
+    var done = 0;
+    inputs.forEach(function (i) {
+      if (i.checked) done += 1;
+    });
+    var el = box.querySelector('.learn-checklist-progress');
+    if (el) {
+      el.textContent = done + ' / ' + inputs.length + ' 已勾选';
+    }
+  }
+
+  function initParamSliders(root) {
+    root.querySelectorAll('.learn-param-slider').forEach(function (box) {
+      var range = box.querySelector('input[type="range"]');
+      var output = box.querySelector('output');
+      var hint = box.querySelector('.learn-param-hint');
+      if (!range) return;
+
+      var storageKey = box.getAttribute('data-storage-key');
+      if (storageKey) {
+        var saved = storageGet(storageKey);
+        if (saved) range.value = saved;
+      }
+
+      var hintLow = box.getAttribute('data-hint-low') || '数值偏小：注意观察边界行为。';
+      var hintMid = box.getAttribute('data-hint-mid') || '中间区间：结合正文理解典型配置。';
+      var hintHigh = box.getAttribute('data-hint-high') || '数值偏大：注意延迟与资源占用。';
+      var unit = box.getAttribute('data-value-unit') || '';
+
+      function refresh() {
+        var v = parseInt(range.value, 10);
+        if (output) output.textContent = v + (unit ? ' ' + unit : '');
+        if (hint) {
+          var max = parseInt(range.max, 10) || 100;
+          var third = max / 3;
+          if (v <= third) hint.textContent = hintLow;
+          else if (v <= third * 2) hint.textContent = hintMid;
+          else hint.textContent = hintHigh;
+        }
+        if (storageKey) storageSet(storageKey, String(v));
+      }
+
+      range.addEventListener('input', refresh);
+      refresh();
+    });
+  }
+
+  function initLearnTabs(root) {
+    root.querySelectorAll('.learn-tabs').forEach(function (tabs) {
+      tabs.querySelectorAll('label[for]').forEach(function (label) {
+        var id = label.getAttribute('for');
+        if (!id) return;
+        var input = document.getElementById(id);
+        if (!input || !tabs.contains(input) || !input.classList.contains('learn-tab-input')) return;
+        label.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          input.checked = true;
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          try {
+            input.focus({ preventScroll: true });
+          } catch (err) {
+            input.focus();
+          }
+        });
+      });
+    });
+  }
+
+  function initEnrichment(root) {
+    initChecklists(root);
+    initParamSliders(root);
+    initLearnTabs(root);
+  }
+
+  function boot() {
+    initEnrichment(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  window.initChapterEnrichment = initEnrichment;
+})();
+  </script>
+</section>

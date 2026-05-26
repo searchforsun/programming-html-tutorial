@@ -1,0 +1,414 @@
+<section id="ch-basics-03-architecture-styles" class="chapter" data-chapter="basics-03-architecture-styles">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>架构风格：单体、SOA 与微服务</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-03-architecture-styles" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>28 分钟</strong> · 阶段：<strong>分布式基石</strong> · 能力：在单体/模块化单体/SOA/微服务间做有依据的形态选择</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-basics-01-distributed-fundamentals">分布式系统本质与挑战</a> 与 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 讲了分布式<strong>问题</strong>与<strong>数据取舍</strong>；本章回答：<strong>要不要拆、拆成什么形态</strong>。盲目 <span class="term" data-term-id="microservices" tabindex="0">微服务</span> 会把 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 中的 <span class="term" data-term-id="cap-theorem" tabindex="0">CAP</span>、<span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span> 成本成倍放大。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>区分<strong><span class="term" data-term-id="layered-monolith" tabindex="0">分层单体</span></strong>与<strong><span class="term" data-term-id="modular-monolith" tabindex="0">模块化单体</span></strong>，并说明 ShopFlow 早期可留在单体内的理由</li>
+          <li>口述 <span class="term" data-term-id="soa" tabindex="0">SOA</span> → <span class="term" data-term-id="esb" tabindex="0">ESB</span> → 微服务的演进脉络与各自痛点</li>
+          <li>用<strong><span class="term" data-term-id="conways-law" tabindex="0">康威定律</span></strong>把服务边界与团队拓扑对齐，并列出「不宜拆微服务」的信号</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>形态是手段</strong>：先业务边界与交付能力，再选单体还是微服务；勿为简历拆服务。</li>
+          <li><strong><span class="term" data-term-id="modular-monolith" tabindex="0">模块化单体</span></strong>：在单进程内用模块边界练拆分，往往比「先拆再补边界」便宜。</li>
+          <li><strong>团队即架构</strong>：沟通结构会刻在系统里（康威定律）；<span class="term" data-term-id="bounded-context" tabindex="0">限界上下文</span> 应与能独立交付的团队大致同构。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>分层单体与模块化单体的边界</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 创业期 8 人团队</span>
+        订单、库存、支付逻辑都在一个 Spring Boot 工程里，按 <code>controller / service / repository</code> 分层。发布一次全量上线。此时是「坏单体」还是「合理起点」？
+      </aside>
+      <p><strong><span class="term" data-term-id="layered-monolith" tabindex="0">分层单体</span>（Layered Monolith）</strong>：按技术层划分包结构，所有业务能力共享同一部署单元与数据库。优点是上手快、本地调试简单、事务在进程内完成；风险是<strong>边界模糊</strong>时演变成「大泥球」——改订单逻辑可能误触库存表。</p>
+
+      <h4>典型分层（概念）</h4>
+      <div class="mermaid-wrap">
+        <h5>分层单体 · 请求自上而下</h5>
+        <pre class="mermaid">flowchart TB
+  UI[Web / API Controller] --> APP[Application Service]
+  APP --> DOM[Domain Model]
+  DOM --> INF[Infrastructure / JPA]
+  INF --> DB[(单一数据库)]</pre>
+        <p class="diagram-caption">所有业务共享一个 DB 与一次发布；适合团队小、领域尚在高速试错阶段。</p>
+      </div>
+
+      <h4><span class="term" data-term-id="modular-monolith" tabindex="0">模块化单体</span>（Modular Monolith）</h4>
+      <p>仍在<strong>一个进程、一次部署</strong>，但按<strong>业务能力或限界上下文</strong>划分子模块（Maven/Gradle 多模块），模块间通过<strong>显式 API</strong> 通信，禁止随意跨模块访问对方表。</p>
+      <ul>
+        <li><code>shopflow-order</code>、<code>shopflow-inventory</code>、<code>shopflow-payment</code> 模块，共享 <code>shopflow-app</code> 启动器。</li>
+        <li>模块内可继续分层；模块间仅暴露接口（Java interface / 应用服务门面）。</li>
+        <li>为将来拆成独立服务做「排练」：边界清晰后再加网络与注册发现。</li>
+      </ul>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">大泥球单体</span>
+          <ul>
+            <li>按技术层分包，订单 Service 直接注入库存 Repository</li>
+            <li>无模块依赖规则，循环依赖普遍</li>
+            <li>「先上线再说」，领域语言在代码里混杂</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">模块化单体</span>
+          <ul>
+            <li>按 Order / Inventory / Payment 划模块，跨模块只走公开 API</li>
+            <li>ArchUnit / 模块依赖图约束「inventory 不得依赖 order 内部实体」</li>
+            <li>单库可多 schema 或表前缀，但<strong>所有权</strong>按模块划分</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>代码对比：跨边界访问</h4>
+      <div class="learn-code-compare">
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 反例：订单服务直接操作库存表
+@Service
+class OrderService {
+  @Autowired InventoryRepository inventoryRepo; // 跨上下文泄漏
+  void placeOrder(...) {
+    inventoryRepo.decrement(skuId, qty);
+  }
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 推荐：通过 inventory 模块公开门面
+@Service
+class OrderService {
+  private final InventoryFacade inventory;
+  void placeOrder(...) {
+    inventory.reserve(new ReserveCommand(orderId, skuId, qty));
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>SOA、ESB 与微服务的演进脉络</h3>
+      <p>2000 年代前后，<strong><span class="term" data-term-id="soa" tabindex="0">面向服务架构（SOA）</span></strong> 强调将企业能力封装为可复用服务，常配合<strong><span class="term" data-term-id="esb" tabindex="0">企业服务总线（ESB）</span></strong> 做路由、转换、编排与集中治理。</p>
+
+      <h4>演进时间线（简化）</h4>
+      <div class="mermaid-wrap">
+        <h5>企业架构风格演进</h5>
+        <pre class="mermaid">timeline
+  title 从集中到分布式的常见路径
+  2000s : 分层单体 / 大泥球
+  2005-2015 : SOA + ESB 集中编排
+  2014+ : 微服务 + 轻量消息总线 / API 网关
+  近年 : 模块化单体复兴 + 选择性微服务</pre>
+        <p class="diagram-caption">不是「微服务取代一切」，而是按组织成熟度在谱系上移动。</p>
+      </div>
+
+      <h4>SOA + ESB 的典型拓扑</h4>
+      <div class="mermaid-wrap">
+        <h5>ESB 居中编排</h5>
+        <pre class="mermaid">flowchart LR
+  O[订单系统] --> ESB[ESB 总线]
+  I[库存系统] --> ESB
+  P[支付系统] --> ESB
+  ESB --> T[转换 / 路由 / 编排规则]</pre>
+        <p class="diagram-caption">所有集成逻辑汇聚到总线：强大但易成瓶颈与「分布式大泥球」的控制中心。</p>
+      </div>
+
+      <h4><span class="term" data-term-id="microservices" tabindex="0">微服务</span>的关键转向</h4>
+      <ul>
+        <li><strong>智能端点， dumb pipe</strong>：业务逻辑在服务内；管道尽量简单（HTTP/gRPC、消息中间件），避免 ESB 里堆满业务规则。</li>
+        <li><strong>去中心化数据</strong>：每服务自有数据库（或 schema），不再默认「全企业一个库」。</li>
+        <li><strong>独立部署</strong>：团队拥有从设计到运行的全生命周期（DevOps）。</li>
+      </ul>
+
+      <div class="learn-tabs" id="bas03-style-tabs" role="tablist" aria-label="SOA 与微服务对比">
+        <input type="radio" name="bas03-style-tab" id="bas03-style-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="bas03-style-tab" id="bas03-style-tab-b" class="learn-tab-input" />
+        <label for="bas03-style-tab-a">SOA / ESB 痛点</label>
+        <label for="bas03-style-tab-b">微服务对应做法</label>
+        <div id="bas03-style-panel-a" class="learn-tab-panel" role="tabpanel">
+          <ul>
+            <li><span class="term" data-term-id="esb" tabindex="0">ESB</span> 团队成为变更瓶颈，排期长</li>
+            <li>编排逻辑藏在配置里，难以测试与版本化</li>
+            <li>技术栈被总线产品绑定</li>
+          </ul>
+        </div>
+        <div id="bas03-style-panel-b" class="learn-tab-panel" role="tabpanel">
+          <ul>
+            <li>服务间契约（OpenAPI / 事件 schema）+ 消费者驱动测试</li>
+            <li><span class="term" data-term-id="api-gateway" tabindex="0">API 网关</span> 做横切（路由、鉴权），业务编排尽量在域内</li>
+            <li>Spring Cloud Gateway + 注册发现，替代「胖 ESB」</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>微服务收益、成本与适用场景</h3>
+      <p><span class="term" data-term-id="microservices" tabindex="0">微服务</span>不是「更先进的单体」，而是用<strong>运维与组织复杂度</strong>交换<strong>独立演进能力</strong>。下表帮助你在评审会上说清利弊。</p>
+
+      <table class="outline-table">
+        <thead>
+          <tr><th>维度</th><th>收益</th><th>成本 / 风险</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>交付</strong></td>
+            <td>团队按服务独立发布，减少「全站回归 2 周」</td>
+            <td>集成测试、契约测试、环境矩阵变多</td>
+          </tr>
+          <tr>
+            <td><strong>技术</strong></td>
+            <td>可按服务选型（如搜索用 Elasticsearch）</td>
+            <td>统一可观测、安全基线、依赖治理难度上升</td>
+          </tr>
+          <tr>
+            <td><strong>弹性</strong></td>
+            <td>故障隔离（inventory 挂了不必拖垮整站）</td>
+            <td>分布式事务、<span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span>、<span class="term" data-term-id="idempotency-key" tabindex="0">幂等</span>、链路追踪必须到位</td>
+          </tr>
+          <tr>
+            <td><strong>组织</strong></td>
+            <td>与 <span class="term" data-term-id="conways-law" tabindex="0">康威定律</span> 对齐，责任清晰</td>
+            <td>需要平台工程、SRE、API 治理投入</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>场景决策表</h4>
+      <table class="learn-decision-table outline-table">
+        <thead>
+          <tr><th>信号</th><th>更倾向</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>团队 &lt; 10 人，领域边界每周变</td>
+            <td><span class="term" data-term-id="modular-monolith" tabindex="0">模块化单体</span></td>
+            <td>先固化边界，再付分布式税</td>
+          </tr>
+          <tr>
+            <td>3+ 团队并行，发布互相阻塞</td>
+            <td><span class="term" data-term-id="microservices" tabindex="0">微服务</span>（边界已清）</td>
+            <td>独立部署回报大于集成成本</td>
+          </tr>
+          <tr>
+            <td>强一致跨库事务是常态</td>
+            <td>暂缓拆分或保留单体事务</td>
+            <td>拆后须 Saga / 2PC，复杂度高</td>
+          </tr>
+          <tr>
+            <td>读多写少、可接受最终一致</td>
+            <td>微服务 + 事件</td>
+            <td>与 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> AP 路径一致</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="notice">
+        <strong>ShopFlow 示意</strong>
+        <p>当 Order / Inventory / Payment 由<strong>不同小队</strong>维护、且库存接口变更每周阻塞订单发布时，拆成三个可部署服务才有明显回报；否则模块化单体 + 清晰模块 API 往往足够。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>康威定律与团队拓扑</h3>
+      <p><strong>康威定律（Conway's Law）</strong>：设计系统的组织，其产生的设计等价于组织内的沟通结构。换言之一一<strong>你的架构图最终会像你的组织架构图</strong>。</p>
+
+      <h4>对微服务拆分的含义</h4>
+      <ul>
+        <li>若订单与库存由<strong>同一小队</strong>维护，硬拆成两个远程服务只会增加沟通成本，而不会 magically 变快。</li>
+        <li>若支付由<strong>合规独立团队</strong>负责，<code>payment-service</code> 作为独立部署单元更自然。</li>
+        <li>平台团队提供注册发现、网关、CI 模板，让业务小队专注域逻辑（Team Topologies 中的 Platform / Enabling）。</li>
+      </ul>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 团队与服务对齐（目标态）</h5>
+        <pre class="mermaid">flowchart TB
+  subgraph teamOrder [订单小队]
+    OS[order-service]
+  end
+  subgraph teamInv [库存小队]
+    IS[inventory-service]
+  end
+  subgraph teamPay [支付小队]
+    PS[payment-service]
+  end
+  subgraph platform [平台小队]
+    GW[API Gateway]
+    REG[注册中心]
+  end
+  GW --> OS
+  GW --> IS
+  OS -->|同步 reserve| IS
+  PS -->|PaymentCompleted 事件| OS</pre>
+        <p class="diagram-caption">服务边界与「能独立决策、独立发布」的团队边界尽量同构；跨团队集成走稳定契约。</p>
+      </div>
+
+      <h4>反模式：组织未拆，服务先拆</h4>
+      <p>两个团队仍共用一个 backlog，却维护六个微服务 — 变更仍需全员协调，却背上分布式排障成本。这叫<strong><span class="term" data-term-id="distributed-monolith" tabindex="0">分布式单体</span></strong>（<a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a> 会进一步约束边界）。</p>
+    </div>
+
+    <div class="section-block">
+      <h3>何时不应拆微服务</h3>
+      <p>下列信号出现越多，越应<strong>推迟</strong>物理拆分，优先模块化单体或合并服务。</p>
+      <ul>
+        <li><strong>边界不清</strong>：<code>Order</code> 与 <code>Inventory</code> 实体互相引用，无法一句话说清谁拥有哪张表。</li>
+        <li><strong>无自动化</strong>：没有 CI/CD、容器化、集中日志与链路追踪，却要先上 8 个服务。</li>
+        <li><strong>事务密集</strong>：大量跨模块强一致 ACID 需求，拆后只能上重型分布式事务。</li>
+        <li><strong>团队过小</strong>：5 人维护 12 个服务，人均运维负担超过业务开发。</li>
+        <li><strong>为技术而拆</strong>：「微服务很潮」但流量与组织规模仍适合单体。</li>
+      </ul>
+
+      <h4>渐进路径</h4>
+      <ol>
+        <li><strong>模块化单体</strong> — 在进程内练边界与契约。</li>
+        <li><strong><span class="term" data-term-id="strangler-pattern" tabindex="0">绞杀者（Strangler）</span></strong> — 新能力在新服务，旧模块逐步下线（<a href="#ch-advanced-05-evolution-patterns">演进模式、反模式与架构评审</a> 再展开）。</li>
+        <li><strong>选择性拆分</strong> — 先拆变化最快或需独立扩缩的上下文（如 Inventory 读多写多）。</li>
+      </ol>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：ShopFlow 只有 6 人，是否应立即拆成 order / inventory / payment 三个独立部署？</summary>
+        <p>通常<strong>否</strong>：优先模块化单体 + 清晰门面；当发布阻塞或团队分组成熟后再拆。拆早会把 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 中的 CAP、部分失败成本全部兑现且无人力消化。</p>
+      </details>
+
+      <p>下一章进入 <a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a>，把「模块/服务边界」落到限界上下文与 OpenAPI。</p>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3，用于架构评审前的 30 秒复述。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>单体谱系</strong>：分层单体按技术分包；模块化单体按业务能力/限界上下文分模块，单进程单部署，是拆微服务前的低成本排练。</li>
+        <li><strong>演进脉络</strong>：SOA+ESB 集中编排易成瓶颈；微服务强调智能端点、简单管道与去中心化数据，Spring Cloud 网关等承担横切而非「胖总线」。</li>
+        <li><strong>利弊权衡</strong>：微服务换独立发布与技术异构，付分布式事务、可观测与集成测试代价；边界未清时收益为负。</li>
+        <li><strong>康威定律</strong>：服务边界应与能独立交付的团队拓扑对齐；组织未拆却服务先拆，往往得到分布式单体。</li>
+        <li><strong>不宜硬拆</strong>：边界模糊、无自动化、事务密集、团队过小或为简历拆服务时，优先模块化单体或绞杀者渐进迁移。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_basics03">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="modular-mono" /> 能对比分层单体与模块化单体，并各举 ShopFlow 一例</label></li>
+          <li><label><input type="checkbox" data-id="soa-esb" /> 能说明 ESB 中心化编排的主要痛点</label></li>
+          <li><label><input type="checkbox" data-id="ms-tradeoff" /> 能列出微服务 2 项收益与 2 项成本</label></li>
+          <li><label><input type="checkbox" data-id="conway" /> 能用康威定律解释「团队与服务应对齐」</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>本章速查卡</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>概念</th><th>一句</th></tr></thead>
+              <tbody>
+                <tr><td>模块化单体</td><td>单部署，模块间只走公开 API</td></tr>
+                <tr><td>ESB</td><td>集中编排，易成瓶颈</td></tr>
+                <tr><td>微服务</td><td>独立部署 + 自有数据 + 组织对齐</td></tr>
+                <tr><td>康威定律</td><td>架构镜像沟通结构</td></tr>
+                <tr><td>不宜拆</td><td>边界糊、无自动化、团队过小</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="learn-interview">
+        <details>
+          <summary>答辩 / 面试口述题</summary>
+          <div class="learn-interview-body">
+            <ol>
+              <li>模块化单体与微服务的边界在哪里？何时从前者演进到后者？</li>
+              <li>为什么说「ESB 把集成逻辑集中」在微服务时代常被 Gateway + 域内编排替代？</li>
+              <li>举 ShopFlow 一个「不应立即拆微服务」的信号并说明缓解步骤。</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+
+      <p class="chapter-review-next">下一步：勾选过关清单、完成测验与 Demo；下一章 <a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a> 固化限界上下文与 API 契约。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://martinfowler.com/articles/microservices.html" target="_blank" rel="noopener">Martin Fowler — Microservices</a></li>
+      <li><a href="https://martinfowler.com/bliki/MonolithFirst.html" target="_blank" rel="noopener">Martin Fowler — Monolith First</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud Gateway Reference</a></li>
+      <li><a href="https://teamtopologies.com/learn-more/conways-law" target="_blank" rel="noopener">Team Topologies — Conway's Law</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">用「架构形态决策表」与康威定律，为 ShopFlow（7 人 / 日单 200）写架构选型备忘。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>按 Mermaid「模块化单体模块依赖」画出三模块，标允许依赖（→ api）与禁止依赖（× 跨模块 Entity）。</li>
+      <li>填写「单体 vs 微服务决策表」ShopFlow 当前阶段一行：团队规模、部署频率、数据边界，勾选推荐形态。</li>
+      <li>用两句话对比 ESB 集中转换 vs Gateway「dumb pipe」在<strong>变更谁审批</strong>上的差异。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">「为用上 K8s，先把 Order 拆成 5 个微服务，团队仍是一个 7 人全栈小队。」违反哪 2 条原则？更稳妥的第一步？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>违反<strong>康威定律</strong>（组织未拆、服务先拆）与<strong>不宜硬拆</strong>信号（边界/自动化不足）。第一步：<strong>模块化单体</strong> + ArchUnit 约束。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">哪条更像 SOA+ESB 反模式？① Gateway 只路由鉴权 ② 所有 JSON↔XML 转换集中在 ESB ③ 各服务维护 OpenAPI</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>答：②</strong>。ESB 成为转换与编排瓶颈，变更需总线团队审批；①③ 符合智能端点 + 契约分散维护。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：架构形态与团队拓扑实验室</h4>
+      <p>目录：<code>demos/basics-03-architecture-styles-lab/</code>。<strong>验收</strong>：团队拓扑表三行与决策表「约束」列已填完。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>下一章</strong>：<a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a>：限界上下文、REST 与 OpenAPI</li>
+      <li><a href="https://www.oreilly.com/library/view/building-microservices-2nd/9781492034025/" target="_blank" rel="noopener">Building Microservices (O'Reilly) — 组织与边界</a></li>
+      <li><a href="https://www.thoughtworks.com/insights/blog/modular-monolith-better-way-build-software" target="_blank" rel="noopener">Thoughtworks — Modular Monolith</a></li>
+      <li><a href="https://samnewman.io/patterns/data/team-topologies/" target="_blank" rel="noopener">Sam Newman — Team Topologies 与架构</a></li>
+    </ul>
+  </div>
+</section>

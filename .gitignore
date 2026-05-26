@@ -2,7 +2,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Maven / Java demos under courses/
+# Maven / Java demos under learner projects
 **/target/
 **/.classpath
 **/.project
@@ -10,5 +10,3 @@ Thumbs.db
 
 # Local learner progress (optional per course)
 **/progress.json
-courses/**
-!courses/README.md

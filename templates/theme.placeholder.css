@@ -1,10 +1,10 @@
+/* 课程主题色：仅覆盖 accent 系列，不修改 bg / surface / bg-accent（由 UI 风格预设负责） */
 [data-theme-preset="{{THEME_PRESET}}"][data-theme="light"] {
   --accent: #0969da;
   --accent-hover: #0550ae;
   --accent-soft: #ddf4ff;
   --accent-glow: rgba(9,105,218,.25);
   --accent-alt: #58a6ff;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(9,105,218,.1), transparent);
 }
 [data-theme-preset="{{THEME_PRESET}}"][data-theme="dark"] {
   --accent: #58a6ff;
@@ -12,5 +12,4 @@
   --accent-soft: #132d4a;
   --accent-glow: rgba(88,166,255,.2);
   --accent-alt: #a371f7;
-  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88,166,255,.08), transparent);
 }

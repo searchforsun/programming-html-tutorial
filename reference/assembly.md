@@ -2,34 +2,26 @@
 
 使用 `templates/` + `scripts/assemble-index.mjs` 生成 `index.html`。壳逻辑以 `templates/shell.app.js` 为准，勿手写重复实现。
 
-## 教程目录结构
+课程根目录与文件树：[SKILL.md](../SKILL.md) §课程路径、§目录结构（**不在本文重复**）。交互脚本内联在 `welcome.partial.html`，**无** `assets/` 目录。
 
-```
-courses/<slug>/
-├── course.json
-├── theme.css
-├── welcome.partial.html
-├── chapters/
-│   └── <chapter-id>.html
-├── quiz.partial.html     # 可选
-├── README.md             # 课程说明（人工维护，不 assemble）
-└── index.html            # assemble 生成
-```
+## Gate 与日常组装命令
 
-## 命令
+assemble / validate / review-chapter 见 [delivery-review.md](delivery-review.md)（**不在本文重复**）。
 
-在仓库根目录执行：
+### 逆向拆分（维护用）
+
+从单文件 `index.html` 拆出源文件：
 
 ```bash
-node scripts/assemble-index.mjs --dir courses/<slug>
-node scripts/validate-tutorial.mjs --dir courses/<slug>
+node <skill-root>/scripts/extract-from-index.mjs <workspace>/courses/<slug>/index.html
+node <skill-root>/scripts/assemble-index.mjs --dir <workspace>/courses/<slug>
 ```
 
-可选：从单文件 `index.html` 拆出源文件
+单章正文恢复（`chapters/<id>.html` 损坏但 `index.html` 仍完好时，UTF-8 安全）：
 
 ```bash
-node scripts/extract-from-index.mjs courses/<slug>/index.html
-node scripts/assemble-index.mjs --dir courses/<slug>
+node <skill-root>/scripts/extract-chapter-from-index.mjs --dir <workspace>/courses/<slug> --chapter <chapter-id>
+node <skill-root>/scripts/assemble-index.mjs --dir <workspace>/courses/<slug>
 ```
 
 ## 模板占位符
@@ -37,25 +29,21 @@ node scripts/assemble-index.mjs --dir courses/<slug>
 | 占位符 | 来源 |
 |--------|------|
 | `{{TITLE}}` | `course.meta.title` |
+| `{{SHELL_SHARED_CSS}}` | `templates/shell.shared.css` |
 | `{{SHELL_BASE_CSS}}` | `templates/shell.base.css` |
-| `{{THEME_CSS}}` | `theme.css` |
+| `{{THEME_CSS}}` | `theme.css`（**仅 accent**）+ 可选 `enrichment.base.css` |
+| `{{SHELL_SURFACES_CSS}}` | `templates/shell.surfaces.css`（圆角 + 卡片 hover） |
+| `{{SHELL_STYLE_SHEETS_HTML}}` | `templates/shell.style-sheets.html`（由 build 生成，八风格互斥包） |
 | `{{WELCOME_HTML}}` | `welcome.partial.html` |
 | `{{CHAPTERS_HTML}}` | `chapters/*.html` |
-| `{{QUIZ_HTML}}` | `quiz.partial.html`（可选，缺则为空） |
+| `{{QUIZ_HTML}}` | `quiz.partial.html`（缺则为空；默认每章应有内容） |
+| enrichment 样式 | `templates/enrichment.base.css` 追加进 `{{THEME_CSS}}`（`meta.useEnrichment !== false`） |
 | `{{COURSE_DATA_JSON}}` | `course.json` |
 | `{{SHELL_APP_JS}}` | `templates/shell.app.js` |
 | `{{TERM_PLATFORM_LINKS}}` | `config/term-platforms.json` |
 
+UI 风格源文件与 build 流程见 [shell-ui-styles.md](shell-ui-styles.md)。
+
 ## shell 版本
 
-`meta.shellVersion` 与 `templates/SHELL_VERSION`、`assemble-index.mjs` 内常量一致。更新 `templates/` 后对所有教程重新 assemble。
-
-## Agent 工作流
-
-| 步骤 | 动作 |
-|------|------|
-| A | 写 `course.json`、`theme.css`、`welcome.partial.html`、`README.md` → assemble |
-| B | 写 `chapters/<id>.html` → assemble |
-| 交付前 | `validate-tutorial.mjs` |
-
-另见 [theme-colors.md](theme-colors.md)、[phase-design-prompts.md](phase-design-prompts.md)、[chapter-blocks-policy.md](chapter-blocks-policy.md)。
+壳版本维护：`config/defaults.json` → `shellVersion`（assemble 写入 `meta.shellVersion`；validate 对照此值）。维护时须与 `templates/SHELL_VERSION` 同步。更新 `templates/` 后对用户工作目录下的课程重新 assemble。

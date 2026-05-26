@@ -1,13 +1,22 @@
 #!/usr/bin/env node
+/**
+ * 从已组装的 index.html 重新生成 templates/shell.base.css 与 shell.app.js。
+ * 维护壳层时使用，非日常教程工作流。
+ *
+ *   node scripts/bootstrap-templates.mjs <path/to/assembled/index.html>
+ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const html = fs.readFileSync(
-  path.join(__dirname, '../examples/minimal-course/index.html'),
-  'utf8'
-);
+const htmlPath = process.argv[2];
+if (!htmlPath) {
+  console.error('Usage: node bootstrap-templates.mjs <path/to/assembled/index.html>');
+  process.exit(1);
+}
+
+const html = fs.readFileSync(path.resolve(htmlPath), 'utf8');
 const tpl = path.join(__dirname, '../templates');
 fs.mkdirSync(tpl, { recursive: true });
 

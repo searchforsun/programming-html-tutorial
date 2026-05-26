@@ -12,6 +12,8 @@
     "version": "{当前稳定版}",
     "generatedAt": "2026-05-17",
     "officialDocs": "{官方文档 URL}",
+    "selectionPromptEnabled": true,
+    "selectionPromptTemplate": "我在学习{domain}，请解释一下「{selection}」，并结合示例说明。",
     "domainType": "B",
     "learningNotes": {
       "assumptions": ["假设有 Java 17 基础"],
@@ -85,10 +87,13 @@
 | `meta.themePreset` | 与本课 `[data-theme-preset]` CSS 一致，通常等于 `slug`；见 [theme-colors.md](theme-colors.md) |
 | `meta.domainType` | 可选，`A`–`F`，见 [phase-design-prompts.md](phase-design-prompts.md) |
 | `meta.learningNotes` | 可选，`assumptions`、`phaseGoals`；欢迎页可展示摘要 |
+| `meta.selectionPromptEnabled` | 可选，默认 `true`；`false` 关闭正文选中「AI 解释」 |
+| `meta.selectionPromptTemplate` | 可选；占位符 `{domain}` `{selection}` `{title}`；默认见 `shell.app.js` |
+| `meta.portalHref` | 可选；返回课程中心 URL，默认 `../index.html` |
 | `outline[].phaseGoal` | 可选，本阶段结束时可检验的能力一句话 |
 | `outline[].chapters[].id` | 全局唯一，建议 `{phaseId}-{序号}-{简称}` |
 | `chapters[id].html` | 可选：缓存章节 innerHTML，便于导出；与 DOM 二选一为主源 |
-| `terms` | 全课程术语表，多章共享 id |
+| `terms` | 全课共享 id → `{ label, prompt }`；密度与写法见 [terms-policy.md](terms-policy.md) |
 
 ## 渲染侧栏与欢迎页表
 

@@ -1,0 +1,641 @@
+<section id="quiz-basics-01-distributed-fundamentals-quiz" class="quiz-section" data-quiz="basics-01-distributed-fundamentals-quiz" data-chapter="basics-01-distributed-fundamentals">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「分布式系统本质与挑战」后作答。<span class="quiz-level-hint">热身+理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+    <article class="quiz-item" data-qid="q0" data-answer="D">
+    <p class="stem"><strong>0.</strong> （热身·单选）ShopFlow 三大限界上下文<strong>不包括</strong>哪一个？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics01df-q0" value="A"> A) Order</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q0" value="B"> B) Inventory</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q0" value="C"> C) Payment</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q0" value="D"> D) API Gateway（入口组件，非业务上下文）</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">回顾 ShopFlow 全景表</p>
+    <p class="answer hidden"><strong>答案：</strong>D</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）「部分失败」最典型的特征是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics01df-q1" value="A"> A) 所有节点同时宕机</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q1" value="B"> B) 调用方无法确定远端是否已执行成功</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q1" value="C"> C) 数据库永远返回 null</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q1" value="D"> D) 网络永远零延迟</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">想想超时后 inventory 可能已扣减但 order 未收到响应</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 部分失败的核心是「结果不确定」，而非全体宕机</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="Inventory">
+    <p class="stem"><strong>2.</strong> （填空）ShopFlow 中，负责「预留/扣减库存、防超卖」的限界上下文是 ______。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="填写英文上下文名" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">三大上下文：Order / Inventory / Payment</p>
+    <p class="answer hidden"><strong>答案：</strong>Inventory（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于「从单机走向分布式」的常见驱动力？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-basics01df-q3" value="A"> A) 水平扩展读写吞吐</label></li>
+      <li><label><input type="checkbox" name="jda-basics01df-q3" value="B"> B) 故障隔离与提高可用性</label></li>
+      <li><label><input type="checkbox" name="jda-basics01df-q3" value="C"> C) 消除所有网络不确定性</label></li>
+      <li><label><input type="checkbox" name="jda-basics01df-q3" value="D"> D) 多团队并行交付不同业务能力</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">分布式换来扩展与隔离，但网络不确定性仍在</p>
+    <p class="answer hidden"><strong>答案：</strong>A,B,D — 分布式不能消除网络不确定性（C 错误）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="D">
+    <p class="stem"><strong>4.</strong> （单选）关于跨节点「时钟漂移」，下列做法<strong>错误</strong>的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics01df-q4" value="A"> A) 用版本号或逻辑时钟排序事件</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q4" value="B"> B) 关键协调依赖租约 / fencing（后续章节展开）</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q4" value="C"> C) 业务上避免假设「各节点本机时间严格一致」</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q4" value="D"> D) 用各服务本机 <code>System.currentTimeMillis()</code> 直接排序跨节点事件</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">NTP 只能减小漂移，不能当作全局有序时钟</p>
+    <p class="answer hidden"><strong>答案：</strong>D — 本机墙钟不能作为跨节点事件的可靠排序依据</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="B">
+    <p class="stem"><strong>5.</strong> （场景·单选）<code>order-service</code> 调用 <code>inventory-service</code> 超时，但库存侧可能已成功扣减。较稳妥的首选策略是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics01df-q5" value="A"> A) 立即无限次重试同一请求</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q5" value="B"> B) 幂等键 + 查询状态 / 对账，再决定是否补偿</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q5" value="C"> C) 当作成功并直接返回用户「下单成功」</label></li>
+      <li><label><input type="radio" name="jda-basics01df-q5" value="D"> D) 忽略该调用，不做任何记录</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照正文「调用方视角 × 服务端真实状态」表</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 先消除「不确定」，再重试或走补偿（<a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a> 将展开 Saga）</p>
+  </article>
+</section>
+
+<section id="quiz-basics-02-consistency-cap-quiz" class="quiz-section" data-quiz="basics-02-consistency-cap-quiz" data-chapter="basics-02-consistency-cap">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「CAP、BASE 与一致性模型」后作答。<span class="quiz-level-hint">理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）发生<strong>网络分区</strong>时，CAP 定理要求系统如何取舍？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics02cc-q1" value="A"> A) 同时保证 C、A、P</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q1" value="B"> B) 在一致性 C 与可用性 A 之间二选一（P 通常不能放弃）</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q1" value="C"> C) 放弃分区容忍，只保证 C 和 A</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q1" value="D"> D) 与分区无关，只取决于数据库品牌</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">分区发生时不能既要「永远读到最新」又要「永远有响应」</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 有 P 时只能在 C 与 A 间取舍</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="Eventually">
+    <p class="stem"><strong>2.</strong> （填空）BASE 中的 E 指 ______ consistent（最终一致）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="英文单词" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Eventually consistent 的首词</p>
+    <p class="answer hidden"><strong>答案：</strong>Eventually（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于本章讨论的<strong>一致性模型</strong>？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-basics02cc-q3" value="A"> A) 最终一致</label></li>
+      <li><label><input type="checkbox" name="jda-basics02cc-q3" value="B"> B) 单机进程内栈变量可见性</label></li>
+      <li><label><input type="checkbox" name="jda-basics02cc-q3" value="C"> C) 因果一致</label></li>
+      <li><label><input type="checkbox" name="jda-basics02cc-q3" value="D"> D) HTTP Keep-Alive</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">分布式副本与客户端会话层面的一致性</p>
+    <p class="answer hidden"><strong>答案：</strong>A,C — B、D 不是分布式一致性模型</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="C">
+    <p class="stem"><strong>4.</strong> （单选）<strong>Fencing token</strong> 的主要作用是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics02cc-q4" value="A"> A) 加密网络传输</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q4" value="B"> B) 替代数据库主键自增</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q4" value="C"> C) 防止旧锁持有者（僵尸主）用更旧的 token 覆写新主的写</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q4" value="D"> D) 提高 Feign 超时上限</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照正文「旧主恢复」序列图</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 存储拒绝比已应用更小 token 的写</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="A">
+    <p class="stem"><strong>5.</strong> （单选）用户刚下单后刷新「我的订单」却看不到刚创建的订单，最可能缺少哪种<strong>客户端语义</strong>？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics02cc-q5" value="A"> A) 读己之写（Read-your-writes）</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q5" value="B"> B) 分区容忍（Partition tolerance）</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q5" value="C"> C) 舱壁隔离（Bulkhead）</label></li>
+      <li><label><input type="radio" name="jda-basics02cc-q5" value="D"> D) 蓝绿发布（Blue-green）</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">写主库后读从库可能读到旧数据</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 须保证用户能读到自己刚写入的数据</p>
+  </article>
+</section>
+
+<section id="quiz-basics-03-architecture-styles-quiz" class="quiz-section" data-quiz="basics-03-architecture-styles-quiz" data-chapter="basics-03-architecture-styles">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「架构风格：单体、SOA 与微服务」后作答。<span class="quiz-level-hint">理解+场景+判断</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）<strong>模块化单体</strong>与「分层大泥球单体」的主要区别是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics03as-q1" value="A"> A) 必须使用多个数据库实例</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q1" value="B"> B) 每个模块必须独立部署为容器</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q1" value="C"> C) 单进程单部署，但按业务能力划模块且跨模块只走公开 API</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q1" value="D"> D) 完全不能使用 Spring Boot</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照「模块化单体」一节</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 仍在单部署单元内，边界靠模块 API 而非随意跨表访问</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="ESB">
+    <p class="stem"><strong>2.</strong> （填空）SOA 时代常把路由、转换与编排集中在 ______（三字母缩写）上，易成变更瓶颈。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="三字母缩写" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Enterprise Service Bus</p>
+    <p class="answer hidden"><strong>答案：</strong>ESB（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于微服务带来的<strong>典型成本</strong>（而非收益）？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-basics03as-q3" value="A"> A) 分布式事务与 Saga / 幂等设计复杂度上升</label></li>
+      <li><label><input type="checkbox" name="jda-basics03as-q3" value="B"> B) 集成测试、契约测试与环境矩阵变多</label></li>
+      <li><label><input type="checkbox" name="jda-basics03as-q3" value="C"> C) 团队可按服务独立发布（若边界清晰）</label></li>
+      <li><label><input type="checkbox" name="jda-basics03as-q3" value="D"> D) 排障需链路追踪与跨服务日志关联</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">C 是收益；其余是分布式税</p>
+    <p class="answer hidden"><strong>答案：</strong>A,B,D — C 属于收益</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）关于<strong>康威定律</strong>，下列说法最准确的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics03as-q4" value="A"> A) 服务数量必须等于程序员人数</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q4" value="B"> B) 系统结构会反映组织内的沟通结构，拆服务应与团队拓扑对齐</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q4" value="C"> C) 只要使用 Spring Cloud 就自动满足康威定律</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q4" value="D"> D) 康威定律只适用于单体应用</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">架构镜像沟通结构</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 组织未拆却服务先拆，常得到分布式单体</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="B">
+    <p class="stem"><strong>5.</strong> （场景·单选）ShopFlow 仅 6 人，领域边界每周调整，尚无 CI/CD 与集中追踪。较稳妥的首选是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics03as-q5" value="A"> A) 立即拆 order / inventory / payment 三个独立部署服务</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q5" value="B"> B) 模块化单体 + 清晰模块 API，待团队与自动化成熟后再选择性拆分</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q5" value="C"> C) 引入 ESB 集中编排所有集成</label></li>
+      <li><label><input type="radio" name="jda-basics03as-q5" value="D"> D) 为每个 Controller 各建一个微服务</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照「何时不应拆微服务」与章末 micro-check</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 先练边界、补自动化，再付分布式税</p>
+  </article>
+</section>
+
+<section id="quiz-basics-04-domain-api-quiz" class="quiz-section" data-quiz="basics-04-domain-api-quiz" data-chapter="basics-04-domain-api">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「领域建模、边界上下文与 API 契约」后作答。<span class="quiz-level-hint">理解+场景+判断</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）关于<strong>限界上下文</strong>，下列说法最准确的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics04da-q1" value="A"> A) 所有微服务必须共用一个数据库 schema</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q1" value="B"> B) 上下文内有统一语言与完整模型，跨上下文只通过 API/事件集成</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q1" value="C"> C) 限界上下文等于 Maven 的 parent 模块</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q1" value="D"> D) 一个 Controller 类对应一个限界上下文</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对照「限界上下文的关键属性」</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 禁止跨上下文共享实体与随意 JOIN</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="OpenAPI">
+    <p class="stem"><strong>2.</strong> （填空）契约优先实践中，团队应先评审 ______ 规范再实现 Controller（常用 YAML 格式）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="规范名称" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">OpenAPI Specification，常简称 OpenAPI</p>
+    <p class="answer hidden"><strong>答案：</strong>OpenAPI（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于 REST API 设计的<strong>推荐做法</strong>？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-basics04da-q3" value="A"> A) 资源 URI 用名词复数，如 <code>/orders</code></label></li>
+      <li><label><input type="checkbox" name="jda-basics04da-q3" value="B"> B) 写操作无需幂等键，超时后直接无限重试</label></li>
+      <li><label><input type="checkbox" name="jda-basics04da-q3" value="C"> C) 错误响应含机器可读 <code>code</code> 与 <code>traceId</code></label></li>
+      <li><label><input type="checkbox" name="jda-basics04da-q3" value="D"> D) 对外 API 做版本化（如 <code>/api/v1</code>）</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">B 违反部分失败与幂等原则</p>
+    <p class="answer hidden"><strong>答案：</strong>A,C,D — B 是反模式</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="C">
+    <p class="stem"><strong>4.</strong> （单选）<strong>消费者驱动契约（CDC）</strong> 的核心思想是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics04da-q4" value="A"> A) 提供者单方面定义 API，消费者必须适配</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q4" value="B"> B) 所有服务共用一个全局实体类库</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q4" value="C"> C) 消费者定义期望契约，提供者在 CI 中验证能否满足</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q4" value="D"> D) 只在生产环境联调时才检查 JSON 字段</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">集成失败左移到 PR/CI</p>
+    <p class="answer hidden"><strong>答案：</strong>C — Pact 等工具实现该流程</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="B">
+    <p class="stem"><strong>5.</strong> （场景·单选）payment-service 收到渠道回调后，直接用 JDBC 更新 order 库的 <code>status</code>。较符合本章原则的做法是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics04da-q5" value="A"> A) 继续跨库 UPDATE，减少一次 HTTP 调用</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q5" value="B"> B) Payment 发布 PaymentCompleted 事件，由 order-service 自行更新状态</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q5" value="C"> C) 把 order 表迁移到 payment 服务统一管理</label></li>
+      <li><label><input type="radio" name="jda-basics04da-q5" value="D"> D) 在 API Gateway 里写 SQL 更新订单</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">各上下文拥有自己的数据；跨库写是反模式</p>
+    <p class="answer hidden"><strong>答案：</strong>B — Order 上下文拥有订单状态变更权</p>
+  </article>
+</section>
+
+<section id="quiz-basics-05-communication-patterns-quiz" class="quiz-section" data-quiz="basics-05-communication-patterns-quiz" data-chapter="basics-05-communication-patterns">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「通信模式：同步、异步与事件驱动」后作答；basics 阶段收官。<span class="quiz-level-hint">理解+场景+判断</span></p>
+
+  <article class="quiz-item" data-qid="q1" data-answer="A">
+    <p class="stem"><strong>1.</strong> （单选）ShopFlow 中 <code>order → inventory</code> 的「预留库存」较适合哪种通信？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics05cp-q1" value="A"> A) 同步请求/响应（须当场知道成败）</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q1" value="B"> B) 仅异步事件，用户无需即时反馈</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q1" value="C"> C) 定时批处理即可</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q1" value="D"> D) 通过共享数据库直接 UPDATE</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">用户提交订单后需立即知道能否预留</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 同步 + 幂等 + 超时</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="Outbox">
+    <p class="stem"><strong>2.</strong> （填空）「写业务表 + 发消息」原子性常用 Transactional ______ 模式（与业务同事务写待发事件表）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="英文模式名" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Microservices.io 上的经典模式</p>
+    <p class="answer hidden"><strong>答案：</strong>Outbox（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于<strong>异步事件</strong>驱动的典型收益？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-basics05cp-q3" value="A"> A) 解耦支付结果通知与 order 主流程</label></li>
+      <li><label><input type="checkbox" name="jda-basics05cp-q3" value="B"> B) 多订阅者（order、analytics）各消费 PaymentCompleted</label></li>
+      <li><label><input type="checkbox" name="jda-basics05cp-q3" value="C"> C) 消除所有重复消息</label></li>
+      <li><label><input type="checkbox" name="jda-basics05cp-q3" value="D"> D) 削峰、避免同步链路过长</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">MQ 常至少一次投递，须消费端幂等</p>
+    <p class="answer hidden"><strong>答案：</strong>A,B,D — C 错误，重复仍可能发生</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （单选）关于<strong>编舞（Choreography）</strong>，下列说法最准确的是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics05cp-q4" value="A"> A) 必须由 API Gateway 统一编排所有步骤</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q4" value="B"> B) 各服务订阅事件并自行决定本地动作，无中心协调者</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q4" value="C"> C) 与编排完全相同，只是换 Kafka 实现</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q4" value="D"> D) 只能用于单体应用</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">对比 order-service 作为编排者</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 流程分散在各服务</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="B">
+    <p class="stem"><strong>5.</strong> （场景·单选）order 同步调用 payment 并阻塞 30s 等待渠道回调。较符合本章推荐的做法是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-basics05cp-q5" value="A"> A) 继续加长 readTimeout 到 120s</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q5" value="B"> B) order 返回待支付，payment 完成后发 PaymentCompleted 事件</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q5" value="C"> C) 在 Gateway 里轮询 payment 状态</label></li>
+      <li><label><input type="radio" name="jda-basics05cp-q5" value="D"> D) 取消异步，全部改共享表轮询</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">支付结果适合异步通知</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 短同步 + 事件通知</p>
+  </article>
+</section>
+
+<section id="quiz-practice-01-spring-cloud-bootstrap-quiz" class="quiz-section" data-quiz="practice-01-spring-cloud-bootstrap-quiz" data-chapter="practice-01-spring-cloud-bootstrap">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「Spring Boot 3.5 与 Spring Cloud 脚手架」后作答。<span class="quiz-level-hint">热身+理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q0" data-answer="C">
+    <p class="stem"><strong>0.</strong> （热身·单选）ShopFlow 父 POM 中，Spring Cloud 组件版本应由谁统一管理？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice01sc-q0" value="A"> A) 每个 service 模块各自声明 openfeign 版本</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q0" value="B"> B) 仅 spring-boot-starter-parent，无需 Cloud BOM</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q0" value="C"> C) import <code>spring-cloud-dependencies</code> BOM</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q0" value="D"> D) Gradle version catalog 手写每组件版本</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">回顾父 POM dependencyManagement</p>
+    <p class="answer hidden"><strong>答案：</strong>C — Cloud 发布列车由 BOM 对齐</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）<code>shopflow-order-api</code> 模块最适合放置哪类代码？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice01sc-q1" value="A"> A) JPA Entity 与 Repository 实现</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q1" value="B"> B) DTO、Feign 接口与 OpenAPI 生成物</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q1" value="C"> C) Spring Boot 主类与 Controller</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q1" value="D"> D) Eureka Server 配置</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">api 层无 Spring 运行时</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 契约与 DTO 供 service 与 Feign 消费</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="local">
+    <p class="stem"><strong>2.</strong> （填空）本地开发时，通过 <code>spring.profiles.active=______</code> 激活 <code>application-local.yml</code>（填写 Profile 名，英文）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="Profile 名" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">与 application-local.yml 文件名对应</p>
+    <p class="answer hidden"><strong>答案：</strong>local（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C,D">
+    <p class="stem"><strong>3.</strong> （多选）关于 Actuator <code>/actuator/health</code>，下列哪些说法正确？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-practice01sc-q3" value="A"> A) 可用于 K8s liveness/readiness 探针</label></li>
+      <li><label><input type="checkbox" name="jda-practice01sc-q3" value="B"> B) 应默认对外暴露 env、beans 等全部端点</label></li>
+      <li><label><input type="checkbox" name="jda-practice01sc-q3" value="C"> C) 后续可扩展 DB、注册中心等 readiness 检查</label></li>
+      <li><label><input type="checkbox" name="jda-practice01sc-q3" value="D"> D) 本章本地启动后期望看到 status 为 UP</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">敏感端点需限制暴露</p>
+    <p class="answer hidden"><strong>答案：</strong>A,C,D — B 错误，勿暴露敏感端点</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （场景·单选）团队想在 order-service 的 pom 里写死 <code>spring-cloud-starter-openfeign</code> 版本 4.0.0，而父 POM Cloud BOM 为 2025.0.1。较符合本章规范的做法是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice01sc-q4" value="A"> A) 保留 4.0.0，便于「锁定已知好用版本」</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q4" value="B"> B) 删除子模块 version，由 BOM 统一管理</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q4" value="C"> C) 升级 Boot 到 2.7 以匹配 4.0.0</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q4" value="D"> D) 改用 Gradle 就不必 BOM</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">版本矩阵由父 POM 一处维护</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 避免与 Boot 3.5 / Cloud 2025 矩阵冲突</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="A">
+    <p class="stem"><strong>5.</strong> （判断·单选）本章本地启动 order-service 前，必须先启动 Eureka 注册中心，否则 health 无法 UP。</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice01sc-q5" value="A"> A) 错误 — 本章无注册中心依赖，单服务可独立启动</label></li>
+      <li><label><input type="radio" name="jda-practice01sc-q5" value="B"> B) 正确 — 所有 Spring Cloud 服务必须同时启动 Eureka</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">注册发现见 practice-02</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 本章只验证脚手架与 Actuator</p>
+  </article>
+</section>
+
+<section id="quiz-practice-02-discovery-gateway-quiz" class="quiz-section" data-quiz="practice-02-discovery-gateway-quiz" data-chapter="practice-02-discovery-gateway">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「服务注册发现与 API 网关」后作答。<span class="quiz-level-hint">热身+理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q0" data-answer="B">
+    <p class="stem"><strong>0.</strong> （热身·单选）ShopFlow 本课默认选用哪类注册中心？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice02dg-q0" value="A"> A) Consul 仅</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q0" value="B"> B) Netflix Eureka（Spring Cloud Netflix）</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q0" value="C"> C) 不使用注册中心，只用 K8s DNS</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q0" value="D"> D) ZooKeeper 独占</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">回顾 Eureka vs Nacos 对比表</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 本课教程默认 Eureka</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）Gateway 路由中 <code>uri: lb://order-service</code> 的 <code>lb://</code> 表示？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice02dg-q1" value="A"> A) 负载均衡器硬件地址</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q1" value="B"> B) 本地回环 127.0.0.1</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q1" value="C"> C) 通过 LoadBalancer 从注册中心选 order-service 实例</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q1" value="D"> D) 仅 HTTP 不能 HTTPS</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">service-id 与 spring.application.name 一致</p>
+    <p class="answer hidden"><strong>答案：</strong>C — lb 前缀触发客户端负载均衡</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="8761">
+    <p class="stem"><strong>2.</strong> （填空）ShopFlow 本地 Eureka 控制台默认端口为 ______（数字）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="端口号" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">discovery-server application-local.yml</p>
+    <p class="answer hidden"><strong>答案：</strong>8761</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,B,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些适合放在 API Gateway 层？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-practice02dg-q3" value="A"> A) 统一路由与 StripPrefix</label></li>
+      <li><label><input type="checkbox" name="jda-practice02dg-q3" value="B"> B) JWT 校验后透传用户 ID 头</label></li>
+      <li><label><input type="checkbox" name="jda-practice02dg-q3" value="C"> C) 下单流程编排（reserve → pay → confirm）</label></li>
+      <li><label><input type="checkbox" name="jda-practice02dg-q3" value="D"> D) 全局限流（令牌桶）</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">编排属于 order-service</p>
+    <p class="answer hidden"><strong>答案：</strong>A,B,D — C 是业务编排，不应在网关</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="A">
+    <p class="stem"><strong>4.</strong> （场景·单选）本地启动顺序错误：先起 Gateway，再起 Eureka，最后起 order-service。最可能出现？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice02dg-q4" value="A"> A) Gateway 启动时无可用实例或拉取注册表失败</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q4" value="B"> B) order-service 无法编译</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q4" value="C"> C) Eureka 自动删除 Gateway</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q4" value="D"> D) 无任何影响，顺序无关</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">推荐 discovery → services → gateway</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 注册表未就绪时 lb 路由不可用</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="B">
+    <p class="stem"><strong>5.</strong> （判断·单选）Eureka 心跳续约成功后，调用方就永远不会请求到已宕机实例。</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice02dg-q5" value="A"> A) 正确 — 注册表与实例状态强一致</label></li>
+      <li><label><input type="radio" name="jda-practice02dg-q5" value="B"> B) 错误 — 剔除有延迟，仍可能出现部分失败</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">注册表是软状态</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 需客户端超时/重试（practice-03）</p>
+  </article>
+</section>

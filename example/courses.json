@@ -1,0 +1,17 @@
+{
+  "title": "课程中心",
+  "globalThemeKey": "study-self_theme",
+  "courses": [
+    {
+      "slug": "java-distributed-architecture",
+      "title": "Java 分布式架构设计入门到进阶",
+      "domain": "Java 分布式架构设计",
+      "summary": "从 CAP、领域建模与通信模式，到 Spring Cloud 微服务实战（ShopFlow 示例），再到韧性、可观测与架构演进——按三阶段系统掌握 Java 分布式架构设计与落地。",
+      "path": "java-distributed-architecture/index.html",
+      "themePreset": "java-distributed-architecture",
+      "accent": { "light": "#2e7d32", "dark": "#66bb6a" },
+      "stats": { "phases": 3, "chapters": 15, "publishedChapters": 7 },
+      "tags": ["Java", "Spring Cloud", "分布式"]
+    }
+  ]
+}

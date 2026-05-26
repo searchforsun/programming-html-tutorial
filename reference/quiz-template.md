@@ -1,6 +1,6 @@
 # 测验 HTML 片段
 
-写入 `courses/<slug>/quiz.partial.html`，由 assemble 注入 `#quiz-panel`。`data-quiz` 键与 `course.json` → `quizzes` 一致。
+写入 `<workspace>/courses/<slug>/quiz.partial.html`，由 assemble 注入 `#quiz-panel`。`data-quiz` 键与 `course.json` → `quizzes` 一致。
 
 ## 面板结构（每章一节）
 
@@ -10,7 +10,7 @@
 ```html
 <section id="quiz-{quizId}" class="quiz-section" data-quiz="{quizId}" data-chapter="{chapterId}">
   <h3>章节测验</h3>
-  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。</p>
+  <p class="quiz-panel-lead">学完当前章节后作答；可先「检查」再看「提示」或「答案」。<span class="quiz-level-hint">热身+理解+场景</span></p>
 
   <article class="quiz-item" data-qid="q1" data-answer="B">
     <p class="stem"><strong>1.</strong> （单选）题干…</p>

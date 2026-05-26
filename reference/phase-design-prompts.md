@@ -199,28 +199,4 @@ practice 各章应围绕同一示例项目递进。
 
 ---
 
-## 工作流 B：单章正文（内部提示，生成 HTML 前执行）
-
-将 `{chapterId}`、`{title}`、`{sections}`、`{domain}` 替换后，先列「呈现清单」再写 `chapters/{chapterId}.html`：
-
-```text
-【角色】技术教程作者，输出静态 HTML 片段（无 html/head/body）。
-
-【硬约束】
-- 必读 reference/chapter-layout.md（标题层级、块编排、生成前清单）。
-- 必填块见 chapter-blocks-policy；.mermaid-wrap 内勿写 .mermaid-toolbar；术语用 .term + data-term-id。
-- 范例：任一门符合 [chapter-layout.md](chapter-layout.md) 的 `courses/*/chapters/*.html`。
-
-【本章】
-- id：{chapterId}
-- 标题：{title}
-- 大纲节：{sections}
-
-【步骤】
-1. 根据 sections 列出：每个 section 对应一个 h3；其下用 h4 / 列表 / role-cards / mermaid / 表 / 带 h4 标题的 code-block。
-2. 在 .concept 内按学习顺序编排（先 notice 摘要 → 各 h3 知识节 → 章末小结 notice）；图、代码紧跟对应 h3/h4；多图用 h4 分组、h5 作图内标签。
-3. 写 official-links（WebSearch 官方 URL）、demo-box（若有动手）、resources。
-4. 自检：无连续 3 段纯文字；至少 1 图或 1 表（domainType E 且无架构需求可省略 mermaid）；术语 ≥3。
-
-【输出】仅输出 <section id="ch-...">…</section> 完整片段，不要 markdown 包裹。
-```
+写单章 HTML：按 [workflow-b-checklist.md](workflow-b-checklist.md) 执行；内部提示模板见 [chapter-authoring.md](chapter-authoring.md) **附录「工作流 B 内部提示」**。

@@ -1,0 +1,12 @@
+# ShopFlow 本地 Eureka（示意）
+# 实际使用: build discovery-server.jar 后替换 command
+services:
+  discovery-server:
+    image: eclipse-temurin:21-jre
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    # volumes:
+    #   - ./discovery-server.jar:/app/app.jar
+    # command: java -jar /app/app.jar

@@ -1,0 +1,159 @@
+/* UI 风格包 · vibrant（独立加载，互斥启用） */
+
+:root {
+--radius: 28px;
+  --radius-sm: 20px;
+  --radius-xs: 14px;
+  --radius-pill: 999px;
+  --radius-marker: 50%;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --style-card-bar: 1;
+  --style-title-gradient: 1;
+  --glass-blur: 18px;
+  --style-hover-scale: 1.04;
+  --style-card-shadow: var(--shadow-md);
+  --style-heading-mark: gradient;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: -0.025em;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1.04);
+  --style-hover-shadow: var(--shadow-lg);
+  --style-hover-border: color-mix(in srgb, var(--accent) 35%, var(--border));
+  --style-hover-duration: 0.24s;
+  --style-hover-ease: cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+[data-theme="light"] {
+--bg: #eef2ff;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-elevated: #ffffff;
+  --text: #1e1b4b;
+  --muted: #5b628a;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft: #e0e7ff;
+  --accent-glow: rgba(79, 70, 229, 0.22);
+  --accent-alt: #818cf8;
+  --border: rgba(79, 70, 229, 0.14);
+  --code-bg: #f5f7ff;
+  --code-header: #eef2ff;
+  --shadow-sm: 0 1px 3px rgba(79, 70, 229, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px rgba(79, 70, 229, 0.1), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 16px 40px rgba(79, 70, 229, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
+  --success: #22c55e;
+  --danger: #ef4444;
+  --progress-gradient: linear-gradient(90deg, #4f46e5 0%, #818cf8 55%, #22c55e 100%);
+  --bg-accent:
+    radial-gradient(ellipse 85% 55% at 15% -8%, rgba(129, 140, 248, 0.38), transparent),
+    radial-gradient(ellipse 55% 40% at 92% 5%, rgba(34, 197, 94, 0.14), transparent),
+    radial-gradient(ellipse 50% 35% at 50% 105%, rgba(79, 70, 229, 0.1), transparent);
+  --scrollbar-thumb: #c7d2fe;
+}
+
+[data-theme="dark"] {
+--bg: #0c0a1d;
+  --surface: rgba(30, 27, 75, 0.78);
+  --surface-elevated: #1e1b4b;
+  --text: #f1f5f9;
+  --muted: #a5b4fc;
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-soft: rgba(79, 70, 229, 0.22);
+  --accent-glow: rgba(129, 140, 248, 0.2);
+  --accent-alt: #c4b5fd;
+  --border: rgba(129, 140, 248, 0.18);
+  --code-bg: #13102b;
+  --code-header: #1a1638;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --success: #4ade80;
+  --danger: #f87171;
+  --progress-gradient: linear-gradient(90deg, #6366f1 0%, #818cf8 50%, #4ade80 100%);
+  --bg-accent:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99, 102, 241, 0.22), transparent),
+    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(74, 222, 128, 0.08), transparent);
+  --scrollbar-thumb: #4338ca;
+}
+
+.meta-card,
+.role-card,
+.chapter-header,
+.chapter .content-section,
+.quiz-item,
+.demo-box,
+.course-card {
+border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  box-shadow: var(--style-card-shadow);
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+opacity: 0.85;
+  height: 4px;
+}
+
+.welcome-header h2,
+.course-title {
+background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 50%, var(--success) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.chapter-header {
+background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--surface)),
+    var(--surface)
+  );
+}
+
+.chapter h3,
+.chapter .section-block > h3 {
+border-left: none;
+  border-image: none;
+  padding-left: 0.75rem;
+  background: linear-gradient(90deg, var(--accent-soft), transparent);
+  border-radius: var(--radius-sm);
+}
+
+.btn-mark-done:not(.is-done) {
+padding-inline: 1.25rem;
+}
+
+.phase-tag {
+border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--success) 20%, var(--accent-soft)));
+}
+
+:is(
+  .meta-card, .role-card, .course-card, .chapter-header
+) {
+border-radius: var(--radius);
+}
+
+:is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+border-radius: var(--radius) !important;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  overflow: hidden;
+}
+
+:is(.course-title, .welcome-header h2, .portal-hero h2) {
+background: linear-gradient(135deg, var(--accent), var(--accent-alt), var(--success)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.chapter .section-block > h3 {
+border-left: none !important;
+  background: linear-gradient(90deg, var(--accent-soft), transparent) !important;
+  border-radius: var(--radius-sm) !important;
+}

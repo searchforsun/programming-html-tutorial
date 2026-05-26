@@ -4,6 +4,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const defaults = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'config', 'defaults.json'), 'utf8')
+);
+
 const htmlPath = process.argv[2];
 if (!htmlPath) {
   console.error('Usage: node extract-from-index.mjs <path/to/index.html>');
@@ -56,7 +61,7 @@ if (springLight && springDark) {
   themeCss = `/* TODO: theme for ${presetSlug} */\n`;
 }
 
-course.meta.shellVersion = '2.1.0';
+course.meta.shellVersion = defaults.shellVersion;
 course.meta.themePreset = presetSlug;
 delete course.meta.theme;
 

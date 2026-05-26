@@ -1,0 +1,457 @@
+<section id="ch-basics-02-consistency-cap" class="chapter" data-chapter="basics-02-consistency-cap">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>CAP、BASE 与一致性模型</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-02-consistency-cap" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>30 分钟</strong> · 阶段：<strong>分布式基石</strong> · 能力：按接口说明 CAP 取舍与一致级别</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-basics-01-distributed-fundamentals">分布式系统本质与挑战</a> 讲了「<span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span>」；本章回答：<strong>分区发生时</strong>在 C 与 A 之间选什么、为何常见 AP + 最终一致，以及「读己之写」从哪来。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>为 ShopFlow 的 <code>POST /reserve</code>、商品详情、支付回调各说一句分区时的 CP/AP 取向</li>
+          <li>区分强一致、最终一致、因果一致，并解释「最终一致 ≠ 随便脏读」</li>
+          <li>说明 <strong>fencing token</strong> 防「旧主覆写」</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>CAP</strong>：发生<strong><span class="term" data-term-id="network-partition" tabindex="0">网络分区</span></strong>时，只能在<strong>一致性 C</strong> 与<strong>可用性 A</strong> 之间取舍；<strong>分区容忍 P</strong> 在分布式里通常不能放弃。</li>
+          <li><strong>工程现实</strong>：多数互联网业务选 <strong>AP + 最终一致</strong>（<span class="term" data-term-id="base-model" tabindex="0">BASE</span>），用对账、<span class="term" data-term-id="idempotency-key" tabindex="0">幂等</span>与 <span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 兜底。</li>
+          <li><strong>客户端语义</strong>：除存储层一致级别外，还要定义「用户读到自己刚写的数据」等<strong>会话级保证</strong>。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>CAP 定理与工程中的真实取舍</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 机房网络抖动（45 秒）</span>
+        同城双活：订单库在 A 机房、库存缓存主在 B 机房。交换机故障导致 A↔B <span class="term" data-term-id="network-partition" tabindex="0">分区</span> 30 分钟。用户仍能下单吗？库存数字必须全局一致吗？这就是 CAP 在工程里的提问方式。
+      </aside>
+      <p><span class="term" data-term-id="cap-theorem" tabindex="0">CAP 定理</span>（Brewer）指出：在存在<strong>网络分区</strong>时，分布式系统无法同时满足：</p>
+      <ul>
+        <li><strong>C（Consistency）</strong> — 每次读都能读到最新写入，或返回错误（线性一致视角的简化理解）。</li>
+        <li><strong>A（Availability）</strong> — 每个请求都能得到<strong>非错误</strong>响应（不要求读到最新）。</li>
+        <li><strong>P（Partition tolerance）</strong> — 分区发生后系统仍能继续工作（节点间消息可能丢失/延迟）。</li>
+      </ul>
+      <p>真实部署几乎必须接受 <strong>P</strong>，于是分区发生时要在 <strong>C 与 A</strong> 间做选择——不是「三选二」的日常开关，而是<strong>按业务路径分别设计</strong>。</p>
+
+      <h4>分区时的二选一（概念图）</h4>
+      <div class="mermaid-wrap">
+        <h5>发生分区 · CP 与 AP 路径</h5>
+        <pre class="mermaid">flowchart TB
+  subgraph normal [无分区]
+    W[写入成功] --> R[读到最新]
+  end
+  subgraph partition [发生分区 P]
+    CP[选 CP] -->|拒绝部分读写| ERR[返回错误 / 降级]
+    AP[选 AP] -->|继续服务| STALE[可能读到旧副本]
+  end
+  normal --> partition</pre>
+        <p class="diagram-caption">CP：宁可失败也不返回不确定的旧数据；AP：宁可旧数据也要保持入口可用。</p>
+      </div>
+
+      <h4>对照：CP 与 AP 在 ShopFlow 中的例子</h4>
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">偏 CP 的路径</span>
+          <ul>
+            <li>支付扣款：余额不足必须<strong>立即拒绝</strong>，不能「先成功后对账」</li>
+            <li>库存强一致扣减（少数场景）：超卖代价极高时用共识/锁</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">偏 AP 的路径</span>
+          <ul>
+            <li>商品详情页：可短暂展示旧库存，后台异步校准</li>
+            <li>订单列表：<span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span> 即可，配合状态机与对账</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>PACELC 延伸（了解即可）</h4>
+      <p>无分区时仍要在<strong>延迟（L）</strong>与<strong>一致（C）</strong>间权衡：例如跨地域复制常降低一致级别以换更低延迟。设计评审时可问：「正常时要多一致？分区时要多可用？」</p>
+
+      <div class="notice">
+        <strong>常见误区</strong>
+        <ul>
+          <li>给整个系统贴一个 CP/AP 标签 — 应按<strong>接口/数据</strong>分别决策。</li>
+          <li>认为选 AP 就不要一致性 — 最终一致 + 对账同样是一致性策略。</li>
+          <li>忽略 P — 局域网也会分区，云多 AZ 更常见。</li>
+        </ul>
+      </div>
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：大促分区时，商品详情页更应该保 C 还是 A？</summary>
+        <p>多数选 A（短暂旧库存 + 异步校准）；支付/防超卖路径才靠近 C。勿对全站贴单一 CAP 标签。</p>
+      </details>
+
+    </div>
+
+    <div class="section-block">
+      <h3>强一致、最终一致与因果一致</h3>
+      <p>「一致性」在不同语境含义不同：数据库事务、副本同步、客户端会话。下表是架构讨论中最常用的划分。</p>
+      <table class="outline-table">
+        <thead>
+          <tr><th>模型</th><th>含义（简化）</th><th>典型实现/场景</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong><span class="term" data-term-id="strong-consistency" tabindex="0">强一致</span> / 线性一致</strong></td>
+            <td>所有节点如同一份拷贝，读写全局有序</td>
+            <td>etcd/ZooKeeper、部分分布式锁；代价是延迟与可用性</td>
+          </tr>
+          <tr>
+            <td><strong><span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span></strong></td>
+            <td>停止写入后，副本会在有限时间内收敛</td>
+            <td>Cassandra、CouchDB、Kafka 消费滞后；须幂等与对账</td>
+          </tr>
+          <tr>
+            <td><strong><span class="term" data-term-id="causal-consistency" tabindex="0">因果一致</span></strong></td>
+            <td>有因果关系的操作被所有节点按因果序看到</td>
+            <td>会话粘滞 + 版本向量；评论回复链</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>序列图：最终一致下的读延迟</h4>
+      <div class="mermaid-wrap">
+        <h5>写主库 · 读从库可能短暂旧值</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant App as order-service
+  participant M as DB 主
+  participant R as DB 从
+  App->>M: UPDATE stock=9
+  M-->>App: OK
+  App->>R: SELECT stock
+  R-->>App: stock=10 (复制滞后)
+  Note over M,R: 异步复制追上后读到 9</pre>
+        <p class="diagram-caption">practice 阶段读写分离时会再遇此问题；缓解：读主、版本号、或接受短暂旧读 + 业务校验。</p>
+      </div>
+
+      <h4>场景决策：接口选哪种一致级别</h4>
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>ShopFlow 接口</th><th>建议</th><th>理由</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>POST /reserve</code></td>
+            <td>强一致或串行化单点</td>
+            <td>防超卖；可接受短暂不可用</td>
+          </tr>
+          <tr>
+            <td><code>GET /products/{id}</code></td>
+            <td>最终一致 + 缓存</td>
+            <td>读多写少，短暂旧库存可容忍</td>
+          </tr>
+          <tr>
+            <td>支付回调更新订单</td>
+            <td>幂等 + 至少一次投递</td>
+            <td>跨服务；靠业务键去重（<span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span> 章节展开）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>互动：副本读一致性级别（示意）</h4>
+      <div class="learn-param-slider" data-storage-key="java-distributed-architecture_basics02_quorum" data-hint-low="可能读到很旧的副本；延迟最低" data-hint-mid="多数派确认；常用折中" data-hint-high="接近强一致；延迟与失败率上升">
+        <label for="basics02-quorum-range">读请求需要的副本确认数（概念）</label>
+        <input type="range" id="basics02-quorum-range" min="1" max="3" step="1" value="2" />
+        <output for="basics02-quorum-range">QUORUM（2/3）</output>
+        <p class="learn-param-hint"></p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>BASE 与互联网业务常见策略</h3>
+      <p><span class="term" data-term-id="base-model" tabindex="0">BASE</span> 是对 AP 路径的实操总结（与 ACID 相对）：</p>
+      <ul>
+        <li><strong>Basically Available</strong> — 核心路径尽量有响应，非核心可降级。</li>
+        <li><strong>Soft state</strong> — 中间状态允许存在（处理中、待对账）。</li>
+        <li><strong>Eventually consistent</strong> — 通过复制、消息、定时任务达到一致。</li>
+      </ul>
+
+      <h4>ACID vs BASE（单服务 vs 跨服务）</h4>
+      <table class="outline-table">
+        <thead>
+          <tr><th>维度</th><th><span class="term" data-term-id="acid-transaction" tabindex="0">ACID</span>（单库事务）</th><th><span class="term" data-term-id="base-model" tabindex="0">BASE</span>（跨服务协作）</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>边界</td>
+            <td>一个数据库连接内</td>
+            <td>多服务、多库、消息</td>
+          </tr>
+          <tr>
+            <td>失败</td>
+            <td>回滚</td>
+            <td>补偿、重试、对账</td>
+          </tr>
+          <tr>
+            <td>ShopFlow</td>
+            <td>单服务内订单行 + 明细</td>
+            <td>下单 → 库存 → 支付链（详见 <a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a>）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>代码：Transactional Outbox 预览</h4>
+      <p>「写订单表 + 发 Kafka」无法靠本地事务一起提交。常见做法：<span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 与业务写入同一事务，再由投递器异步发消息。</p>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">@Transactional
+public void createOrder(CreateOrder cmd) {
+  orderRepository.save(cmd.toOrder());
+  outboxRepository.save(OutboxEvent.orderCreated(cmd.orderId()));
+  // 同一 DB 事务；消息由 poller 异步投递，消费者须幂等
+}</code></pre>
+      </div>
+
+      <h4>互联网常见组合拳</h4>
+      <ul>
+        <li><strong><span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span></strong> — 重复请求返回同一业务结果。</li>
+        <li><strong>对账任务</strong> — 日终比对订单、支付、库存流水。</li>
+        <li><strong>状态机</strong> — 订单 CREATED → PAID，非法跳转拒绝。</li>
+        <li><strong>降级开关</strong> — 分区时关闭非核心功能，保护核心下单路径。</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <h3>分布式锁、租约与 fencing token 概念</h3>
+      <p>跨节点互斥（定时任务抢主、库存扣减串行化）常用<strong><span class="term" data-term-id="distributed-lock" tabindex="0">分布式锁</span></strong>。实现须考虑：锁持有者崩溃、时钟漂移、旧锁未释放就获得新锁。</p>
+      <ul>
+        <li><strong>租约（Lease）</strong> — 锁带 TTL；持有者须周期性续租，否则自动释放。</li>
+        <li><strong><span class="term" data-term-id="fencing-token" tabindex="0">Fencing token</span></strong> — 单调递增令牌；下游存储拒绝比当前令牌更旧的写，防止「僵尸持有者」覆写新主。</li>
+      </ul>
+
+      <h4>流程：为何需要 fencing</h4>
+      <div class="mermaid-wrap">
+        <h5>旧主恢复后若无 fencing 可能覆写新主</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant N1 as 节点1(旧主)
+  participant L as 锁服务
+  participant DB as 存储
+  N1->>L: 曾持有 lock#5
+  Note over N1: GC 停顿后「以为」仍持有锁
+  participant N2 as 节点2(新主)
+  N2->>L: 获得 lock#6
+  N2->>DB: write(token=6)
+  N1->>DB: write(token=5) 
+  Note over DB: 无 fencing 时旧写可能破坏新写</pre>
+        <p class="diagram-caption">存储侧记录「已见过的最大 token」，拒绝更小 token 的写。</p>
+      </div>
+
+      <h4>代码对比：锁值是否单调</h4>
+      <div class="learn-code-compare">
+        <div>
+          <span class="learn-code-compare-label is-bad">不推荐 · 仅 UUID 锁值</span>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span class="lang-tag">java</span>
+              <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+            </div>
+            <pre><code class="language-java">// 下游无法区分「旧主迟到的写」
+String lockVal = UUID.randomUUID().toString();
+redis.set("lock:job", lockVal, NX, PX, 30000);</code></pre>
+          </div>
+        </div>
+        <div>
+          <span class="learn-code-compare-label is-good">推荐 · 租约 + fencing token</span>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span class="lang-tag">java</span>
+              <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+            </div>
+            <pre><code class="language-java">long token = lockService.acquire("inventory-shard-1", Duration.ofSeconds(30));
+inventoryRepository.decrement(skuId, qty, token);
+// 仓储层: if (token &lt; lastAppliedToken) reject;</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <p>Java 生态常见组件：Redis Redisson、ZooKeeper Curator、数据库 <code>SELECT … FOR UPDATE</code>（有单点边界）。<strong>能不用锁就不用</strong>：优先幂等、分区键串行、CRDT 等业务手段。</p>
+    </div>
+
+    <div class="section-block">
+      <h3>读己之写、单调读等客户端语义</h3>
+      <p>即使存储标记为「最终一致」，产品仍常要求<strong>会话级</strong>体验保证（由网关粘滞、读写路由或版本号实现）：</p>
+      <table class="outline-table">
+        <thead>
+          <tr><th>语义</th><th>用户可感知的效果</th><th>ShopFlow 例子</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong><span class="term" data-term-id="read-your-writes" tabindex="0">读己之写</span>（Read-your-writes）</strong></td>
+            <td>刚下单后刷新列表能看到自己的订单</td>
+            <td>写主库后读主或带 <code>userId</code> 路由到含最新会话的副本</td>
+          </tr>
+          <tr>
+            <td><strong>单调读（Monotonic reads）</strong></td>
+            <td>不会先看到新评论再看到旧评论</td>
+            <td>订单时间线只前进；用递增 <code>version</code> 过滤</td>
+          </tr>
+          <tr>
+            <td><strong>单调写（Monotonic writes）</strong></td>
+            <td>同一用户的写按顺序可见</td>
+            <td>同一 <code>orderId</code> 状态变更串行处理</td>
+          </tr>
+          <tr>
+            <td><strong>写跟随（Writes-follow-reads）</strong></td>
+            <td>改头像后评论里头像一起更新</td>
+            <td>用户资料变更广播或短期读主</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>配置预览：读写分离时的「读主」开关</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml">shopflow:
+  datasource:
+    read-your-writes: true
+    # 创建订单后的 5s 内，该 userId 查询走主库</code></pre>
+      </div>
+
+      <h4>FAQ</h4>
+      <div class="learn-faq">
+        <details>
+          <summary><span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span> = 可以随便脏读？</summary>
+          <div class="learn-faq-body">否。须定义<strong>收敛时间</strong>、<strong>业务补偿</strong>与<strong>客户端语义</strong>；金融类路径仍可能要求强一致。</div>
+        </details>
+        <details>
+          <summary>Redis 分布式锁够吗？</summary>
+          <div class="learn-faq-body">简单场景可用；关键写路径建议租约 + fencing 或改用共识组件；注意主从切换时的锁安全性（Redlock 争议见延伸阅读）。</div>
+        </details>
+      </div>
+      <p>下一章讨论 <a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a>，把本章取舍落到架构形态选择。</p>
+    </div>
+
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">本章回答「分区与复制时数据有多新」。下面几条是验收口径，可对照各节与 ShopFlow 接口回忆。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>CAP 的工程问法</strong>：真实部署须接受分区容忍 P；分区发生时只能在一致性 C 与可用性 A 间取舍，且应按接口/数据集分别决策，勿给全系统贴单一 CP/AP 标签。</li>
+        <li><strong>一致模型落到接口</strong>：强一致、最终一致、因果一致含义不同；<code>POST /reserve</code> 防超卖宜强一致或串行化，商品详情等读多场景可接受短暂旧读。</li>
+        <li><strong>BASE 是 AP 路径的实操</strong>：基本可用 + 软状态 + 最终一致；跨服务靠幂等、对账、状态机与 Outbox 等组合拳收敛。</li>
+        <li><strong>锁是最后手段</strong>：优先幂等与业务串行；必须用分布式锁时要租约续期与 fencing token，防止旧主迟到的写破坏新主。</li>
+        <li><strong>客户端语义不可省</strong>：除存储层一致级别外，还须定义读己之写等会话体验（粘滞、短期读主、版本号）。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_basics02">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="cap-pa" /> 能说明分区时 C 与 A 的取舍及 ShopFlow 各一例</label></li>
+          <li><label><input type="checkbox" data-id="consistency-models" /> 能区分强一致、最终一致、因果一致</label></li>
+          <li><label><input type="checkbox" data-id="base" /> 能解释 BASE 三字及与 ACID 的边界</label></li>
+          <li><label><input type="checkbox" data-id="fencing" /> 能说明 fencing token 防「旧主」覆写</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>本章速查卡</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>概念</th><th>一句</th></tr></thead>
+              <tbody>
+                <tr><td>CAP</td><td>有 P 时分区要在 C/A 间选</td></tr>
+                <tr><td>最终一致</td><td>停止写后会收敛，运行中可能旧读</td></tr>
+                <tr><td>BASE</td><td>可用 + 软状态 + 最终一致 + 补偿</td></tr>
+                <tr><td>Fencing</td><td>单调 token，存储拒绝旧写</td></tr>
+                <tr><td>读己之写</td><td>用户看到自己刚提交的数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="learn-interview">
+        <details>
+          <summary>答辩 / 面试口述题</summary>
+          <div class="learn-interview-body">
+            <ol>
+              <li>为什么说「整个公司是 CP 系统」这句话不严谨？</li>
+              <li>下单后立刻查订单列表为空，可能是哪些一致性问题？如何修？</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+
+      <p class="chapter-review-next">下一步：勾选过关清单、完成测验与 Demo；下一章 <a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a>。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://cassandra.apache.org/doc/latest/architecture/guarantees.html" target="_blank" rel="noopener">Apache Cassandra — Consistency Guarantees</a></li>
+      <li><a href="https://docs.couchdb.com/en/latest/intro/consistency.html" target="_blank" rel="noopener">CouchDB — Eventual Consistency</a></li>
+      <li><a href="https://sre.google/sre-book/managing-critical-state/" target="_blank" rel="noopener">Google SRE — CAP 与分布式共识</a></li>
+      <li><a href="https://docs.aws.amazon.com/whitepapers/latest/availability-and-beyond-improving-resilience/cap-theorem.html" target="_blank" rel="noopener">AWS — CAP Theorem Whitepaper</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">为 ShopFlow 三个接口标注 CAP 取向，并完成<strong>fencing 时序</strong>与<strong>读己之写</strong>两处纸面标注（约 25 分钟）。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>为 <code>POST /reserve</code>、<code>GET /products/{id}</code>、支付回调各写一句：分区时偏 CP 还是 AP，并引用正文 CAP 流程图一句理由。</li>
+      <li>对照 Mermaid「旧主恢复后若无 fencing 可能覆写新主」，补写：有 fencing 时，旧 token 的写请求会被存储层拒绝。</li>
+      <li>填写「读己之写 / 单调读」表：用户下单后刷新列表为空，属于哪类语义失效？写出 1 条缓解手段（会话粘滞 / 短期读主 / 版本号）。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">大促商品详情可略旧库存，但 <code>POST /reserve</code> 须防超卖。为何前者可偏 AP、后者偏 CP？各写一句。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>商品详情<strong>读多写少、短暂旧值可接受</strong>，可用 AP + 最终一致。预留库存<strong>须当场防超卖</strong>，分区时更倾向 CP/串行化或强一致路径，否则会出现双卖。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">库存扣减用 Redis 锁，锁值为固定 UUID、无 fencing token。主要违反哪一节？说明「僵尸节点」风险。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>违反「分布式锁、租约与 fencing token」一节。租约过期后旧主仍可能持锁并写库；无递增 fencing token 时，存储无法拒绝更旧的写，新主数据可能被覆盖。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：CAP 取舍与一致级别实验室</h4>
+      <p>目录：<code>demos/basics-02-consistency-cap-lab/</code>。<strong>验收</strong>：接口卡片 3 张均已标注 CP/AP + 一句理由。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>下一章</strong>：<a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a>：把 CAP 取舍落到架构形态</li>
+            <li><a href="https://jepsen.io/" target="_blank" rel="noopener">Jepsen — 分布式数据库一致性测试</a></li>
+      <li><a href="https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cap.html" target="_blank" rel="noopener">Martin Kleppmann — 请停止给数据库贴 CAP 标签</a></li>
+      <li><a href="https://redis.io/docs/manual/patterns/distributed-locks/" target="_blank" rel="noopener">Redis — Distributed Locks 文档</a></li>
+    </ul>
+  </div>
+</section>

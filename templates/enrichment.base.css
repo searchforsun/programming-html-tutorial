@@ -1,0 +1,602 @@
+/* 教程壳扩展：章节分区 + .learn-* 加深理解组件（assemble 默认追加至 theme.css 后） */
+
+/* ── 章节分区 ── */
+.chapter .concept {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.chapter-intro {
+  margin-bottom: 1.25rem;
+}
+
+.chapter .section-block {
+  margin: 0 0 1.25rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.chapter .section-block:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+
+.chapter .section-block > h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.14rem;
+  font-weight: 700;
+  padding-left: 0.75rem;
+  border-left: 4px solid transparent;
+  border-image: linear-gradient(180deg, var(--accent), var(--accent-alt)) 1;
+}
+
+.chapter .section-block > h3 + p,
+.chapter .section-block > h3 + ul {
+  margin-top: 0;
+}
+
+.chapter .section-block > h4 {
+  margin: 1.5rem 0 0.65rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 0 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.chapter .learn-review-block {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.chapter .learn-review-block > h3,
+.chapter .section-block.learn-review-block > h3 {
+  border-left-color: var(--accent);
+}
+
+/* ── 教学法结构（见 reference/chapter-authoring.md）── */
+.chapter-meta {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0 0 1rem;
+  line-height: 1.55;
+}
+
+/* 章首 notice：动机 / 产出 / 记忆点 — 仅用 theme 变量，不写死 hex */
+.chapter-intro .notice {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+  box-shadow: none;
+}
+.chapter-intro .notice:last-child {
+  margin-bottom: 0;
+}
+.chapter-intro .notice.notice-why-learn {
+  padding: 1rem 1.2rem;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-left: 4px solid var(--accent);
+}
+.chapter-intro .notice.notice-outcome {
+  padding: 1rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-left: 4px solid var(--accent);
+  box-shadow: none;
+}
+.chapter-intro .notice.notice-outcome ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding-left: 0;
+}
+.chapter-intro .notice.notice-outcome li {
+  position: relative;
+  margin: 0.5rem 0;
+  padding-left: 1.45rem;
+  line-height: 1.55;
+}
+.chapter-intro .notice.notice-outcome li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.55;
+  color: var(--accent);
+}
+.chapter-intro .notice:not(.notice-why-learn):not(.notice-outcome):not(.notice-takeaway) {
+  padding: 0.85rem 1.1rem;
+  font-size: 0.94rem;
+  background: var(--surface);
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--border));
+}
+.chapter-intro .notice strong {
+  color: var(--accent);
+}
+
+/* 节内结论：轻量 callout（优先用章末 chapter-conclusions-block） */
+.notice.notice-takeaway {
+  margin: 1rem 0 0;
+  padding: 0.7rem 1rem 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  box-shadow: none;
+}
+.notice.notice-takeaway p {
+  margin: 0.35rem 0 0;
+}
+.notice-why-learn,
+.notice-outcome {
+  margin-bottom: 1rem;
+}
+.learn-micro-check {
+  margin-top: 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+.learn-micro-check summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.learn-micro-check p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+.steps-judgment {
+  margin-top: 0.75rem;
+}
+.quiz-level-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-left: 0.5rem;
+}
+.chapter .section-block.chapter-conclusions-block {
+  margin-top: 2rem;
+  padding: 1.1rem 1.35rem;
+  background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--surface) 80%, var(--accent-soft)));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.chapter .section-block.chapter-conclusions-block > h3 {
+  margin-top: 0;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--accent);
+}
+.chapter .section-block.chapter-conclusions-block strong {
+  color: var(--accent);
+}
+.chapter-conclusions-lead {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.chapter-conclusions-list {
+  margin: 0;
+  padding-left: 1.35rem;
+}
+.chapter-conclusions-list li {
+  margin-bottom: 0.7rem;
+  line-height: 1.55;
+}
+.chapter-conclusions-list li:last-child {
+  margin-bottom: 0;
+}
+.chapter-review-next {
+  margin: 1.25rem 0 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.chapter-practice {
+  margin-top: 1.25rem;
+}
+
+.chapter-practice > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--accent);
+}
+
+.chapter-practice .practice-section-title {
+  margin: 1.15rem 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 操作步骤：醒目 1 2 3 4 序号 */
+.chapter-practice ol.steps-operate {
+  list-style: none;
+  counter-reset: practice-step;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+.chapter-practice ol.steps-operate > li {
+  counter-increment: practice-step;
+  position: relative;
+  padding: 0.75rem 0.85rem 0.75rem 3rem;
+  margin-bottom: 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  line-height: 1.55;
+}
+.chapter-practice ol.steps-operate > li::before {
+  content: counter(practice-step);
+  position: absolute;
+  left: 0.85rem;
+  top: 0.75rem;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--surface);
+  background: var(--accent);
+  border-radius: 50%;
+  line-height: 1;
+}
+
+/* 判断练习 + 下拉参考答案 */
+.chapter-practice ol.steps-judgment-list {
+  list-style: none;
+  counter-reset: judgment-step;
+  padding: 0;
+  margin: 0;
+}
+.chapter-practice ol.steps-judgment-list > li {
+  counter-increment: judgment-step;
+  margin-bottom: 0.85rem;
+  padding: 0.85rem 0.95rem;
+  background: color-mix(in srgb, var(--accent-soft) 55%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-radius: var(--radius-sm);
+}
+.chapter-practice .judgment-stem {
+  margin: 0 0 0.65rem;
+  padding-left: 2rem;
+  position: relative;
+  line-height: 1.55;
+}
+.chapter-practice .judgment-stem::before {
+  content: "判" counter(judgment-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.chapter-practice .learn-practice-answer {
+  margin: 0;
+}
+.chapter-practice .learn-practice-answer details {
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.chapter-practice .learn-practice-answer summary {
+  cursor: pointer;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--accent);
+  list-style: none;
+}
+.chapter-practice .learn-practice-answer summary::-webkit-details-marker { display: none; }
+.chapter-practice .learn-practice-answer summary::before { content: "▸ "; }
+.chapter-practice .learn-practice-answer details[open] summary::before { content: "▾ "; }
+.chapter-practice .learn-practice-answer-body {
+  padding: 0 0.85rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.chapter-practice .learn-practice-answer-body p { margin: 0; }
+.chapter-practice .learn-practice-answer-body strong { color: var(--text); }
+
+.demo-box .demo-box-title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0;
+  border: none;
+}
+
+/* ── .learn-* 组件 ── */
+.learn-scenario {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  line-height: 1.65;
+  font-size: 0.94rem;
+}
+.learn-scenario-title {
+  display: block;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+}
+
+.learn-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem;
+}
+@media (max-width: 720px) {
+  .learn-compare { grid-template-columns: 1fr; }
+}
+.learn-compare-col {
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.learn-compare-heading {
+  display: block;
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.learn-compare-bad {
+  background: color-mix(in srgb, var(--danger, #c62828) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger, #c62828) 25%, var(--border));
+}
+.learn-compare-bad .learn-compare-heading { color: var(--danger, #c62828); }
+.learn-compare-good {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.learn-compare-good .learn-compare-heading { color: var(--accent); }
+.learn-compare-col ul { margin: 0; padding-left: 1.1rem; }
+
+.learn-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  position: relative;
+  margin: 1rem 0 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.learn-tabs .learn-tab-input,
+.learn-tabs > input[type="radio"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.learn-tabs > label,
+.learn-tabs > .learn-tab-label {
+  display: inline-block;
+  flex: 1;
+  min-width: 8rem;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  box-sizing: border-box;
+  width: 50%;
+}
+.learn-tabs > label:hover,
+.learn-tabs > .learn-tab-label:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+.learn-tab-panel {
+  display: none;
+  width: 100%;
+  padding: 1rem 1.15rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  border-top: 1px solid var(--border);
+  box-sizing: border-box;
+}
+/* 纯 CSS 双标签（DOM：input×N → label×N → panel×N；样式在壳层，勿写 theme.css） */
+.learn-tabs > .learn-tab-input:nth-of-type(1):checked ~ label:nth-of-type(1),
+.learn-tabs > .learn-tab-input:nth-of-type(2):checked ~ label:nth-of-type(2),
+.learn-tabs > input[type="radio"]:nth-of-type(1):checked ~ label:nth-of-type(1),
+.learn-tabs > input[type="radio"]:nth-of-type(2):checked ~ label:nth-of-type(2) {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+}
+.learn-tabs > .learn-tab-input:nth-of-type(1):checked ~ .learn-tab-panel:nth-of-type(1),
+.learn-tabs > .learn-tab-input:nth-of-type(2):checked ~ .learn-tab-panel:nth-of-type(2),
+.learn-tabs > input[type="radio"]:nth-of-type(1):checked ~ .learn-tab-panel:nth-of-type(1),
+.learn-tabs > input[type="radio"]:nth-of-type(2):checked ~ .learn-tab-panel:nth-of-type(2) {
+  display: block;
+}
+
+.learn-faq { margin: 1rem 0; }
+.learn-faq details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+.learn-faq details[open] { box-shadow: var(--shadow-sm); }
+.learn-faq summary {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  list-style: none;
+}
+.learn-faq summary::-webkit-details-marker { display: none; }
+.learn-faq summary::before { content: "▸ "; color: var(--accent); }
+.learn-faq details[open] summary::before { content: "▾ "; }
+.learn-faq .learn-faq-body {
+  padding: 0 1rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary, var(--muted));
+}
+
+.learn-param-slider {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.learn-param-slider label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.learn-param-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.learn-param-slider output {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent);
+}
+.learn-param-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-secondary, var(--muted));
+}
+
+.learn-checklist {
+  margin: 1.25rem 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.learn-checklist-lead {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.learn-checklist-progress {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.learn-checklist ul { list-style: none; padding: 0; margin: 0; }
+.learn-checklist li { margin: 0.45rem 0; }
+.learn-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.learn-checklist input[type="checkbox"] {
+  margin-top: 0.2rem;
+  accent-color: var(--accent);
+}
+
+.learn-cheat-sheet details,
+.learn-interview details {
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius);
+  margin: 1rem 0;
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+.learn-cheat-sheet summary,
+.learn-interview summary {
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.learn-cheat-sheet summary::-webkit-details-marker,
+.learn-interview summary::-webkit-details-marker { display: none; }
+.learn-cheat-sheet .learn-cheat-body,
+.learn-interview .learn-interview-body {
+  padding: 0 1rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.learn-cheat-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.learn-cheat-body th,
+.learn-cheat-body td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+}
+.learn-cheat-body th { background: var(--accent-soft); }
+
+.learn-code-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.learn-code-compare .code-block { margin: 0; }
+.learn-code-compare > div + div {
+  padding-top: 0.25rem;
+  border-top: 1px dashed var(--border);
+}
+.learn-code-compare-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+.learn-code-compare-label.is-bad { color: var(--danger, #c62828); }
+.learn-code-compare-label.is-good { color: var(--accent); }
+
+.learn-decision-table td:first-child {
+  font-weight: 600;
+  white-space: nowrap;
+}

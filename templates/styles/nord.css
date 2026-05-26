@@ -1,0 +1,173 @@
+/* UI 风格包 · nord（独立加载，互斥启用） */
+
+:root {
+--radius: 20px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  --radius-pill: 999px;
+  --radius-marker: 50%;
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --style-card-bar: 0;
+  --style-title-gradient: 0;
+  --glass-blur: 0px;
+  --style-hover-scale: 1;
+  --style-card-shadow: var(--shadow-sm);
+  --style-heading-mark: stripe;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: 0;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1.015);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent-alt) 40%, var(--border));
+  --style-hover-duration: 0.22s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+--bg: #eceff4;
+  --surface: #e5e9f0;
+  --surface-elevated: #ffffff;
+  --text: #2e3440;
+  --muted: #4c566a;
+  --accent: #5e81ac;
+  --accent-hover: #4c6f8f;
+  --accent-soft: #d8dee9;
+  --accent-glow: rgba(94, 129, 172, 0.2);
+  --accent-alt: #88c0d0;
+  --border: #d8dee9;
+  --code-bg: #e5e9f0;
+  --code-header: #d8dee9;
+  --shadow-sm: 0 1px 2px rgba(46, 52, 64, 0.06);
+  --shadow-md: 0 4px 16px rgba(46, 52, 64, 0.08);
+  --shadow-lg: 0 12px 28px rgba(46, 52, 64, 0.1);
+  --success: #a3be8c;
+  --danger: #bf616a;
+  --progress-gradient: linear-gradient(90deg, #5e81ac, #88c0d0, #a3be8c);
+  --bg-accent: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(136, 192, 208, 0.2), transparent);
+  --scrollbar-thumb: #b8c5d6;
+}
+
+[data-theme="dark"] {
+--bg: #2e3440;
+  --surface: #3b4252;
+  --surface-elevated: #434c5e;
+  --text: #eceff4;
+  --muted: #d8dee9;
+  --accent: #88c0d0;
+  --accent-hover: #8fbcbb;
+  --accent-soft: rgba(136, 192, 208, 0.15);
+  --accent-glow: rgba(136, 192, 208, 0.25);
+  --accent-alt: #81a1c1;
+  --border: #4c566a;
+  --code-bg: #2e3440;
+  --code-header: #3b4252;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --success: #a3be8c;
+  --danger: #bf616a;
+  --progress-gradient: linear-gradient(90deg, #5e81ac, #88c0d0, #a3be8c);
+  --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(136, 192, 208, 0.1), transparent);
+  --scrollbar-thumb: #4c566a;
+}
+
+.meta-card,
+.role-card,
+.chapter-header,
+.chapter .content-section,
+.quiz-item,
+.outline-table-wrap,
+.demo-box,
+.steps li,
+.course-card {
+backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+display: none;
+}
+
+.chapter-header,
+.meta-card,
+.role-card,
+.course-card {
+border-left: 4px solid var(--accent-alt);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.chapter h3,
+.chapter .section-block > h3 {
+border-left: none;
+  border-image: none;
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  background: var(--accent-soft);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font-size: 0.88rem;
+}
+
+.topbar {
+backdrop-filter: none;
+  background: var(--surface);
+}
+
+.portal-hero h2,
+.welcome-header h2,
+.course-title {
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.course-title::before {
+display: none;
+}
+
+.btn-mark-done:not(.is-done),
+.quiz-actions .btn-check {
+border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.phase-tag {
+border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent-alt) 18%, var(--surface));
+  color: var(--accent);
+}
+
+:is(
+  .chapter-header, .meta-card, .role-card, .course-card
+) {
+border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+:is(.chapter-header, .meta-card, .role-card, .course-card) {
+border-radius: 0 var(--radius) var(--radius) 0 !important;
+  border-left: 4px solid var(--accent-alt) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.chapter .section-block > h3 {
+display: inline-block !important;
+  border-left: none !important;
+  padding: 0.25rem 0.7rem !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-radius: var(--radius-pill) !important;
+}
+
+:is(.course-title, .welcome-header h2, .portal-hero h2) {
+background: none !important;
+  -webkit-text-fill-color: unset !important;
+  color: var(--text) !important;
+}

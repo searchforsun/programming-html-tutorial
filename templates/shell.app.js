@@ -1,13 +1,80 @@
-(function () {
+﻿(function () {
   const courseDataEl = document.getElementById('course-data');
   window.COURSE_DATA = JSON.parse(courseDataEl.textContent);
   const slug = COURSE_DATA.meta.slug;
   const KEY_DONE = slug + '_completed';
+  const KEY_VISITED = slug + '_visited';
   const KEY_THEME = slug + '_theme';
+  const GLOBAL_THEME_KEY = '{{GLOBAL_THEME_KEY}}';
+  const GLOBAL_UI_STYLE_KEY = '{{GLOBAL_UI_STYLE_KEY}}';
+  const UI_STYLE_IDS = {{UI_STYLE_IDS_JSON}};
   const KEY_SCROLL = slug + '_scroll';
   const KEY_CHAPTER_TOC_OPEN = slug + '_chapter_toc_open';
+  var PROGRESS_STORAGE_RESERVED = [KEY_DONE, KEY_VISITED, KEY_SCROLL, KEY_CHAPTER_TOC_OPEN];
+  var markCompleteHintShown = {};
   var chapterTocObserver = null;
   var chapterTocTopObserver = null;
+
+  function getScrollRoot() {
+    return document.querySelector('.layout');
+  }
+
+  function scrollRootToTop(behavior) {
+    var root = getScrollRoot();
+    if (root) {
+      root.scrollTo({ top: 0, behavior: behavior || 'auto' });
+    } else {
+      window.scrollTo({ top: 0, behavior: behavior || 'auto' });
+    }
+  }
+
+  function scrollRootToElement(el, behavior) {
+    if (!el) return;
+    var root = getScrollRoot();
+    if (!root) {
+      el.scrollIntoView({ behavior: behavior || 'auto', block: 'start' });
+      return;
+    }
+    var rootRect = root.getBoundingClientRect();
+    var elRect = el.getBoundingClientRect();
+    var top = elRect.top - rootRect.top + root.scrollTop - 8;
+    root.scrollTo({ top: Math.max(0, top), behavior: behavior || 'auto' });
+  }
+
+  function isChapterContentAtTop(section, root) {
+    if (!section) return false;
+    var header = section.querySelector('.chapter-header');
+    if (!header) return false;
+    var rootRect = root ? root.getBoundingClientRect() : { top: 0 };
+    var headerRect = header.getBoundingClientRect();
+    return headerRect.top >= rootRect.top - 8 && headerRect.top <= rootRect.top + 72;
+  }
+
+  function resetChapterTocNavScrollIfAtTop(section) {
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav) return;
+    var root = getScrollRoot();
+    if (!isChapterContentAtTop(section, root)) return;
+    nav.scrollTop = 0;
+  }
+
+  function ensureChapterTocLinkVisible(link) {
+    if (!link) return;
+    var nav = document.getElementById('chapter-toc-nav');
+    if (!nav) return;
+    var firstLink = nav.querySelector('a[href^="#"]');
+    var section = document.querySelector('section[data-chapter].active');
+    var root = getScrollRoot();
+    if (firstLink && link === firstLink && isChapterContentAtTop(section, root)) {
+      nav.scrollTop = 0;
+      return;
+    }
+    var navRect = nav.getBoundingClientRect();
+    var linkRect = link.getBoundingClientRect();
+    if (linkRect.top < navRect.top + 4 || linkRect.bottom > navRect.bottom - 4) {
+      link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
 
   function escapeHtml(str) {
     return String(str)
@@ -46,6 +113,68 @@
     }
   }
 
+  function syncUiStyleMenu(style) {
+    document.querySelectorAll('.ui-style-option').forEach(function (btn) {
+      var on = btn.getAttribute('data-style') === style;
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+
+  function closeUiStylePopover() {
+    var pop = document.getElementById('ui-style-popover');
+    var trigger = document.getElementById('btn-ui-style');
+    if (pop) pop.hidden = true;
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function applyUiStyle(style) {
+    if (UI_STYLE_IDS.indexOf(style) === -1) style = '{{DEFAULT_UI_STYLE}}';
+    document.documentElement.setAttribute('data-ui-style', style);
+    document.querySelectorAll('[data-ui-style-sheet]').forEach(function (el) {
+      el.disabled = el.getAttribute('data-ui-style-sheet') !== style;
+    });
+    storageSet(GLOBAL_UI_STYLE_KEY, style);
+    syncUiStyleMenu(style);
+  }
+
+  function initUiStyleMenu(onChange) {
+    var saved = storageGet(GLOBAL_UI_STYLE_KEY) || '{{DEFAULT_UI_STYLE}}';
+    applyUiStyle(saved);
+    var trigger = document.getElementById('btn-ui-style');
+    var pop = document.getElementById('ui-style-popover');
+    if (!trigger || !pop) return;
+
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = pop.hidden;
+      if (open) {
+        pop.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+      } else {
+        closeUiStylePopover();
+      }
+    });
+
+    pop.querySelectorAll('.ui-style-option').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        applyUiStyle(btn.getAttribute('data-style'));
+        closeUiStylePopover();
+        if (typeof onChange === 'function') onChange();
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (pop.hidden) return;
+      if (!pop.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)) {
+        closeUiStylePopover();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeUiStylePopover();
+    });
+  }
+
   function applyThemePreset() {
     var id = COURSE_DATA.meta.themePreset || COURSE_DATA.meta.slug || 'default';
     id = String(id).toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -66,19 +195,72 @@
     storageSet(KEY_DONE, JSON.stringify(ids));
   }
 
+  function getVisited() {
+    try {
+      var raw = storageGet(KEY_VISITED);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setVisited(ids) {
+    storageSet(KEY_VISITED, JSON.stringify(ids));
+  }
+
+  function markVisited(chapterId) {
+    if (!chapterId) return;
+    var set = new Set(getVisited());
+    if (set.has(chapterId)) return;
+    set.add(chapterId);
+    setVisited([...set]);
+  }
+
+  function collectExtraStorage() {
+    var out = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (!key || key.indexOf(slug + '_') !== 0) continue;
+        if (PROGRESS_STORAGE_RESERVED.indexOf(key) >= 0) continue;
+        var val = storageGet(key);
+        if (val !== null) out[key] = val;
+      }
+    } catch (e) { /* ignore */ }
+    return out;
+  }
+
+  function applyExtraStorage(map) {
+    if (!map || typeof map !== 'object') return;
+    Object.keys(map).forEach(function (key) {
+      if (key.indexOf(slug + '_') !== 0) return;
+      if (PROGRESS_STORAGE_RESERVED.indexOf(key) >= 0) return;
+      storageSet(key, map[key]);
+    });
+    if (window.initChapterEnrichment) {
+      window.initChapterEnrichment(document);
+    }
+  }
+
   function syncChapterDoneState() {
     var done = new Set(getCompleted());
+    var visited = new Set(getVisited());
     document.querySelectorAll('section[data-chapter]').forEach(function (sec) {
       var id = sec.getAttribute('data-chapter');
-      if (id) sec.classList.toggle('done', done.has(id));
+      if (!id) return;
+      sec.classList.toggle('done', done.has(id));
+      sec.classList.toggle('in-progress', !done.has(id) && visited.has(id));
     });
   }
 
   function syncAllProgressUI() {
     updateProgressBar();
-    syncSidebarDone();
+    syncSidebarProgress();
     syncMarkDoneButtons();
     syncChapterDoneState();
+    syncOutlineSummaryProgress();
   }
 
   function toggleComplete(chapterId) {
@@ -198,7 +380,7 @@
 
   function scrollChapterToTop(section) {
     var anchor = section.querySelector('.chapter-header') || section;
-    anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollRootToElement(anchor, 'auto');
   }
 
   function getChapterQuizSection(chapterId) {
@@ -303,7 +485,7 @@
         var id = link.getAttribute('href').slice(1);
         var target = id ? document.getElementById(id) : null;
         if (!target || (!section.contains(target) && !isQuizTocTarget(section, target))) return;
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        scrollRootToElement(target, 'auto');
         nav.querySelectorAll('a.is-active').forEach(function (a) {
           a.classList.remove('is-active');
         });
@@ -316,7 +498,10 @@
     nav.querySelectorAll('a.is-active').forEach(function (a) {
       a.classList.remove('is-active');
     });
-    if (activeLink) activeLink.classList.add('is-active');
+    if (activeLink) {
+      activeLink.classList.add('is-active');
+      ensureChapterTocLinkVisible(activeLink);
+    }
   }
 
   function initChapterTocSpy(section) {
@@ -332,6 +517,7 @@
       })
       .filter(Boolean);
     var spyRaf = 0;
+    var scrollRoot = getScrollRoot();
     chapterTocObserver = new IntersectionObserver(
       function (entries) {
         if (spyRaf) cancelAnimationFrame(spyRaf);
@@ -342,14 +528,20 @@
             .sort(function (a, b) { return a.target.offsetTop - b.target.offsetTop; });
           if (!visible.length) return;
           var id = visible[0].target.id;
+          var activeLink = null;
           links.forEach(function (link) {
             var on = link.getAttribute('href') === '#' + id;
-            if (on) link.classList.add('is-active');
-            else link.classList.remove('is-active');
+            if (on) {
+              link.classList.add('is-active');
+              activeLink = link;
+            } else {
+              link.classList.remove('is-active');
+            }
           });
+          ensureChapterTocLinkVisible(activeLink);
         });
       },
-      { root: null, rootMargin: '-18% 0px -62% 0px', threshold: [0, 1] }
+      { root: scrollRoot, rootMargin: '-12% 0px -58% 0px', threshold: [0, 0.01, 1] }
     );
     headings.forEach(function (h) { chapterTocObserver.observe(h); });
 
@@ -359,10 +551,14 @@
         function (entries) {
           if (!entries.some(function (en) { return en.isIntersecting; })) return;
           var firstHeading = document.getElementById(firstTocLink.getAttribute('href').slice(1));
-          if (firstHeading && firstHeading.getBoundingClientRect().top <= 120) return;
+          var rootRect = scrollRoot ? scrollRoot.getBoundingClientRect() : { top: 0 };
+          if (firstHeading && firstHeading.getBoundingClientRect().top <= rootRect.top + 96) {
+            resetChapterTocNavScrollIfAtTop(section);
+            return;
+          }
           setChapterTocActiveLink(nav, firstTocLink);
         },
-        { root: null, rootMargin: '-8% 0px -72% 0px', threshold: 0 }
+        { root: scrollRoot, rootMargin: '-8% 0px -72% 0px', threshold: 0 }
       );
       chapterTocTopObserver.observe(header);
     }
@@ -399,6 +595,7 @@
     }
     var groups = buildChapterTocGroups(items);
     nav.innerHTML = renderChapterTocNavHtml(groups);
+    nav.scrollTop = 0;
     toc.hidden = false;
     applyChapterTocVisibility();
     bindChapterTocNav(section);
@@ -419,6 +616,14 @@
     }
   }
 
+  function syncPageViewClass() {
+    if (!document.body.classList.contains('page-course')) return;
+    document.body.classList.remove('page-welcome', 'page-chapter');
+    var activeChapter = document.querySelector('section[data-chapter].active');
+    if (activeChapter) document.body.classList.add('page-chapter');
+    else document.body.classList.add('page-welcome');
+  }
+
   function showWelcome() {
     document.getElementById('welcome').style.display = '';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
@@ -432,12 +637,53 @@
     storageRemove(KEY_SCROLL);
     syncQuizVisibility(null);
     hideChapterToc();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollRootToTop('smooth');
+    syncPageViewClass();
+  }
+
+  function chapterIdFromHash(hash) {
+    if (!hash || hash.charAt(0) !== '#') return null;
+    if (hash.indexOf('#ch-') === 0) return hash.slice(4);
+    return null;
+  }
+
+  function getChapterTitle(id) {
+    for (var pi = 0; pi < COURSE_DATA.outline.length; pi++) {
+      var chapters = COURSE_DATA.outline[pi].chapters || [];
+      for (var ci = 0; ci < chapters.length; ci++) {
+        if (chapters[ci].id === id) return chapters[ci].title;
+      }
+    }
+    return id;
+  }
+
+  /** 未生成章节 Toast 文案（真源；与 chapter-authoring.md §跨章引用 一致） */
+  function toastChapterNotPublished(id) {
+    return '「' + getChapterTitle(id) + '」尚未生成，请从左侧目录打开已发布章节';
+  }
+
+  /** 切换章节；正文/侧栏 #ch- 链接均应走此函数（非浏览器默认锚点滚动）。 */
+  function navigateToChapter(id, options) {
+    var opts = options || {};
+    var section = document.getElementById('ch-' + id);
+    if (!section) {
+      showToast(toastChapterNotPublished(id));
+      return false;
+    }
+    showChapter(id);
+    if (opts.updateHash !== false) {
+      var target = '#ch-' + id;
+      if (location.hash !== target) {
+        history.pushState(null, '', target);
+      }
+    }
+    return true;
   }
 
   function showChapter(id) {
     var section = document.getElementById('ch-' + id);
     if (!section) return;
+    markVisited(id);
     document.getElementById('welcome').style.display = 'none';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
       s.classList.remove('active');
@@ -454,7 +700,10 @@
     renderMermaidIn(section);
     syncQuizVisibility(id);
     renderChapterToc(section);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    syncSidebarProgress();
+    syncChapterDoneState();
+    scrollRootToTop('smooth');
+    syncPageViewClass();
   }
 
   function syncQuizVisibility(chapterId) {
@@ -558,8 +807,25 @@
     const track = document.querySelector('.progress-track');
     if (track) track.setAttribute('aria-valuenow', String(pct));
   }
-  function syncSidebarDone() {
+  function sidebarChapterBadge(id, doneSet, visitedSet) {
+    if (doneSet.has(id)) {
+      return '<span class="ch-done-icon" aria-hidden="true">✓</span>';
+    }
+    if (visitedSet.has(id)) {
+      return '<span class="ch-progress-icon" aria-hidden="true" title="进行中"></span>';
+    }
+    return '';
+  }
+
+  function sidebarChapterLiClass(id, doneSet, visitedSet) {
+    if (doneSet.has(id)) return 'done';
+    if (visitedSet.has(id)) return 'in-progress';
+    return 'pending';
+  }
+
+  function syncSidebarProgress() {
     const done = new Set(getCompleted());
+    const visited = new Set(getVisited());
     document.querySelectorAll('#sidebar li').forEach(function (li) {
       const a = li.querySelector('a');
       if (!a) return;
@@ -567,25 +833,33 @@
         a.getAttribute('data-ch-id') ||
         (a.getAttribute('href') || '').replace(/^#ch-/, '');
       if (!id) return;
-      const isDone = done.has(id);
-      li.classList.toggle('done', isDone);
-      li.classList.toggle('pending', !isDone);
-      var icon = a.querySelector('.ch-done-icon');
-      if (isDone && !icon) {
-        icon = document.createElement('span');
-        icon.className = 'ch-done-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '✓';
-        a.appendChild(icon);
-      } else if (!isDone && icon) {
-        icon.remove();
+      li.classList.remove('done', 'in-progress', 'pending');
+      li.classList.add(sidebarChapterLiClass(id, done, visited));
+      a.querySelectorAll('.ch-done-icon, .ch-progress-icon').forEach(function (el) {
+        el.remove();
+      });
+      var badgeHtml = sidebarChapterBadge(id, done, visited);
+      if (badgeHtml) {
+        a.insertAdjacentHTML('beforeend', badgeHtml);
       }
     });
+  }
+
+  function getPortalHref() {
+    var meta = COURSE_DATA.meta || {};
+    return meta.portalHref || '../index.html';
+  }
+
+  function initPortalNav() {
+    var portalHref = getPortalHref();
+    var btnPortal = document.getElementById('btn-portal');
+    if (btnPortal) btnPortal.setAttribute('href', portalHref);
   }
 
   function renderSidebar() {
     const nav = document.getElementById('sidebar');
     const done = new Set(getCompleted());
+    const visited = new Set(getVisited());
     var homeNav =
       '<ul class="sidebar-home-nav">' +
       '<li id="sidebar-home" class="active-ch">' +
@@ -595,8 +869,8 @@
       return '<details class="phase" open>' +
         '<summary>' + escapeHtml(phase.phaseTitle) + '</summary>' +
         '<ul>' + phase.chapters.map(function (ch) {
-          const cls = done.has(ch.id) ? 'done' : 'pending';
-          const badge = done.has(ch.id) ? '<span class="ch-done-icon" aria-hidden="true">✓</span>' : '';
+          const cls = sidebarChapterLiClass(ch.id, done, visited);
+          const badge = sidebarChapterBadge(ch.id, done, visited);
           return '<li class="' + cls + '"><a href="#ch-' + ch.id + '" data-ch-id="' + ch.id + '"><span class="ch-link-title">' + escapeHtml(ch.title) + '</span>' + badge + '</a></li>';
         }).join('') + '</ul></details>';
     }).join('');
@@ -609,18 +883,58 @@
     }
     nav.querySelectorAll('a[data-ch-id]').forEach(function (a) {
       a.addEventListener('click', function (e) {
-        var id = a.getAttribute('data-ch-id');
-        if (document.getElementById('ch-' + id)) {
-          e.preventDefault();
-          showChapter(id);
-        }
+        e.preventDefault();
+        navigateToChapter(a.getAttribute('data-ch-id'));
       });
+    });
+  }
+
+  function bindInContentChapterLinks() {
+    var root = document.getElementById('main-content');
+    if (!root) return;
+    root.addEventListener('click', function (e) {
+      var a = e.target.closest('a[href^="#ch-"]');
+      if (!a || a.closest('#sidebar')) return;
+      var id = chapterIdFromHash(a.getAttribute('href'));
+      if (!id) return;
+      e.preventDefault();
+      navigateToChapter(id);
+    });
+  }
+
+  function outlineChapterStatusBadge(chId, doneSet, visitedSet) {
+    if (doneSet.has(chId)) {
+      return '<span class="outline-ch-status done" aria-label="已完成">✓</span>';
+    }
+    if (visitedSet.has(chId)) {
+      return '<span class="outline-ch-status in-progress" aria-label="进行中"></span>';
+    }
+    return '';
+  }
+
+  function syncOutlineSummaryProgress() {
+    var tbody = document.getElementById('outline-summary-body');
+    if (!tbody) return;
+    var done = new Set(getCompleted());
+    var visited = new Set(getVisited());
+    tbody.querySelectorAll('tr[data-chapter-id]').forEach(function (row) {
+      var chId = row.getAttribute('data-chapter-id');
+      var cell = row.querySelector('.outline-chapter-cell');
+      if (!cell || !chId) return;
+      var old = cell.querySelector('.outline-ch-status');
+      if (old) old.remove();
+      var badge = outlineChapterStatusBadge(chId, done, visited);
+      if (badge) {
+        cell.insertAdjacentHTML('afterbegin', badge);
+      }
     });
   }
 
   function renderOutlineSummary() {
     const tbody = document.getElementById('outline-summary-body');
     if (!tbody) return;
+    const done = new Set(getCompleted());
+    const visited = new Set(getVisited());
     const phaseClass = { basics: 'basics', practice: 'practice', advanced: 'advanced' };
     const rows = [];
     COURSE_DATA.outline.forEach(function (phase) {
@@ -650,9 +964,11 @@
             .join('') +
           '</ul>';
         const chIndex = String(i + 1).padStart(2, '0');
+        const statusBadge = outlineChapterStatusBadge(ch.id, done, visited);
         cells +=
           '<td class="outline-chapter">' +
           '<div class="outline-chapter-cell">' +
+          statusBadge +
           '<span class="outline-ch-index" aria-hidden="true">' + chIndex + '</span>' +
           '<span class="outline-chapter-title">' + escapeHtml(ch.title) + '</span>' +
           '</div></td>' +
@@ -661,6 +977,7 @@
         if (i === chapterCount - 1) rowClasses.push('outline-row-phase-end');
         const rowAttr =
           ' class="' + rowClasses.join(' ') + '"' +
+          ' data-chapter-id="' + escapeHtml(ch.id) + '"' +
           (phaseId ? ' data-phase="' + escapeHtml(phaseId) + '"' : '');
         rows.push('<tr' + rowAttr + '>' + cells + '</tr>');
       });
@@ -822,7 +1139,7 @@
       btn.addEventListener('click', function () {
         var pre = diagram.querySelector('pre.mermaid, div.mermaid');
         if (!pre || !pre.querySelector('svg')) {
-          showToast('图表尚未渲染完成，请稍候再试', 'error');
+          showToast('图表尚未渲染完成，请稍候再试');
           return;
         }
         var native = document.fullscreenElement === diagram;
@@ -895,14 +1212,14 @@
 
   var copyResetTimer = null;
 
-  function showToast(message, type) {
+  function showToast(message) {
     var toast = document.getElementById('toast');
     if (!toast) return;
     toast.textContent = message;
-    toast.className = 'show' + (type === 'error' ? ' toast-error' : type === 'success' ? ' toast-success' : '');
+    toast.className = 'show';
     clearTimeout(showToast._hideTimer);
     showToast._hideTimer = setTimeout(function () {
-      toast.classList.remove('show', 'toast-error', 'toast-success');
+      toast.classList.remove('show');
     }, 2400);
   }
 
@@ -926,11 +1243,11 @@
   function copyText(text, btn, toastMsg, failMsg) {
     function onOk() {
       if (btn) flashCopyButton(btn, 'ok');
-      showToast(toastMsg || '已复制到剪贴板', 'success');
+      showToast(toastMsg || '已复制到剪贴板');
     }
     function onFail() {
       if (btn) flashCopyButton(btn, 'fail');
-      showToast(failMsg || '复制失败，请手动选择文本', 'error');
+      showToast(failMsg || '复制失败，请手动选择文本');
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(onOk).catch(function () {
@@ -983,7 +1300,7 @@
         var id = e.target.getAttribute('data-chapter');
         if (id) {
           toggleComplete(id);
-          showToast(getCompleted().includes(id) ? '已标记本章完成' : '已取消完成标记', 'success');
+          showToast(getCompleted().includes(id) ? '已标记本章完成' : '已取消完成标记');
         }
       }
     });
@@ -1001,7 +1318,7 @@
   function applyTheme(theme) {
     closeAllMermaidFullscreen();
     document.documentElement.setAttribute('data-theme', theme);
-    storageSet(KEY_THEME, theme);
+    storageSet(GLOBAL_THEME_KEY, theme);
     applyHljsTheme(theme);
     initMermaid();
     rerenderActiveMermaid();
@@ -1012,7 +1329,10 @@
       courseId: slug,
       exportedAt: new Date().toISOString(),
       completedChapters: getCompleted(),
-      theme: document.documentElement.getAttribute('data-theme')
+      visitedChapters: getVisited(),
+      storage: collectExtraStorage(),
+      theme: document.documentElement.getAttribute('data-theme'),
+      uiStyle: document.documentElement.getAttribute('data-ui-style')
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -1027,7 +1347,10 @@
       try {
         const data = JSON.parse(reader.result);
         if (data.completedChapters) setCompleted(data.completedChapters);
+        if (data.visitedChapters) setVisited(data.visitedChapters);
+        if (data.storage) applyExtraStorage(data.storage);
         if (data.theme) applyTheme(data.theme);
+        if (data.uiStyle) applyUiStyle(data.uiStyle);
         syncAllProgressUI();
         alert('进度已导入');
       } catch (err) {
@@ -1042,6 +1365,142 @@
     resetCopyPromptButton();
   }
 
+  function openTermModal(title, prompt) {
+    var modal = document.getElementById('term-modal');
+    document.getElementById('term-title').textContent = title;
+    document.getElementById('term-prompt').textContent = prompt;
+    resetCopyPromptButton();
+    modal.showModal();
+  }
+
+  var SELECTION_PROMPT_MIN = 2;
+  var SELECTION_PROMPT_MAX = 120;
+  var DEFAULT_SELECTION_PROMPT_TEMPLATE =
+    '我在学习{domain}，请解释一下「{selection}」，并结合示例说明常见用法与误区。';
+
+  function isSelectionPromptEnabled() {
+    var meta = COURSE_DATA.meta || {};
+    return meta.selectionPromptEnabled !== false;
+  }
+
+  function isNodeInExcludedSelectionRoot(node) {
+    if (!node) return true;
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el) return true;
+    return !!el.closest(
+      'pre, code, .code-block, .quiz-section, #quiz-panel, #sidebar, #term-modal, ' +
+        '#selection-term-toolbar, button, input, textarea, select, label, ' +
+        '.topbar, #chapter-toc, .chapter-toc-fab, .btn-copy, .quiz-actions'
+    );
+  }
+
+  function getSelectionInMainContent() {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+    var text = sel.toString().replace(/\s+/g, ' ').trim();
+    if (text.length < SELECTION_PROMPT_MIN || text.length > SELECTION_PROMPT_MAX) return null;
+    var range = sel.getRangeAt(0);
+    if (isNodeInExcludedSelectionRoot(range.commonAncestorContainer)) return null;
+    var main = document.getElementById('main-content');
+    if (!main || !main.contains(range.commonAncestorContainer)) return null;
+    return { text: text, range: range };
+  }
+
+  function buildSelectionPrompt(selection) {
+    var meta = COURSE_DATA.meta || {};
+    var tpl = meta.selectionPromptTemplate || DEFAULT_SELECTION_PROMPT_TEMPLATE;
+    var domain = meta.domain || meta.title || '本课程';
+    return tpl
+      .replace(/\{domain\}/g, domain)
+      .replace(/\{selection\}/g, selection)
+      .replace(/\{title\}/g, meta.title || domain);
+  }
+
+  function initSelectionPrompt() {
+    if (!isSelectionPromptEnabled()) return;
+
+    var toolbar = document.getElementById('selection-term-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.id = 'selection-term-toolbar';
+      toolbar.className = 'selection-term-toolbar';
+      toolbar.hidden = true;
+      toolbar.setAttribute('role', 'toolbar');
+      toolbar.setAttribute('aria-label', '选中文本操作');
+      var btnEl = document.createElement('button');
+      btnEl.type = 'button';
+      btnEl.className = 'btn-selection-term';
+      btnEl.textContent = 'AI 解释';
+      toolbar.appendChild(btnEl);
+      document.body.appendChild(toolbar);
+    }
+
+    var btn = toolbar.querySelector('.btn-selection-term');
+    var pendingSelection = null;
+
+    function hideToolbar() {
+      toolbar.hidden = true;
+      pendingSelection = null;
+    }
+
+    function positionToolbar(range) {
+      var rect = range.getBoundingClientRect();
+      toolbar.hidden = false;
+      var tw = toolbar.offsetWidth;
+      var th = toolbar.offsetHeight;
+      var left = rect.left + rect.width / 2 - tw / 2;
+      var top = rect.top - th - 10;
+      if (top < 8) top = rect.bottom + 10;
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - th - 8));
+      toolbar.style.left = left + 'px';
+      toolbar.style.top = top + 'px';
+    }
+
+    document.addEventListener(
+      'mouseup',
+      function (e) {
+        if (toolbar.contains(e.target)) return;
+        window.setTimeout(function () {
+          if (e.target.closest('.term')) {
+            hideToolbar();
+            return;
+          }
+          var hit = getSelectionInMainContent();
+          if (!hit) {
+            hideToolbar();
+            return;
+          }
+          pendingSelection = hit.text;
+          positionToolbar(hit.range);
+        }, 12);
+      },
+      true
+    );
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!pendingSelection) return;
+      openTermModal(pendingSelection, buildSelectionPrompt(pendingSelection));
+      hideToolbar();
+      var sel = window.getSelection();
+      if (sel) sel.removeAllRanges();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hideToolbar();
+    });
+    document.addEventListener(
+      'scroll',
+      function () {
+        hideToolbar();
+      },
+      true
+    );
+    document.getElementById('term-modal').addEventListener('close', hideToolbar);
+  }
+
   function initTermModal() {
     var modal = document.getElementById('term-modal');
     document.body.addEventListener('click', function (e) {
@@ -1050,10 +1509,7 @@
       var id = term.getAttribute('data-term-id');
       var t = COURSE_DATA.terms[id];
       if (!t) return;
-      document.getElementById('term-title').textContent = t.label;
-      document.getElementById('term-prompt').textContent = t.prompt;
-      resetCopyPromptButton();
-      modal.showModal();
+      openTermModal(t.label, t.prompt);
     });
     document.getElementById('btn-close-term').addEventListener('click', closeTermModal);
     document.getElementById('btn-close-term-x').addEventListener('click', closeTermModal);
@@ -1066,6 +1522,38 @@
       var text = document.getElementById('term-prompt').textContent;
       copyText(text, this, '提示词已复制到剪贴板', '复制失败，请手动选择提示词');
     });
+  }
+
+  function initChapterScrollHint() {
+    var ticking = false;
+    var scrollTarget = getScrollRoot() || window;
+    scrollTarget.addEventListener(
+      'scroll',
+      function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          ticking = false;
+          var section = document.querySelector('section[data-chapter].active');
+          if (!section) return;
+          var id = section.getAttribute('data-chapter');
+          if (!id || getCompleted().includes(id) || markCompleteHintShown[id]) return;
+          var root = getScrollRoot();
+          var viewportBottom = root
+            ? root.getBoundingClientRect().bottom
+            : window.innerHeight;
+          var sectionTop = section.getBoundingClientRect().top;
+          var height = section.offsetHeight;
+          if (height <= 0) return;
+          var viewed = viewportBottom - sectionTop;
+          if (viewed / height >= 0.82) {
+            markCompleteHintShown[id] = true;
+            showToast('读到这里了？做完测验后可点章首「标记完成」');
+          }
+        });
+      },
+      { passive: true }
+    );
   }
 
   function initCourse() {
@@ -1083,26 +1571,42 @@
       }
     });
     document.title = COURSE_DATA.meta.title;
-    const savedTheme = storageGet(KEY_THEME) || 'light';
+    initPortalNav();
+    initUiStyleMenu();
+    syncPageViewClass();
+    var savedTheme = storageGet(GLOBAL_THEME_KEY) || storageGet(KEY_THEME) || 'light';
+    if (!storageGet(GLOBAL_THEME_KEY) && storageGet(KEY_THEME)) {
+      storageSet(GLOBAL_THEME_KEY, storageGet(KEY_THEME));
+    }
     applyTheme(savedTheme);
     renderSidebar();
+    bindInContentChapterLinks();
     renderOutlineSummary();
     bindCopyButtons();
     initTermModal();
+    initSelectionPrompt();
     initMermaidFullscreen();
     injectMermaidFullscreenUi(document);
     bindMermaidFullscreen(document);
     initQuiz();
     initChapterTocControls();
+    initChapterScrollHint();
     initMermaid();
     highlightIn(document);
     syncAllProgressUI();
+    var hashId = chapterIdFromHash(location.hash);
     var lastScroll = storageGet(KEY_SCROLL);
-    if (lastScroll && document.getElementById('ch-' + lastScroll)) {
+    if (hashId && document.getElementById('ch-' + hashId)) {
+      navigateToChapter(hashId, { updateHash: false });
+    } else if (lastScroll && document.getElementById('ch-' + lastScroll)) {
       showChapter(lastScroll);
     } else {
       showWelcome();
     }
+    window.addEventListener('hashchange', function () {
+      var id = chapterIdFromHash(location.hash);
+      if (id) navigateToChapter(id, { updateHash: false });
+    });
   }
 
   document.getElementById('btn-theme').addEventListener('click', function () {

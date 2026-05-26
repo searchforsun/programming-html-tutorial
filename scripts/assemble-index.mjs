@@ -3,17 +3,33 @@
  * Assemble courses/<slug>/index.html from course.json + partials + templates.
  *
  * Usage:
- *   node scripts/assemble-index.mjs --dir courses/my-course
- *   node scripts/assemble-index.mjs --dir examples/minimal-course
- *   node scripts/assemble-index.mjs --dir courses/my-course --out courses/my-course/index.html
+ *   node scripts/assemble-index.mjs --dir <project>/courses/<slug>
+ *   node scripts/assemble-index.mjs --dir <project>/courses/<slug> --out <path>/index.html
  */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+import {
+  loadDefaults,
+  applyShellTemplatePlaceholders,
+  applyShellAppPlaceholders,
+} from './lib/ui-styles.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.join(__dirname, '..');
-const SHELL_VERSION = '2.2.0';
+const defaults = JSON.parse(
+  fs.readFileSync(path.join(SKILL_ROOT, 'config', 'defaults.json'), 'utf8')
+);
+const SHELL_VERSION = defaults.shellVersion;
+const shellVersionFile = fs
+  .readFileSync(path.join(SKILL_ROOT, 'templates', 'SHELL_VERSION'), 'utf8')
+  .trim();
+if (shellVersionFile !== SHELL_VERSION) {
+  console.warn(
+    `Warning: templates/SHELL_VERSION (${shellVersionFile}) !== config/defaults.json shellVersion (${SHELL_VERSION})`
+  );
+}
 
 function parseArgs(argv) {
   const opts = { dir: null, out: null };
@@ -44,6 +60,32 @@ function loadHljsScripts(meta, hljsVer) {
     .join('\n');
 }
 
+function loadEnrichmentScriptBody(skillRoot) {
+  const tpl = path.join(skillRoot, 'templates/chapter-enrichment.js');
+  if (!fs.existsSync(tpl)) return '';
+  return fs
+    .readFileSync(tpl, 'utf8')
+    .replace(/^\/\*\*[\s\S]*?\*\/\s*/, '')
+    .trim();
+}
+
+/** 交互脚本内联进 welcome，不生成 courses/<slug>/assets/*.js */
+function applyWelcomeEnrichment(welcomeHtml, skillRoot, useEnrichment) {
+  if (!welcomeHtml) return welcomeHtml;
+  let html = welcomeHtml.replace(
+    /<script\s+src=["']assets\/chapter-enrichment\.js["'][^>]*>\s*<\/script>\s*/gi,
+    ''
+  );
+  if (!useEnrichment || /initChapterEnrichment/.test(html)) return html;
+  const body = loadEnrichmentScriptBody(skillRoot);
+  if (!body) return html;
+  const tag = `<script>\n${body}\n</script>`;
+  if (/<\/section>\s*$/i.test(html)) {
+    return html.replace(/<\/section>\s*$/i, `${tag}\n</section>`);
+  }
+  return `${html}\n${tag}`;
+}
+
 function loadTermPlatformLinks() {
   const platforms = JSON.parse(
     fs.readFileSync(path.join(SKILL_ROOT, 'config/term-platforms.json'), 'utf8')
@@ -68,11 +110,32 @@ function assemble(dir, outFile) {
     course.meta.themePreset = course.meta.slug || 'default';
   }
 
-  const shellHtml = fs.readFileSync(path.join(SKILL_ROOT, 'templates/index.shell.html'), 'utf8');
+  execSync('node scripts/build-style-sheets.mjs', { cwd: SKILL_ROOT, stdio: 'inherit' });
+
+  let shellHtml = fs.readFileSync(path.join(SKILL_ROOT, 'templates/index.shell.html'), 'utf8');
+  shellHtml = applyShellTemplatePlaceholders(shellHtml, defaults);
+  const sharedCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.shared.css'), 'utf8');
   const baseCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.base.css'), 'utf8');
-  const themeCss = readIf(path.join(dir, 'theme.css'));
-  const welcomeInner = readIf(path.join(dir, 'welcome.partial.html'));
-  const shellJs = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.app.js'), 'utf8');
+  const surfacesCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.surfaces.css'), 'utf8');
+  const styleSheetsHtml = fs.readFileSync(
+    path.join(SKILL_ROOT, 'templates/shell.style-sheets.html'),
+    'utf8'
+  );
+  let themeCss = readIf(path.join(dir, 'theme.css'));
+  const useEnrichment = course.meta.useEnrichment !== false;
+  if (useEnrichment) {
+    const enrichPath = path.join(SKILL_ROOT, 'templates/enrichment.base.css');
+    if (fs.existsSync(enrichPath)) {
+      const enrichCss = fs.readFileSync(enrichPath, 'utf8');
+      themeCss = themeCss ? `${themeCss}\n\n${enrichCss}` : enrichCss;
+    }
+  }
+  let welcomeInner = readIf(path.join(dir, 'welcome.partial.html'));
+  welcomeInner = applyWelcomeEnrichment(welcomeInner, SKILL_ROOT, useEnrichment);
+  const shellJs = applyShellAppPlaceholders(
+    fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.app.js'), 'utf8'),
+    defaults
+  );
 
   const chaptersDir = path.join(dir, 'chapters');
   let chaptersHtml = '';
@@ -83,7 +146,6 @@ function assemble(dir, outFile) {
 
   const quizHtml = readIf(path.join(dir, 'quiz.partial.html'));
 
-  const defaults = JSON.parse(fs.readFileSync(path.join(SKILL_ROOT, 'config/defaults.json'), 'utf8'));
   const hljsVer = defaults.cdn.highlightJs;
   const mermaidVer = defaults.cdn.mermaid;
 
@@ -91,8 +153,11 @@ function assemble(dir, outFile) {
     .replace(/\{\{TITLE\}\}/g, course.meta.title || course.meta.domain || 'Tutorial')
     .replace(/\{\{HLJS_LANG_SCRIPTS\}\}/g, loadHljsScripts(course.meta, hljsVer))
     .replace(/\{\{TERM_PLATFORM_LINKS\}\}/g, loadTermPlatformLinks())
+    .replace(/\{\{SHELL_SHARED_CSS\}\}/g, sharedCss)
     .replace(/\{\{SHELL_BASE_CSS\}\}/g, baseCss)
     .replace(/\{\{THEME_CSS\}\}/g, themeCss)
+    .replace(/\{\{SHELL_SURFACES_CSS\}\}/g, surfacesCss)
+    .replace(/\{\{SHELL_STYLE_SHEETS_HTML\}\}/g, styleSheetsHtml)
     .replace(/\{\{WELCOME_HTML\}\}/g, welcomeInner)
     .replace(/\{\{CHAPTERS_HTML\}\}/g, chaptersHtml)
     .replace(/\{\{QUIZ_HTML\}\}/g, quizHtml)
