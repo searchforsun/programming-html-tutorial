@@ -4,9 +4,11 @@
 [![Claude Code](https://img.shields.io/badge/Claude_Code-ready-d97757)](https://docs.anthropic.com/en/docs/claude-code/skills)
 [![Cursor](https://img.shields.io/badge/Cursor-ready-00b27e)](https://cursor.com/docs/skills)
 
-将指定技术领域生成为**静态 HTML 交互式教程站**：三阶段大纲、分章正文、测验、进度追踪、术语 AI 探索、亮暗主题。
+将指定技术领域生成为**静态 HTML 交互式教程站**：三阶段大纲、分章正文、测验、进度追踪、术语 AI 探索、亮暗主题与 **12 套 UI 风格**（含主题中性结构风与 accent 驱动赛博风）。
 
 **Agent 与维护者以 [`SKILL.md`](SKILL.md) 为唯一入口**（工作流、文档真源、Gate 命令）；下文仅说明安装与仓库结构。
+
+**当前壳版本**：`2.10.1`（见 `config/defaults.json` → `shellVersion`）
 
 ---
 
@@ -42,7 +44,7 @@ git clone https://github.com/<你的GitHub用户名>/programming-html-tutorial.g
 Windows PowerShell 示例：
 
 ```powershell
-git clone https://github.com/<你的GitHub用户名>/programming-html-tutorial.git $env:USERPROFILE\.claude\skills\programming-html-tutorial
+git clone https://github.com/<你的GitHub用户名>/programming-html-tutorial.git $env:USERPROFILE\.cursor\skills\programming-html-tutorial
 ```
 
 **项目级**：将上述路径中的 `~/.claude/skills/` 或 `~/.cursor/skills/` 换成项目内的 `.claude/skills/` 或 `.cursor/skills/`。
@@ -61,7 +63,12 @@ git clone https://github.com/<你的GitHub用户名>/programming-html-tutorial.g
 
 在用户**当前工作目录**下创建 `<workspace>/courses/<slug>/`（结构见 [SKILL.md](SKILL.md) §目录结构），由 Agent 按技能生成内容后组装。命令见 [reference/delivery-review.md](reference/delivery-review.md)。
 
-组装后用静态服务或 `file://` 打开 `<workspace>/courses/<slug>/index.html` 预览。
+**预览**
+
+- **课程中心**：在 `<workspace>/courses/` 根目录 `npx serve .`，打开 `index.html`；目录由 `courses.json` 动态加载。
+- **单课**：同上服务下打开 `<slug>/index.html`，或 `file://` 打开单课（进度/主题可能受限）。
+
+**注册新课程**：assemble 完成后，仅在 `courses/courses.json` 的 `courses[]` 追加条目，无需改 `index.html` 内嵌数据。
 
 ---
 
@@ -70,12 +77,35 @@ git clone https://github.com/<你的GitHub用户名>/programming-html-tutorial.g
 | 路径 | 说明 |
 |------|------|
 | [SKILL.md](SKILL.md) | Agent 技能主文档 |
-| [reference/shell-ui-styles.md](reference/shell-ui-styles.md) | 壳层 UI 八风格与 CSS 分层（2.7+） |
-| [scripts/README.md](scripts/README.md) | 组装 / sync / build 脚本索引 |
-| [templates/](templates/) | 页面壳 CSS/JS（源文件 + 生成物） |
-| [config/](config/) | CDN 与默认配置 |
+| [reference/shell-ui-styles.md](reference/shell-ui-styles.md) | 壳层 **12 套 UI 风格**、CSS 分层与发布流程（2.10+） |
+| [reference/portal-maintenance.md](reference/portal-maintenance.md) | 课程中心 portal 与 `courses.json` |
+| [scripts/README.md](scripts/README.md) | assemble / sync / build 脚本索引 |
+| [templates/](templates/) | 页面壳 CSS/JS（源文件 + `styles/*.css` 生成物） |
+| [config/defaults.json](config/defaults.json) | 壳版本、CDN、`uiStyles` 注册表 |
 | [reference/](reference/) | 章节、测验、组装规范 |
-| [example/](example/) | 只读样例（Agent 勿改；**壳版本可能滞后**，以 `templates/` 为准） |
+| [example/](example/) | 只读样例：**仅** `java-distributed-architecture` 一门课；portal 与生产工作区同构（`fetch('courses.json')`） |
+
+### UI 风格（壳 2.10+）
+
+| 类型 | id 示例 | 说明 |
+|------|---------|------|
+| 配色风 | minimal, tech, vibrant, nord, paper, glass, terminal, sakura | 自带完整色板 |
+| 结构风 | compact, outline, soft | 主题中性，accent 来自各课 `theme.css` |
+| accent 驱动 | cyber | 霓虹 HUD / 扫描网格，accent 来自 `theme.css` |
+
+风格菜单为 **3 列 × 4 行**网格；注册与菜单由 `config/defaults.json` → `uiStyles` 驱动，assemble / sync 自动生成。
+
+### 改壳层后发布顺序
+
+```powershell
+# bump shellVersion + templates/SHELL_VERSION 后：
+node scripts/build-style-sheets.mjs
+node scripts/sync-portal-shell.mjs
+node scripts/sync-courses-index.mjs <workspace>/courses/index.html
+node scripts/assemble-index.mjs --dir <workspace>/courses/<slug>
+```
+
+PowerShell 用 `;` 串联，勿用 `&&`。
 
 ---
 
