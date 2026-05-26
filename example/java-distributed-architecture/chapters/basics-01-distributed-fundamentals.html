@@ -1,0 +1,484 @@
+<section id="ch-basics-01-distributed-fundamentals" class="chapter" data-chapter="basics-01-distributed-fundamentals">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>分布式系统本质与挑战</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-01-distributed-fundamentals" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>25 分钟</strong> · 阶段：<strong>分布式基石</strong> · 能力：解释部分失败并画出 ShopFlow 三上下文</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p>这是全课起点。若把远程调用当本地方法、把超时当「偶发 bug」，后面的 <span class="term" data-term-id="cap-theorem" tabindex="0">CAP</span>、<span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span>、<span class="term" data-term-id="circuit-breaker" tabindex="0">熔断</span>都会变成背公式。本章用 <strong>ShopFlow 下单</strong> 把分布式「默认会出事」讲清楚。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>用业务语言说明<strong>为何</strong>要从单机走向分布式（至少 2 条驱动力）</li>
+          <li>口述 <code>POST /reserve</code> 超时后「调用方不确定」的两种真实状态及应对思路</li>
+          <li>为秒杀 / 对账场景排序<strong>扩展 · 可用 · 一致</strong>，并衔接 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a></li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>为何分布式</strong>：多节点协作换扩展与高可用，代价是<strong><span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span></strong>与一致性更难。</li>
+          <li><strong>设计先问什么</strong>：扩展性、可用性、一致性之间<strong>显式取舍</strong>（详见 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 中的 <span class="term" data-term-id="cap-theorem" tabindex="0">CAP</span>）。</li>
+          <li><strong>本课主线</strong>：Java + Spring Cloud 落地 <strong>ShopFlow</strong>，原理 → 实战 → 生产治理。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>单机到集群：为何需要分布式架构</h3>
+
+    <p>当用户量、数据量或发布频率超过单机/单库舒适区，团队会把系统拆到多台机器上协作。常见驱动力：</p>
+    <ul>
+      <li><strong>水平扩展</strong> — 加机器分担读/写吞吐，而不是无限堆单机配置。</li>
+      <li><strong>故障隔离</strong> — 单点故障只影响局部；配合副本与自动切换提高可用性。</li>
+      <li><strong>组织与交付</strong> — 多团队并行演进不同业务能力（与 <span class="term" data-term-id="conways-law" tabindex="0">康威定律</span> 相关，<a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a> 展开）。</li>
+      <li><strong>地理与合规</strong> — 多机房、多区域部署降低延迟或满足数据驻留要求。</li>
+    </ul>
+    <p><strong>何时值得认真考虑拆分？</strong> 不必等到「千万 QPS」才行动，下列信号出现时应把分布式纳入架构讨论（满足其一即可启动评估）：</p>
+    <ul>
+      <li>单机或单库<strong>连接池、CPU、磁盘 IO 长期打满</strong>，垂直扩容性价比明显下降。</li>
+      <li><strong>发布耦合</strong>：改一个小模块需要全量回归、全量部署，交付周期被拖慢。</li>
+      <li><strong>可用性目标</strong> 要求多 AZ/多机房与明确 RTO/RPO，单机故障域无法接受。</li>
+      <li><strong>组织规模</strong> 扩大，多团队需并行演进不同业务线。</li>
+    </ul>
+    <div class="role-cards">
+      <article class="role-card">
+        <span class="role-card-title">单体应用</span>
+        <p class="role-card-desc">开发简单、事务本地；扩展时往往整包复制，数据库易成瓶颈。</p>
+      </article>
+      <article class="role-card">
+        <span class="role-card-title">分布式系统</span>
+        <p class="role-card-desc">能力可独立扩展；需要处理网络调用、一致性与运维复杂度。</p>
+      </article>
+      <article class="role-card">
+        <span class="role-card-title">架构设计职责</span>
+        <p class="role-card-desc">划定边界、选通信方式、定义失败语义与可观测性，而不是「微服务越多越好」。</p>
+      </article>
+    </div>
+
+    <h4>远程调用：反例 vs 推荐做法</h4>
+    <div class="learn-compare">
+      <div class="learn-compare-col learn-compare-bad">
+        <span class="learn-compare-heading">不推荐</span>
+        <ul>
+          <li>无超时，线程一直阻塞</li>
+          <li>把 Feign 当本地方法，异常吞掉</li>
+          <li>超时后无幂等，立即重试 N 次</li>
+          <li>用墙钟时间排序跨服务事件</li>
+        </ul>
+      </div>
+      <div class="learn-compare-col learn-compare-good">
+        <span class="learn-compare-heading">推荐</span>
+        <ul>
+          <li>显式 connect/read 超时 + 有限重试</li>
+          <li>业务幂等键 + 查询预留状态</li>
+          <li><span class="term" data-term-id="circuit-breaker" tabindex="0">熔断</span> / 舱壁保护下游（详见 <a href="#ch-advanced-01-resilience">韧性工程：熔断、限流、重试与舱壁</a>）</li>
+          <li>版本号、逻辑时钟或中心化协调</li>
+        </ul>
+      </div>
+    </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：没有分布式时，大促峰值你会先动哪一招？</summary>
+        <p>常见：垂直扩容、读写分离、缓存。分布式是<strong>多机 + 明确失败语义</strong>，不是单机优化的换皮。</p>
+      </details>
+
+    </div>
+    <div class="section-block">
+      <h3>网络分区、时钟漂移与部分失败</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 大促下单（30 秒）</span>
+        用户下单经网关到 <code>order-service</code>，同步调用 <code>inventory-service</code> 预留库存（超时 2s）。库存已扣减，响应却在第 8 秒丢包——客户端只看到超时。下面用序列图理解这种<strong>部分失败</strong>。
+      </aside>
+
+    <p>分布式系统的默认假设是：<strong>网络不可靠</strong>、<strong>节点会挂</strong>、<strong>时钟不完全同步</strong>。这三点直接决定你不能把远程调用当成本地方法调用。</p>
+    <ul>
+      <li><strong><span class="term" data-term-id="network-partition" tabindex="0">网络分区</span></strong> — 节点之间暂时不可达，但各自仍在运行；此时「全局一致决策」可能无法同时满足。</li>
+      <li><strong><span class="term" data-term-id="clock-skew" tabindex="0">时钟漂移</span></strong> — 即使部署 NTP，各节点墙钟仍可能偏差；<strong>不要用</strong> <code>System.currentTimeMillis()</code> 在跨服务间排序事件。</li>
+      <li><strong><span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span></strong> — 请求可能「客户端以为失败、服务端已成功」或相反；必须设计<strong>超时、重试、幂等</strong>与可补偿流程。</li>
+    </ul>
+
+    <h4>一次下单调用的失败形态</h4>
+    <div class="mermaid-wrap">
+      <h5>部分失败：调用方视角不确定</h5>
+      <pre class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant O as order-service
+  participant I as inventory-service
+  U->>O: 提交订单
+  O->>I: POST /reserve (timeout=2s)
+  Note over I: 库存已扣减
+  I--xO: 响应在网络中丢失
+  Note over O: 重试？幂等？人工对账？</pre>
+      <p class="diagram-caption">架构上要为「不确定结果」准备幂等键、查询补偿或 <span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span>，而不是无限重试。</p>
+    </div>
+
+    <h4>调用方视角 × 服务端真实状态</h4>
+    <table class="outline-table">
+      <thead>
+        <tr><th>调用方看到</th><th>服务端可能真实状态</th><th>典型应对</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>超时 / 连接失败</td>
+          <td><strong>已成功</strong>（响应丢失）</td>
+          <td><span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span> + 查询预留状态；避免盲目重试导致重复扣减</td>
+        </tr>
+        <tr>
+          <td>超时 / 连接失败</td>
+          <td><strong>未执行</strong></td>
+          <td>带幂等键的安全重试；记录业务请求号</td>
+        </tr>
+        <tr>
+          <td>收到成功响应</td>
+          <td><strong>实际失败</strong>（少见）</td>
+          <td>对账任务、状态机补偿、告警</td>
+        </tr>
+        <tr>
+          <td>重复提交同一业务键</td>
+          <td><strong>已处理过</strong></td>
+          <td>幂等返回原结果</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>超时后重试：代码层反例与推荐</h4>
+    <div class="learn-code-compare">
+      <div>
+        <span class="learn-code-compare-label is-bad">不推荐 · 盲目重试</span>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 无幂等键、无上限 — 可能重复扣库存
+for (int i = 0; i &lt; 10; i++) {
+  try {
+    inventoryClient.reserve(orderId, skuId, qty);
+    break;
+  } catch (Exception e) {
+    Thread.sleep(100);
+  }
+}</code></pre>
+        </div>
+      </div>
+      <div>
+        <span class="learn-code-compare-label is-good">推荐 · 幂等 + 有限次</span>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 同一 requestId：服务端已处理则直接返回原结果
+ReserveResult r = inventoryClient.reserve(
+  new ReserveCommand(requestId, orderId, skuId, qty));
+if (r.isUnknown()) {
+  r = inventoryClient.getReserveStatus(requestId);
+}
+// 仍不确定 → 标记订单「待对账」，勿直接成功</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h4>读超时设多少？（示意滑块）</h4>
+    <div class="learn-param-slider" data-storage-key="java-distributed-architecture_basics01_timeout">
+      <label for="basics01-timeout-range">OpenFeign 读超时（教学示意，非压测数据）</label>
+      <input type="range" id="basics01-timeout-range" min="500" max="8000" step="500" value="2000" />
+      <output for="basics01-timeout-range">2000 ms</output>
+      <p class="learn-param-hint"></p>
+    </div>
+
+    </div>
+    <div class="section-block">
+      <h3>可扩展性、可用性与一致性三角</h3>
+
+    <p>工程上常同时追求三者，但在故障与负载压力下必须<strong>排序优先级</strong>。例如：</p>
+    <table class="outline-table">
+      <thead>
+        <tr><th>目标</th><th>典型手段</th><th>代价/注意</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>可扩展性</strong></td>
+          <td>无状态服务、分片、缓存、异步削峰</td>
+          <td>数据局部性、跨分片查询变难</td>
+        </tr>
+        <tr>
+          <td><strong>可用性</strong></td>
+          <td>多副本、健康检查、熔断、多活/主备</td>
+          <td>副本滞后时读到旧数据</td>
+        </tr>
+        <tr>
+          <td><strong>一致性</strong>（详见 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a>：<span class="term" data-term-id="strong-consistency" tabindex="0">强一致</span> / <span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span>）</td>
+          <td>强一致事务、共识协议、最终一致 + 对账</td>
+          <td>延迟上升、可用性在分区时受限</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>场景决策：大促秒杀 vs 财务对账</h4>
+    <table class="outline-table learn-decision-table">
+      <thead>
+        <tr><th>场景</th><th>优先（1 最重要）</th><th>可让步（3）</th><th>一句话理由</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>大促秒杀</td>
+          <td>可扩展性</td>
+          <td>强一致（接受短暂不一致 + 对账）</td>
+          <td>峰值吞吐优先，库存可异步校准</td>
+        </tr>
+        <tr>
+          <td>财务对账报表</td>
+          <td>一致性</td>
+          <td>可扩展性（批处理窗口内完成即可）</td>
+          <td>金额差错成本高，宁可慢一点也要可对账</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 将用 <span class="term" data-term-id="cap-theorem" tabindex="0">CAP 定理</span> 与 BASE 把上表落到可讨论的取舍语言。</p>
+
+    <div class="notice">
+      <strong>常见误区</strong>
+      <ul>
+        <li><strong>微服务越多越好</strong> — 边界不清时，分布式复杂度会压过拆分收益。</li>
+        <li><strong>远程调用 = 本地方法</strong> — 必须显式定义超时、失败语义与可观测性。</li>
+        <li><strong>超时后无限重试</strong> — 可能打爆下游；需退避、熔断与幂等。</li>
+        <li><strong>同步 NTP 就够了</strong> — 不能依赖墙钟做跨节点因果排序。</li>
+      </ul>
+    </div>
+
+    </div>
+    <div class="section-block">
+      <h3>Java 技术栈在分布式中的常见角色</h3>
+
+    <p>本课实践以 <strong>JVM 企业栈</strong>为主。常见分工如下：</p>
+    <ul>
+      <li><strong>应用运行时</strong> — Spring Boot、Actuator 健康检查。</li>
+      <li><strong>服务治理</strong> — 注册发现、<span class="term" data-term-id="api-gateway" tabindex="0">API 网关</span>、配置中心。</li>
+      <li><strong>服务间通信</strong> — OpenFeign（同步）、Spring Cloud Stream（异步）。</li>
+      <li><strong>数据与一致性</strong> — 本地事务；跨服务用 <span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span>、<span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span>、Seata。</li>
+    </ul>
+
+    <h4>通信模式：同步 vs 异步（标签页）</h4>
+    <div class="learn-tabs" role="tablist" aria-label="通信模式对比">
+      <input type="radio" name="basics01comm" id="basics01-tab-sync" class="learn-tab-input" checked />
+      <input type="radio" name="basics01comm" id="basics01-tab-async" class="learn-tab-input" />
+      <label for="basics01-tab-sync">同步 HTTP</label>
+      <label for="basics01-tab-async">异步事件</label>
+      <div class="learn-tab-panel" id="basics01-panel-sync" role="tabpanel">
+        <p><strong>适用</strong>：需要立即知道成败的链路，如「下单当场预留库存」。</p>
+        <p><strong>代价</strong>：延迟叠加、级联故障、部分失败（本章重点）。</p>
+        <p><strong>ShopFlow</strong>：<code>order → inventory</code> 的 <code>POST /reserve</code>（详见 <a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a>）。</p>
+      </div>
+      <div class="learn-tab-panel" id="basics01-panel-async" role="tabpanel">
+        <p><strong>适用</strong>：解耦、削峰、最终一致，如「支付完成通知订单」。</p>
+        <p><strong>代价</strong>：复杂度在消费者、幂等、顺序与死信队列。</p>
+        <p><strong>ShopFlow</strong>：<code>PaymentCompleted</code> 事件（详见 <a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a>）。</p>
+      </div>
+    </div>
+
+    <h4>ShopFlow 逻辑分层（预习）</h4>
+    <div class="mermaid-wrap">
+      <h5>客户端 → 网关 → 领域服务</h5>
+      <pre class="mermaid">flowchart LR
+  Client[Web / App]
+  GW[API Gateway]
+  Order[order-service]
+  Inv[inventory-service]
+  Pay[payment-service]
+  Client --> GW
+  GW --> Order
+  Order -->|同步 HTTP| Inv
+  Order -.->|异步事件| Pay</pre>
+      <p class="diagram-caption">实线：<a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a>；虚线：<a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a>。统一入口做鉴权与路由。</p>
+    </div>
+
+    <h4>服务间调用：超时须显式配置（预览）</h4>
+    <div class="code-block">
+      <div class="code-toolbar">
+        <span class="lang-tag">yaml</span>
+        <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+      </div>
+      <pre><code id="code-basics-01-1" class="language-yaml">spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          inventory-service:
+            connectTimeout: 2000
+            readTimeout: 2000</code></pre>
+    </div>
+
+    </div>
+    <div class="section-block">
+      <h3>本课 ShopFlow 示例业务全景</h3>
+
+    <p><strong>ShopFlow</strong> 按 <span class="term" data-term-id="bounded-context" tabindex="0">限界上下文</span> 划分三大域：</p>
+    <table class="outline-table">
+      <thead>
+        <tr><th>上下文</th><th>核心职责</th><th>典型事件/接口</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>订单 Order</strong></td>
+          <td>创建订单、状态机、对外查询</td>
+          <td><code>POST /orders</code>、<code>OrderCreated</code></td>
+        </tr>
+        <tr>
+          <td><strong>库存 Inventory</strong></td>
+          <td>预留/释放库存、防超卖</td>
+          <td><code>POST /reserve</code>、幂等扣减</td>
+        </tr>
+        <tr>
+          <td><strong>支付 Payment</strong></td>
+          <td>支付单、回调、失败补偿</td>
+          <td><code>PaymentCompleted</code>、Saga 补偿</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>常见问题（FAQ）</h4>
+    <div class="learn-faq">
+      <details>
+        <summary>有了 Kafka，是不是就不用 OpenFeign 了？</summary>
+        <div class="learn-faq-body">
+          不是二选一。需要<strong>当场知道成败</strong>的链路（预留库存）仍常用同步 HTTP；<strong>可延迟、可重放</strong>的通知（支付完成）更适合事件。ShopFlow 两种都会用到。
+        </div>
+      </details>
+      <details>
+        <summary>微服务是不是拆得越细越好？</summary>
+        <div class="learn-faq-body">
+          否。边界不清会带来分布式事务、排障与发布协调成本。<a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a> 会讲「何时不应拆」。
+        </div>
+      </details>
+      <details>
+        <summary>超时设很长，是不是就不会部分失败了？</summary>
+        <div class="learn-faq-body">
+          只会把「失败发现」推迟，并占用连接/线程。网络分区、进程崩溃仍会发生；仍需幂等、查询与对账。
+        </div>
+      </details>
+    </div>
+
+    </div>
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">放在正文与复习之间，便于你先串起全章再做题。每条对应上文一个小节标题。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>为何走向分布式</strong>：用多机协作换扩展与故障隔离；常见动机是容量、交付节奏或可用性，而不是「为了微服务而微服务」。</li>
+        <li><strong>部分失败是常态</strong>：网络、节点、时钟都不可靠；调用超时后先幂等与查状态，避免无界重试把故障放大。</li>
+        <li><strong>三角要显式排序</strong>：扩展、可用、一致无法同时拉满；秒杀、对账、详情页等场景的优先级不同，<a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 将命名这些取舍。</li>
+        <li><strong>Java 栈分工</strong>：Boot 承载服务与可观测；Cloud 负责治理与同步/异步通信；跨服务写路径用 Saga、Outbox 等模式兜一致。</li>
+        <li><strong>ShopFlow 主线</strong>：Order / Inventory / Payment 三个限界上下文；同步 <code>POST /reserve</code> 预留库存，<code>PaymentCompleted</code> 事件异步收尾支付。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_basics01">
+      <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+      <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+      <ul>
+        <li><label><input type="checkbox" data-id="why-dist" /> 能说出至少 2 条「为何需要分布式」的业务理由</label></li>
+        <li><label><input type="checkbox" data-id="partial-fail" /> 能解释「调用方超时但服务端已成功」并给出应对</label></li>
+        <li><label><input type="checkbox" data-id="triangle" /> 能为大促与对账场景排序扩展/可用/一致</label></li>
+        <li><label><input type="checkbox" data-id="shopflow-ctx" /> 能说出 Order / Inventory / Payment 各管什么</label></li>
+        <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧「章节测验」</label></li>
+      </ul>
+    </div>
+
+    <div class="learn-cheat-sheet">
+      <details>
+        <summary>本章速查卡</summary>
+        <div class="learn-cheat-body">
+          <table>
+            <thead><tr><th>概念</th><th>记住一句</th></tr></thead>
+            <tbody>
+              <tr><td>部分失败</td><td>调用方无法确定远端是否已成功</td></tr>
+              <tr><td>幂等键</td><td>同一业务请求重复提交不产生副作用</td></tr>
+              <tr><td>三角取舍</td><td>没有免费午餐，场景决定 1/2/3 排序</td></tr>
+              <tr><td>默认假设</td><td>网络不可靠、节点会挂、时钟不同步</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <div class="learn-interview">
+      <details>
+        <summary>答辩 / 面试口述题</summary>
+        <div class="learn-interview-body">
+          <ol>
+            <li>为什么说「分布式系统里，超时是一种正常结果」？</li>
+            <li>如果 inventory 已成功、order 认为失败，用户界面该显示什么？架构上如何兜底？</li>
+            <li>同步调用链路过长会有什么问题？如何用异步缓解？</li>
+          </ol>
+        </div>
+      </details>
+    </div>
+
+      <p class="chapter-review-next">下一步：勾选过关清单、完成右侧测验与下方 Demo；下一章 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 在 CAP/BASE 框架下细化本章的三角取舍。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-cloud/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud Reference — 组件清单与版本对齐</a></li>
+      <li><a href="https://spring.io/guides" target="_blank" rel="noopener">Spring Guides — 微服务入门实践</a></li>
+      <li><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html" target="_blank" rel="noopener">Spring Boot Actuator — 健康检查与可观测入口</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">用本章 ShopFlow 场景，完成<strong>驱动力对照</strong>、<strong>部分失败四格表</strong>与<strong>三上下文职责</strong>三份纸面产出（约 20 分钟）。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>对照正文「单体 / 分布式 / 架构职责」role-cards，为 ShopFlow 大促写出至少 2 条「为何需要分布式」驱动力（如水平扩展、故障隔离、多团队并行）。</li>
+      <li>填写「调用方视角 × 服务端真实状态」表中<strong>超时</strong>一行三列；并对照 Mermaid「部分失败：调用方视角不确定」口述两种真实状态及应对（查询/对账/幂等）。</li>
+      <li>对照正文三上下文表，用一句话说明 Inventory 拥有 <code>POST /reserve</code> 权、Order 不能直接改库存列的原因（限界上下文数据所有权）。</li>
+      <li>（可选）完成 <code>demos/basics-01-distributed-fundamentals-lab/</code> 练习 1～2，与上述步骤交叉核对。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">排障顺序：同事给出 ① 全体重启 ② <code>readTimeout</code> 调到 30s ③ 失败重试 10 次 ④ 仍失败再对账。请指出<strong>最应先做</strong>与<strong>最危险</strong>的一步。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>最应先做：④ 对账/查询</strong>，先消除「是否已成功」的不确定。<strong>最危险：③ 盲目重试 10 次</strong>，可能在 inventory 已扣减时重复提交，放大部分失败。加长超时 ② 仅掩盖问题。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">找错：哪条<strong>违反</strong>「部分失败」假设？① 超时=inventory 一定没扣减 ② 幂等键+查询状态 ③ 用本机时间排序跨节点事件</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>答：① 和 ③</strong>。① 超时后远端可能已成功；③ 时钟漂移下墙钟不能作全局序。② 是正确应对。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：ShopFlow 上下文与失败场景实验室</h4>
+      <p>目录：<code>demos/basics-01-distributed-fundamentals-lab/</code>。<strong>验收</strong>：能独立画完「order 调 inventory 超时」时序，并填好四格表中「超时」行。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>下一章</strong>：<a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a>：把本章「三角取舍」与超时场景讲透</li>
+      <li><a href="https://martinfowler.com/articles/microservices.html" target="_blank" rel="noopener">Martin Fowler — Microservices</a></li>
+      <li><a href="https://pages.cs.wisc.edu/~zuyu/fallacies.html" target="_blank" rel="noopener">Fallacies of Distributed Computing</a></li>
+      <li><a href="https://12factor.net/zh_cn/" target="_blank" rel="noopener">The Twelve-Factor App</a></li>
+    </ul>
+  </div>
+</section>

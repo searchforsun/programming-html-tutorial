@@ -1,0 +1,460 @@
+{
+  "meta": {
+    "title": "Java 分布式架构设计入门到进阶",
+    "slug": "java-distributed-architecture",
+    "domain": "Java 分布式架构设计",
+    "themePreset": "java-distributed-architecture",
+    "version": "Java 21 LTS；Spring Boot 3.5.x；Spring Cloud 2025.0.x（2025.1 发布列车）",
+    "generatedAt": "2026-05-18",
+    "officialDocs": "https://docs.spring.io/spring-cloud/docs/current/reference/html/",
+    "domainType": "F",
+    "selectionPromptTemplate": "我在学习{domain}，请解释一下「{selection}」，并结合 ShopFlow 或 Java 分布式场景给出示例说明与常见误区。",
+    "hljsLanguages": ["java", "yaml", "properties", "xml", "bash", "json"],
+    "learningNotes": {
+      "assumptions": [
+        "具备 Java 17+ 语法、Maven/Gradle 与 Spring Boot 基础（能写 REST Controller 与 JPA 查询）",
+        "了解 HTTP、JSON 与关系型数据库；不要求预先掌握 Kubernetes",
+        "实践阶段围绕同一示例业务「ShopFlow」订单域微服务递进，便于对照架构决策",
+        "中间件以 Spring Cloud 生态为主（Eureka/Nacos、Gateway、OpenFeign、Config）；Kafka/Redis 在 practice 阶段引入"
+      ],
+      "phaseGoals": {
+        "basics": "能说明分布式系统的核心挑战与 CAP/BASE 取舍，完成微服务边界划分与 API 契约设计，并选对同步/异步通信模式",
+        "practice": "能用 Spring Boot 3.5 + Spring Cloud 搭建 ShopFlow 多服务骨架，实现注册发现、网关路由、服务间调用、消息与缓存，并处理基础一致性与幂等",
+        "advanced": "能设计生产级韧性、可观测与安全部署方案，理解容量扩展与 CQRS/事件溯源等演进模式，并识别常见架构反模式"
+      }
+    }
+  },
+  "outline": [
+    {
+      "phaseId": "basics",
+      "phaseTitle": "分布式基石：原理、边界与建模",
+      "phaseGoal": "建立分布式问题域认知，能进行服务拆分与 API 设计，并选择合适的通信模式",
+      "chapters": [
+        {
+          "id": "basics-01-distributed-fundamentals",
+          "title": "分布式系统本质与挑战",
+          "sections": [
+            "单机到集群：为何需要分布式架构",
+            "网络分区、时钟漂移与部分失败",
+            "可扩展性、可用性与一致性三角",
+            "Java 技术栈在分布式中的常见角色",
+            "本课 ShopFlow 示例业务全景"
+          ]
+        },
+        {
+          "id": "basics-02-consistency-cap",
+          "title": "CAP、BASE 与一致性模型",
+          "sections": [
+            "CAP 定理与工程中的真实取舍",
+            "强一致、最终一致与因果一致",
+            "BASE 与互联网业务常见策略",
+            "分布式锁、租约与 fencing token 概念",
+            "读己之写、单调读等客户端语义"
+          ]
+        },
+        {
+          "id": "basics-03-architecture-styles",
+          "title": "架构风格：单体、SOA 与微服务",
+          "sections": [
+            "分层单体与模块化单体的边界",
+            "SOA、ESB 与微服务的演进脉络",
+            "微服务收益、成本与适用场景",
+            "康威定律与团队拓扑",
+            "何时不应拆微服务"
+          ]
+        },
+        {
+          "id": "basics-04-domain-api",
+          "title": "领域建模、边界上下文与 API 契约",
+          "sections": [
+            "DDD 战略设计：限界上下文与子域",
+            "按业务能力拆分 vs 按技术层拆分",
+            "REST 资源建模、版本化与错误码规范",
+            "契约优先：OpenAPI 与消费者驱动契约",
+            "ShopFlow：订单、库存、支付上下文划分"
+          ]
+        },
+        {
+          "id": "basics-05-communication-patterns",
+          "title": "通信模式：同步、异步与事件驱动",
+          "sections": [
+            "请求/响应、RPC 与 gRPC 适用场景",
+            "消息队列、发布订阅与事件通知",
+            "编排 vs 编舞（Choreography）",
+            "幂等键、去重与 Outbox 模式预览",
+            "为 Spring Cloud 实战做概念映射"
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "practice",
+      "phaseTitle": "Java 微服务栈实战：ShopFlow 递进",
+      "phaseGoal": "在 ShopFlow 示例上完成注册发现、网关、服务调用、消息缓存与基础分布式数据协作",
+      "chapters": [
+        {
+          "id": "practice-01-spring-cloud-bootstrap",
+          "title": "Spring Boot 3.5 与 Spring Cloud 脚手架",
+          "sections": [
+            "JDK 21、Maven BOM 与 Spring Cloud 2025 对齐",
+            "多模块工程：api / service / common 分层",
+            "配置外部化与 Profile 约定",
+            "ShopFlow 仓库结构与本地启动顺序",
+            "健康检查 Actuator 与统一日志格式"
+          ]
+        },
+        {
+          "id": "practice-02-discovery-gateway",
+          "title": "服务注册发现与 API 网关",
+          "sections": [
+            "Eureka / Nacos 注册中心选型对比",
+            "order-service、inventory-service 注册与心跳",
+            "Spring Cloud Gateway 路由与谓词过滤器",
+            "统一入口：鉴权头透传与路径重写",
+            "本地 Docker Compose 最小依赖栈"
+          ]
+        },
+        {
+          "id": "practice-03-sync-calls",
+          "title": "OpenFeign、负载均衡与服务间调用",
+          "sections": [
+            "声明式 HTTP 客户端与 DTO 映射",
+            "Spring Cloud LoadBalancer 与实例选择",
+            "超时、重试与错误解码策略",
+            "ShopFlow：下单链路同步调用 inventory",
+            "契约测试与 Mock 服务协作"
+          ]
+        },
+        {
+          "id": "practice-04-messaging-cache",
+          "title": "Kafka 事件驱动与 Redis 缓存",
+          "sections": [
+            "领域事件：OrderCreated、PaymentCompleted",
+            "Spring Cloud Stream / Kafka Binder 基础",
+            "消费者组、分区键与有序性",
+            "Redis 缓存穿透/击穿/雪崩防护",
+            "Cache-Aside 在商品读模型上的应用"
+          ]
+        },
+        {
+          "id": "practice-05-data-consistency",
+          "title": "分布式数据：事务、幂等与 Saga",
+          "sections": [
+            "本地事务边界与跨库问题",
+            "Seata AT 模式与适用边界",
+            "Saga 编排：补偿事务设计",
+            "幂等表、业务唯一键与重复提交",
+            "ShopFlow mini 项目验收清单"
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "advanced",
+      "phaseTitle": "生产治理：韧性、观测与架构演进",
+      "phaseGoal": "掌握生产级韧性治理、可观测与安全部署，并能评审与演进分布式架构",
+      "chapters": [
+        {
+          "id": "advanced-01-resilience",
+          "title": "韧性工程：熔断、限流、重试与舱壁",
+          "sections": [
+            "Resilience4j / Spring Cloud Circuit Breaker",
+            "熔断状态机与半开探测",
+            "令牌桶限流与舱壁隔离",
+            "重试风暴与指数退避",
+            "Bulkhead 在 ShopFlow 热点接口上的实践"
+          ]
+        },
+        {
+          "id": "advanced-02-observability",
+          "title": "可观测性：Metrics、Tracing 与日志",
+          "sections": [
+            "三大支柱与 SLI/SLO 入门",
+            "Micrometer + Prometheus 指标设计",
+            "OpenTelemetry 与 Zipkin/Jaeger 链路",
+            "结构化日志与 traceId 贯穿",
+            "告警规则与 On-call 排错流程"
+          ]
+        },
+        {
+          "id": "advanced-03-security-deploy",
+          "title": "安全、配置治理与容器化部署",
+          "sections": [
+            "OAuth2 / OIDC 与 Gateway 鉴权",
+            "Spring Cloud Config、Vault 与密钥轮换",
+            "Docker 镜像分层与 JVM 容器感知",
+            "Kubernetes Deployment / Service / Ingress",
+            "蓝绿与金丝雀发布要点"
+          ]
+        },
+        {
+          "id": "advanced-04-performance-scale",
+          "title": "性能、容量与数据扩展",
+          "sections": [
+            "压测方法论与瓶颈定位",
+            "连接池、线程池与背压",
+            "读写分离、分库分表与全局 ID",
+            "缓存一致性策略再审视",
+            "容量规划与弹性伸缩"
+          ]
+        },
+        {
+          "id": "advanced-05-evolution-patterns",
+          "title": "演进模式、反模式与架构评审",
+          "sections": [
+            "CQRS 与事件溯源适用边界",
+            "绞杀者模式与存量系统迁移",
+            "分布式单体、纳米服务等反模式",
+            "架构决策记录 ADR 模板",
+            "学习延伸：官方指南与经典书目"
+          ]
+        }
+      ]
+    }
+  ],
+  "chapters": {
+    "basics-01-distributed-fundamentals": {
+      "title": "分布式系统本质与挑战",
+      "summary": "单机到分布式的驱动力、部分失败与网络假设、扩展/可用/一致三角、Java 栈角色与 ShopFlow 三大上下文全景"
+    },
+    "basics-02-consistency-cap": {
+      "title": "CAP、BASE 与一致性模型",
+      "summary": "CAP 分区取舍、强/最终/因果一致、BASE 与 Outbox 预览、分布式锁与 fencing、读己之写等客户端语义"
+    },
+    "basics-03-architecture-styles": {
+      "title": "架构风格：单体、SOA 与微服务",
+      "summary": "分层与模块化单体、SOA/ESB 与微服务演进、微服务利弊与决策表、康威定律与团队拓扑、不宜硬拆的信号与渐进路径"
+    },
+    "basics-04-domain-api": {
+      "title": "领域建模、边界上下文与 API 契约",
+      "summary": "DDD 战略设计与子域、按业务能力 vs 技术层拆分、REST 版本与错误码、OpenAPI 契约优先与 CDC、ShopFlow 三上下文职责与集成"
+    },
+    "basics-05-communication-patterns": {
+      "title": "通信模式：同步、异步与事件驱动",
+      "summary": "REST/RPC 选型、MQ 与 Pub/Sub、编排 vs 编舞、幂等/Outbox 预览、Spring Cloud practice 章概念映射"
+    },
+    "practice-01-spring-cloud-bootstrap": {
+      "title": "Spring Boot 3.5 与 Spring Cloud 脚手架",
+      "summary": "JDK 21 + Boot 3.5 / Cloud 2025 BOM、api/service/common 多模块、Profile 外部化、ShopFlow 启动顺序、Actuator 与 JSON 日志基线"
+    },
+    "practice-02-discovery-gateway": {
+      "title": "服务注册发现与 API 网关",
+      "summary": "Eureka vs Nacos、order/inventory 注册心跳、Gateway 路由谓词过滤器、鉴权头透传 StripPrefix、Docker Compose 本地最小栈"
+    }
+  },
+  "terms": {
+    "cap-theorem": {
+      "label": "CAP 定理",
+      "prompt": "我在学习 Java 分布式架构。请用通俗语言解释 CAP 定理中 C、A、P 的含义，说明为何三者不能同时满足，并各举一个 ShopFlow 微服务场景下的工程取舍例子（含不能给整个系统贴单一 CP/AP 标签的原因）。"
+    },
+    "partial-failure": {
+      "label": "部分失败",
+      "prompt": "我在学习分布式系统基础。请解释「部分失败」是什么、与「全站宕机」有何不同，用 ShopFlow 中 order 调用 inventory 超时但库存可能已扣减的例子说明调用方的不确定性，并列出幂等键与查询状态等应对手段。"
+    },
+    "idempotency-key": {
+      "label": "幂等键",
+      "prompt": "我在学习 Java 分布式架构。请解释业务幂等键（requestId）的作用、与 HTTP 重试的关系，说明在 ShopFlow POST /reserve 中如何实现「重复提交返回同一结果」，并列举不设幂等键时重复扣库存的风险。"
+    },
+    "network-partition": {
+      "label": "网络分区",
+      "prompt": "我在学习 CAP 与分布式容错。请解释网络分区（Partition）在真实机房/云多 AZ 中如何发生、为何分布式系统必须假设分区会出现，并结合 ShopFlow 同城双活订单库与库存缓存跨机房场景说明对可用性与一致性的影响。"
+    },
+    "clock-skew": {
+      "label": "时钟漂移",
+      "prompt": "我在学习分布式系统。请解释节点间时钟漂移为何存在、NTP 能否完全消除问题，说明为何不能用 System.currentTimeMillis() 排序跨服务事件，并给出 ShopFlow 订单状态变更更稳妥的排序方式（版本号/逻辑时钟等）。"
+    },
+    "eventual-consistency": {
+      "label": "最终一致",
+      "prompt": "我在学习 Java 分布式架构，已了解 CAP 与副本复制。请解释「最终一致」的精确定义、与强一致的区别，举 ShopFlow 商品详情读从库短暂旧库存的例子，并说明需要哪些补偿手段（幂等、对账、状态机）。"
+    },
+    "strong-consistency": {
+      "label": "强一致",
+      "prompt": "我在学习分布式数据。请解释强一致/线性一致在工程上的含义与代价，说明 ShopFlow POST /reserve 防超卖为何倾向强一致或串行化，并对比商品详情读多写少场景可接受弱一致的理由。"
+    },
+    "causal-consistency": {
+      "label": "因果一致",
+      "prompt": "我在学习一致性模型。请解释因果一致是什么、与最终一致和强一致的关系，用 ShopFlow 订单评论回复链或同一用户操作序列举例，并说明会话粘滞、版本向量等常见实现思路。"
+    },
+    "base-model": {
+      "label": "BASE",
+      "prompt": "我在学习互联网分布式架构。请解释 BASE（Basically Available, Soft state, Eventually consistent）三字含义、与 ACID 的对比，说明 ShopFlow 跨服务下单链路为何常用 BASE 路径，并列举幂等、对账、Outbox 等配套手段。"
+    },
+    "acid-transaction": {
+      "label": "ACID 事务",
+      "prompt": "我在学习数据库与分布式。请解释 ACID 在单库本地事务中的含义，说明 ShopFlow 单服务内订单+明细为何仍可用 ACID，并解释跨 order/inventory/payment 服务时 ACID 为何不够用、常改用什么模式。"
+    },
+    "distributed-lock": {
+      "label": "分布式锁",
+      "prompt": "我在学习 Java 分布式协调。请解释分布式锁解决什么问题、租约（TTL/续租）为何必要，对比 Redis/ZooKeeper/数据库锁的适用边界，并结合 ShopFlow 库存扣减串行化说明「能不用锁就不用」的原则。"
+    },
+    "fencing-token": {
+      "label": "Fencing Token",
+      "prompt": "我在学习分布式锁进阶。请解释 fencing token 如何防止旧主（僵尸节点）覆写新主数据，用锁序号递增 + 存储拒绝旧 token 写的流程说明，并说明仅有 UUID 锁值为何不够安全。"
+    },
+    "read-your-writes": {
+      "label": "读己之写",
+      "prompt": "我在学习分布式一致性客户端语义。请解释「读己之写」的用户体验含义、读写分离下为何会失效，说明 ShopFlow 用户下单后刷新订单列表为空的可能原因，并给出短期读主、会话粘滞等缓解方案。"
+    },
+    "bounded-context": {
+      "label": "限界上下文",
+      "prompt": "我在学习 DDD 与微服务拆分。请解释「限界上下文」是什么、与微服务边界如何对应，并以 ShopFlow 订单/库存/支付为例说明如何划分上下文与避免模型泄漏。"
+    },
+    "layered-monolith": {
+      "label": "分层单体",
+      "prompt": "我在学习架构演进。请解释分层单体（按 controller/service/repository 分包）的特点、优点与演变成大泥球的风险，结合 ShopFlow 创业期 8 人团队说明何时作为合理起点，并对比模块化单体的差异。"
+    },
+    "modular-monolith": {
+      "label": "模块化单体",
+      "prompt": "我在学习 Java 模块化架构。请解释模块化单体（单进程单部署、按业务能力分 Maven 模块、跨模块只走公开 API）如何为微服务拆分做排练，用 ShopFlow order/inventory/payment 模块举例，并说明 ArchUnit 约束依赖的方向。"
+    },
+    "soa": {
+      "label": "SOA",
+      "prompt": "我在学习企业架构演进。请解释面向服务架构（SOA）的目标、与微服务的主要区别，说明为何常配合 ESB 做集中编排，以及 ShopFlow 若走 SOA 可能遇到的集成瓶颈。"
+    },
+    "esb": {
+      "label": "ESB",
+      "prompt": "我在学习 SOA 与微服务演进。请解释企业服务总线（ESB）的职责（路由、转换、编排）、为何易成变更瓶颈，并对比 Spring Cloud Gateway + 域内编排如何承担横切而避免「胖总线」。"
+    },
+    "microservices": {
+      "label": "微服务",
+      "prompt": "我在学习 Java 微服务架构。请解释微服务的核心特征（独立部署、去中心化数据、智能端点 dumb pipe），列举收益与成本（分布式事务、可观测、集成测试），并说明 ShopFlow 何时值得从模块化单体演进到微服务。"
+    },
+    "conways-law": {
+      "label": "康威定律",
+      "prompt": "我在学习架构与组织。请解释康威定律（系统结构镜像沟通结构）对微服务拆分的含义，用 ShopFlow 订单/库存/支付三小队与三服务对齐的正反例说明，并指出「组织未拆、服务先拆」的风险。"
+    },
+    "distributed-monolith": {
+      "label": "分布式单体",
+      "prompt": "我在学习微服务反模式。请解释「分布式单体」是什么、与模块化单体的区别，说明为何多个微服务仍共用一个 backlog/数据库却背上分布式排障成本，并给 ShopFlow 识别该反模式的 2～3 个信号。"
+    },
+    "strangler-pattern": {
+      "label": "绞杀者模式",
+      "prompt": "我在学习遗留系统迁移。请解释绞杀者（Strangler Fig）模式如何渐进替换单体模块，结合 ShopFlow 将新能力放到新服务、旧模块逐步下线的路径说明，并对比大爆炸式重写的风险。"
+    },
+    "saga-pattern": {
+      "label": "Saga 模式",
+      "prompt": "我在学习 Java 分布式事务。请解释 Saga 编排与编舞的区别、补偿事务如何设计，对比 Seata AT 的适用场景，并给一个 ShopFlow 订单支付失败的简化步骤示例。"
+    },
+    "circuit-breaker": {
+      "label": "熔断器",
+      "prompt": "我在学习微服务韧性。请解释熔断器 CLOSED/OPEN/HALF_OPEN 状态如何转换、与超时/重试/限流如何配合，并说明在 Spring Cloud 中常见的配置误区（结合 ShopFlow 调用 inventory 过载场景）。"
+    },
+    "outbox-pattern": {
+      "label": "Outbox 模式",
+      "prompt": "我在学习分布式数据一致性。请解释 Transactional Outbox 模式如何解决「写库 + 发消息」的原子性问题，并描述在 Java/Spring 中 OrderCreated 事件与订单表同事务写入的实现要点与常见坑。"
+    },
+    "api-gateway": {
+      "label": "API 网关",
+      "prompt": "我在学习 Spring Cloud Gateway。请说明 API 网关在微服务架构中的职责（路由、鉴权、限流、聚合），与 BFF 的差异，以及不应放进网关的业务编排逻辑有哪些（结合 ShopFlow 入口）。"
+    },
+    "openapi": {
+      "label": "OpenAPI",
+      "prompt": "我在学习 Java 分布式 API 设计。请解释 OpenAPI（契约优先）是什么、为何应先于 Controller 实现，说明 ShopFlow inventory 的 POST /reservations 契约应包含哪些关键字段与幂等头，并对比「代码先行再补文档」的风险。"
+    },
+    "consumer-driven-contract": {
+      "label": "消费者驱动契约",
+      "prompt": "我在学习微服务集成测试。请解释消费者驱动契约（CDC）的工作方式、与契约优先 OpenAPI 如何配合，用 order-service 调用 inventory-service 举例说明 Pact 如何将集成失败左移到 CI，并列举不做 CDC 时联调阶段的典型问题。"
+    },
+    "orchestration": {
+      "label": "编排（Orchestration）",
+      "prompt": "我在学习 Java 分布式通信。请解释微服务流程编排是什么、与 ESB 集中编排有何不同，用 ShopFlow order-service 协调 inventory 预留与 payment 发起的序列说明优缺点，并对比编舞模式何时更合适。"
+    },
+    "choreography": {
+      "label": "编舞（Choreography）",
+      "prompt": "我在学习事件驱动架构。请解释编舞（Choreography）如何无中心协调者完成跨服务流程，用 PaymentCompleted 被 order、analytics 分别消费举例，说明可扩展性与排障难点，并对比 ShopFlow 采用 order 编排混合方案的理由。"
+    },
+    "spring-cloud-bom": {
+      "label": "Spring Cloud BOM",
+      "prompt": "我在学习 Java 微服务工程化。请解释 Spring Cloud BOM（spring-cloud-dependencies）如何与 Spring Boot 版本对齐、为何子模块不应手写 Cloud 组件版本，并说明 ShopFlow 父 POM import BOM 后添加 OpenFeign/Gateway 依赖时的正确写法。"
+    },
+    "spring-boot-actuator": {
+      "label": "Spring Boot Actuator",
+      "prompt": "我在学习 Spring Boot 运维基线。请解释 Actuator 的 health/info/metrics 端点用途、liveness 与 readiness 探针差异，说明 ShopFlow order-service 本地 /actuator/health 验收标准，并列举不应默认对外暴露的敏感端点。"
+    },
+    "service-discovery": {
+      "label": "服务发现",
+      "prompt": "我在学习 Spring Cloud 微服务。请解释服务注册与发现的工作流程（注册、续约、查询、剔除），说明 spring.application.name 与 lb:// 路由的关系，并举例 ShopFlow order-service 向 Eureka 8761 注册后 Gateway 如何解析实例。"
+    }
+  },
+  "quizzes": {
+    "basics-01-distributed-fundamentals-quiz": {
+      "chapterId": "basics-01-distributed-fundamentals",
+      "title": "分布式系统本质与挑战",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "B", "hint": "超时后 inventory 可能已扣减但 order 未收到响应" },
+        { "id": "q2", "type": "fill", "answer": "Inventory", "hint": "三大上下文：Order / Inventory / Payment" },
+        { "id": "q3", "type": "multi", "answer": "A,B,D", "hint": "分布式不能消除网络不确定性" },
+        { "id": "q4", "type": "single", "answer": "D", "hint": "本机墙钟不能作为跨节点事件排序依据" },
+        { "id": "q5", "type": "single", "answer": "B", "hint": "先查询/对账消除不确定，再重试或补偿" }
+      ]
+    },
+    "basics-02-consistency-cap-quiz": {
+      "chapterId": "basics-02-consistency-cap",
+      "title": "CAP、BASE 与一致性模型",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "B", "hint": "有 P 时只能在 C 与 A 间取舍" },
+        { "id": "q2", "type": "fill", "answer": "Eventually", "hint": "Eventually consistent 的首词" },
+        { "id": "q3", "type": "multi", "answer": "A,C", "hint": "分布式副本与客户端会话层面的一致性" },
+        { "id": "q4", "type": "single", "answer": "C", "hint": "防止僵尸主用更旧 token 覆写" },
+        { "id": "q5", "type": "single", "answer": "A", "hint": "写主后读从可能看不到刚写的订单" }
+      ]
+    },
+    "basics-03-architecture-styles-quiz": {
+      "chapterId": "basics-03-architecture-styles",
+      "title": "架构风格：单体、SOA 与微服务",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "C", "hint": "单部署 + 模块公开 API" },
+        { "id": "q2", "type": "fill", "answer": "ESB", "hint": "Enterprise Service Bus" },
+        { "id": "q3", "type": "multi", "answer": "A,B,D", "hint": "C 是收益" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "架构镜像组织沟通结构" },
+        { "id": "q5", "type": "single", "answer": "B", "hint": "边界未清、无自动化时优先模块化单体" }
+      ]
+    },
+    "basics-04-domain-api-quiz": {
+      "chapterId": "basics-04-domain-api",
+      "title": "领域建模、边界上下文与 API 契约",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "B", "hint": "跨上下文只通过 API/事件" },
+        { "id": "q2", "type": "fill", "answer": "OpenAPI", "hint": "契约优先 YAML 规范" },
+        { "id": "q3", "type": "multi", "answer": "A,C,D", "hint": "B 违反幂等原则" },
+        { "id": "q4", "type": "single", "answer": "C", "hint": "消费者定义期望，CI 验证" },
+        { "id": "q5", "type": "single", "answer": "B", "hint": "Order 拥有订单状态变更权" }
+      ]
+    },
+    "basics-05-communication-patterns-quiz": {
+      "chapterId": "basics-05-communication-patterns",
+      "title": "通信模式：同步、异步与事件驱动",
+      "questions": [
+        { "id": "q1", "type": "single", "answer": "A", "hint": "须当场知道库存是否预留成功" },
+        { "id": "q2", "type": "fill", "answer": "Outbox", "hint": "Transactional Outbox 模式名" },
+        { "id": "q3", "type": "multi", "answer": "A,B,D", "hint": "C 是同步特征" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "各服务听事件、无中心协调者" },
+        { "id": "q5", "type": "single", "answer": "B", "hint": "异步事件解耦，避免长阻塞" }
+      ]
+    },
+    "practice-01-spring-cloud-bootstrap-quiz": {
+      "chapterId": "practice-01-spring-cloud-bootstrap",
+      "title": "Spring Boot 3.5 与 Spring Cloud 脚手架",
+      "questions": [
+        { "id": "q0", "type": "single", "answer": "C", "hint": "import spring-cloud-dependencies BOM" },
+        { "id": "q1", "type": "single", "answer": "B", "hint": "api 放 DTO 与 Feign 契约" },
+        { "id": "q2", "type": "fill", "answer": "local", "hint": "对应 application-local.yml" },
+        { "id": "q3", "type": "multi", "answer": "A,C,D", "hint": "勿暴露 env/beans 等敏感端点" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "版本由 BOM 统一管理" },
+        { "id": "q5", "type": "single", "answer": "A", "hint": "本章单服务可独立启动" }
+      ]
+    },
+    "practice-02-discovery-gateway-quiz": {
+      "chapterId": "practice-02-discovery-gateway",
+      "title": "服务注册发现与 API 网关",
+      "questions": [
+        { "id": "q0", "type": "single", "answer": "B", "hint": "本课默认 Eureka" },
+        { "id": "q1", "type": "single", "answer": "C", "hint": "lb:// 触发 LoadBalancer" },
+        { "id": "q2", "type": "fill", "answer": "8761", "hint": "Eureka 默认端口" },
+        { "id": "q3", "type": "multi", "answer": "A,B,D", "hint": "编排不在网关" },
+        { "id": "q4", "type": "single", "answer": "A", "hint": "先 discovery 再 gateway" },
+        { "id": "q5", "type": "single", "answer": "B", "hint": "注册表剔除有延迟" }
+      ]
+    }
+  }
+}

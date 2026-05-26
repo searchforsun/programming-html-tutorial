@@ -1,0 +1,58 @@
+{
+  "$schema": "chapter-quality policy for review-chapter.mjs (v1.7.6)",
+  "quiz": {
+    "requiredByDefault": true,
+    "requireQuestionTypes": ["single", "multi", "fill"],
+    "minQuestionsPerChapter": 4,
+    "skipWhenUserExplicitlyDisabled": true
+  },
+  "wordCount": {
+    "minByChapterType": {
+      "concept": null,
+      "practice": null,
+      "advanced": null
+    }
+  },
+  "terms": {
+    "minSpansConcept": 8,
+    "minSpansPractice": 5,
+    "minUniqueIdsConcept": 5,
+    "minUniqueIdsPractice": 3,
+    "minPromptChars": 80,
+    "theoryPhaseIds": ["basics", "advanced"]
+  },
+  "mermaid": {
+    "minCountConcept": 1,
+    "minCountPractice": 0
+  },
+  "code": {
+    "minBlocksConcept": 0,
+    "minBlocksPractice": 1
+  },
+  "steps": {
+    "minCount": 3,
+    "maxCount": 8,
+    "demoOverlapWarning": true
+  },
+  "practice": {
+    "minSteps": 3,
+    "maxSteps": 8,
+    "stepsPerSectionRatio": 0.5,
+    "stepsPerSectionRatioPractice": 0.6,
+    "maxDemoOnlySteps": 1,
+    "minIntroChars": 18,
+    "minJudgmentAnswerChars": 8,
+    "boilerplateIntroPatterns": [
+      "先完成.*理解.*再用.*判断",
+      "理解.*步骤.*判断.*检验"
+    ],
+    "boilerplateJudgmentPatterns": [
+      "方案 A.*方案 B.*各写.*支持.*反对",
+      "请各写.*1 条支持.*1 条反对"
+    ]
+  },
+  "pedagogy": {
+    "requiredForConceptChapters": true,
+    "minConclusionBullets": 2
+  }
+}

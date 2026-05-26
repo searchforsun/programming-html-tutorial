@@ -1,0 +1,136 @@
+/* 壳层共享常量（与 UI 风格包无关） */
+:root {
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+
+/* ── 主题中性风：仅中性底/面/字，不覆盖 --accent*（由 theme.css 负责）── */
+[data-ui-style="compact"][data-theme="light"],
+[data-ui-style="outline"][data-theme="light"],
+[data-ui-style="soft"][data-theme="light"] {
+  --bg: #f4f4f5;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --text: #18181b;
+  --muted: #71717a;
+  --border: #e4e4e7;
+  --code-bg: #f4f4f5;
+  --code-header: #e4e4e7;
+  --code-inline-bg: #f4f4f5;
+  --code-inline-fg: var(--text);
+  --code-inline-border: #d4d4d8;
+  --table-head-bg: var(--surface-elevated);
+  --table-head-fg: var(--text);
+  --table-head-border: var(--border);
+  --input-bg: var(--surface);
+  --input-fg: var(--text);
+  --input-border: var(--border);
+  --input-placeholder: var(--muted);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.09);
+  --success: #15803d;
+  --danger: #dc2626;
+  --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  --bg-accent: none;
+  --scrollbar-thumb: #d4d4d8;
+}
+
+[data-ui-style="compact"][data-theme="dark"],
+[data-ui-style="outline"][data-theme="dark"],
+[data-ui-style="soft"][data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #18181b;
+  --surface-elevated: #27272a;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --border: #3f3f46;
+  --code-bg: #18181b;
+  --code-header: #27272a;
+  --code-inline-bg: #27272a;
+  --code-inline-fg: var(--text);
+  --code-inline-border: #52525b;
+  --table-head-bg: var(--surface-elevated);
+  --table-head-fg: var(--text);
+  --table-head-border: var(--border);
+  --input-bg: var(--surface-elevated);
+  --input-fg: var(--text);
+  --input-border: var(--border);
+  --input-placeholder: var(--muted);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --success: #4ade80;
+  --danger: #f87171;
+  --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  --bg-accent: none;
+  --scrollbar-thumb: #52525b;
+}
+
+/* ── 赛博 · 主题 accent 驱动霓虹，底为中性暗色场 ── */
+[data-ui-style="cyber"][data-theme="light"] {
+  --bg: #eef0f4;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --text: #12121a;
+  --muted: #64647a;
+  --border: color-mix(in srgb, var(--accent) 18%, #d4d4dc);
+  --code-bg: #12121a;
+  --code-header: #1a1a24;
+  --code-inline-bg: #e8e8ee;
+  --code-inline-fg: var(--text);
+  --code-inline-border: #c8c8d4;
+  --code-toolbar-bg: #1a1a24;
+  --code-toolbar-fg: #c8c8d4;
+  --code-toolbar-border: color-mix(in srgb, var(--accent) 35%, #2a2a34);
+  --table-head-bg: #12121a;
+  --table-head-fg: #e4e4ef;
+  --table-head-border: color-mix(in srgb, var(--accent) 40%, #2a2a34);
+  --input-bg: var(--surface);
+  --input-fg: var(--text);
+  --input-border: color-mix(in srgb, var(--accent) 25%, #d4d4dc);
+  --input-placeholder: var(--muted);
+  --shadow-sm: 0 0 12px color-mix(in srgb, var(--accent-glow) 35%, transparent);
+  --shadow-md: 0 0 24px color-mix(in srgb, var(--accent-glow) 45%, transparent);
+  --shadow-lg: 0 0 40px color-mix(in srgb, var(--accent-glow) 55%, transparent);
+  --success: #15803d;
+  --danger: #dc2626;
+  --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  --bg-accent:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  --scrollbar-thumb: #a1a1aa;
+}
+
+[data-ui-style="cyber"][data-theme="dark"] {
+  --bg: #050508;
+  --surface: #0c0c12;
+  --surface-elevated: #14141f;
+  --text: #e4e4ef;
+  --muted: #8888a0;
+  --border: color-mix(in srgb, var(--accent) 28%, #2a2a3a);
+  --code-bg: #030306;
+  --code-header: #0a0a10;
+  --code-inline-bg: #14141f;
+  --code-inline-fg: color-mix(in srgb, var(--accent) 75%, var(--text));
+  --code-inline-border: color-mix(in srgb, var(--accent) 35%, #2a2a3a);
+  --code-toolbar-bg: #0a0a10;
+  --code-toolbar-fg: color-mix(in srgb, var(--accent) 70%, #c8c8d4);
+  --code-toolbar-border: color-mix(in srgb, var(--accent) 45%, #2a2a3a);
+  --table-head-bg: #0a0a10;
+  --table-head-fg: color-mix(in srgb, var(--accent) 75%, #e4e4ef);
+  --table-head-border: color-mix(in srgb, var(--accent) 50%, #2a2a3a);
+  --input-bg: #0c0c12;
+  --input-fg: var(--text);
+  --input-border: color-mix(in srgb, var(--accent) 40%, #2a2a3a);
+  --input-placeholder: var(--muted);
+  --shadow-sm: 0 0 14px color-mix(in srgb, var(--accent-glow) 40%, transparent);
+  --shadow-md: 0 0 28px color-mix(in srgb, var(--accent-glow) 50%, transparent);
+  --shadow-lg: 0 0 44px color-mix(in srgb, var(--accent-glow) 60%, transparent);
+  --success: #4ade80;
+  --danger: #f87171;
+  --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  --bg-accent:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  --scrollbar-thumb: #3f3f50;
+}

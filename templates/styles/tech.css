@@ -1,0 +1,212 @@
+/* UI 风格包 · tech（独立加载，互斥启用） */
+
+:root {
+--radius: 0px;
+  --radius-sm: 0px;
+  --radius-xs: 0px;
+  --radius-pill: 0px;
+  --radius-marker: 0px;
+  --font-sans: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --style-card-bar: 1;
+  --style-title-gradient: 0;
+  --style-hover-scale: 1;
+  --style-card-shadow: var(--shadow-sm);
+  --style-heading-mark: neon;
+  --style-btn-shape: var(--radius-pill);
+  --style-border-width: 1px;
+  --style-letter-spacing: 0.04em;
+  --style-hover-rest: none;
+  --style-hover-transform: scale(1.018);
+  --style-hover-shadow: var(--shadow-md), 0 0 24px var(--accent-glow);
+  --style-hover-border: color-mix(in srgb, var(--accent) 55%, var(--border));
+  --style-hover-duration: 0.18s;
+  --style-hover-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-theme="light"] {
+--bg: #f0fdfa;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-elevated: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --accent: #0891b2;
+  --accent-hover: #0e7490;
+  --accent-soft: #ecfeff;
+  --accent-glow: rgba(8, 145, 178, 0.28);
+  --accent-alt: #06b6d4;
+  --border: rgba(8, 145, 178, 0.2);
+  --code-bg: #f0fdfa;
+  --code-header: #ccfbf1;
+  --shadow-sm: 0 0 0 1px rgba(8, 145, 178, 0.08), 0 2px 8px rgba(8, 145, 178, 0.06);
+  --shadow-md: 0 0 0 1px rgba(8, 145, 178, 0.12), 0 8px 24px rgba(8, 145, 178, 0.1);
+  --shadow-lg: 0 0 24px rgba(8, 145, 178, 0.15);
+  --glass-blur: 10px;
+  --success: #10b981;
+  --danger: #f43f5e;
+  --progress-gradient: linear-gradient(90deg, #0891b2, #06b6d4, #22d3ee);
+  --bg-accent:
+    linear-gradient(rgba(8, 145, 178, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 145, 178, 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse 70% 50% at 80% -10%, rgba(6, 182, 212, 0.15), transparent);
+  --scrollbar-thumb: #99f6e4;
+}
+
+[data-theme="dark"] {
+--bg: #0a1018;
+  --surface: rgba(15, 23, 42, 0.85);
+  --surface-elevated: #111827;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-soft: rgba(8, 145, 178, 0.18);
+  --accent-glow: rgba(34, 211, 238, 0.35);
+  --accent-alt: #06b6d4;
+  --border: rgba(34, 211, 238, 0.18);
+  --code-bg: #0d1520;
+  --code-header: #111827;
+  --shadow-sm: 0 0 12px rgba(34, 211, 238, 0.08);
+  --shadow-md: 0 0 24px rgba(34, 211, 238, 0.12);
+  --shadow-lg: 0 0 40px rgba(34, 211, 238, 0.16);
+  --glass-blur: 12px;
+  --success: #34d399;
+  --danger: #fb7185;
+  --progress-gradient: linear-gradient(90deg, #0891b2, #22d3ee, #34d399);
+  --bg-accent:
+    linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    radial-gradient(ellipse 60% 40% at 50% -5%, rgba(6, 182, 212, 0.12), transparent);
+  --scrollbar-thumb: #155e75;
+}
+
+body {
+background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+.meta-card,
+.role-card,
+.chapter-header,
+.chapter .content-section,
+.quiz-item,
+.demo-box,
+.course-card {
+border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.meta-card::before,
+.role-card::before,
+.course-card::before {
+opacity: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.meta-card::after,
+.role-card::after,
+.course-card::after {
+content: "";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.topbar {
+border-bottom-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.course-title::before,
+.portal-title::before {
+border-radius: 0;
+  width: 6px;
+  height: 14px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-alt));
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.chapter .section-block > h3,
+.chapter h3 {
+border-left: 3px solid var(--accent);
+  border-image: none;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  box-shadow: -4px 0 12px color-mix(in srgb, var(--accent-glow) 50%, transparent);
+}
+
+.btn-mark-done:not(.is-done),
+.quiz-actions .btn-check {
+border-radius: var(--style-btn-shape);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.phase-tag {
+border-radius: var(--style-btn-shape);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.portal-hero h2,
+.welcome-header h2 {
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 1.5rem;
+}
+
+:is(
+  .code-block, .meta-card, .role-card, .course-card
+) {
+clip-path: polygon(
+    0 0, calc(100% - 10px) 0, 100% 10px,
+    100% 100%, 10px 100%, 0 calc(100% - 10px)
+  );
+}
+
+:is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block) {
+clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)) !important;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+  box-shadow: var(--shadow-sm), 0 0 18px var(--accent-glow) !important;
+}
+
+:is(.meta-card, .role-card, .course-card)::before {
+opacity: 1 !important;
+  height: 2px !important;
+}
+
+:is(.btn-mark-done, .quiz-actions .btn-check, .btn-portal, .phase-tag) {
+text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  font-size: 0.78rem !important;
+}
+
+:is(.course-title, .portal-title, .welcome-header h2, .portal-hero h2) {
+text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--accent) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+body.page-course.page-welcome .welcome-header h2 {
+font-size: 1.35rem !important;
+}
+
+body.page-course.page-chapter #sidebar {
+border-right-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--accent-glow) 50%, transparent) !important;
+}

@@ -1,0 +1,5 @@
+[
+  { "id": "doubao", "label": "豆包 ↗", "url": "https://www.doubao.com/chat/" },
+  { "id": "deepseek", "label": "DeepSeek ↗", "url": "https://chat.deepseek.com/" },
+  { "id": "qianwen", "label": "通义 ↗", "url": "https://tongyi.aliyun.com/qianwen/" }
+]

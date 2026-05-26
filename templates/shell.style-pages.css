@@ -1,0 +1,507 @@
+/* 分页面风格微调 — **源文件**（build 时并入各 templates/styles/*.css）
+ * 维护说明：reference/shell-ui-styles.md */
+
+/* ═══════════════════════════════════════
+   全局形状强制（覆盖 shell.base 硬编码圆角）
+   ═══════════════════════════════════════ */
+html[data-ui-style] .meta-card,
+html[data-ui-style] .role-card,
+html[data-ui-style] .chapter-header,
+html[data-ui-style] .chapter .content-section,
+html[data-ui-style] .chapter .section-block,
+html[data-ui-style] .quiz-item,
+html[data-ui-style] .outline-table-wrap,
+html[data-ui-style] .demo-box,
+html[data-ui-style] .steps li,
+html[data-ui-style] .notice,
+html[data-ui-style] .code-block,
+html[data-ui-style] #term-modal,
+html[data-ui-style] .ui-style-popover,
+html[data-ui-style] .course-card,
+html[data-ui-style] .learn-scenario,
+html[data-ui-style] .learn-compare-col,
+html[data-ui-style] .learn-tabs,
+html[data-ui-style] .learn-faq details,
+html[data-ui-style] .learn-checklist,
+html[data-ui-style] .learn-cheat-sheet details,
+html[data-ui-style] .learn-interview details,
+html[data-ui-style] .learn-param-slider,
+html[data-ui-style] .learn-micro-check,
+html[data-ui-style] .welcome-panel,
+html[data-ui-style] .outline-table {
+  border-radius: var(--radius) !important;
+}
+
+html[data-ui-style] .meta-card,
+html[data-ui-style] .role-card,
+html[data-ui-style] .chapter .content-section,
+html[data-ui-style] .chapter .section-block,
+html[data-ui-style] .quiz-item,
+html[data-ui-style] .outline-table-wrap,
+html[data-ui-style] .demo-box,
+html[data-ui-style] .steps li,
+html[data-ui-style] .code-block,
+html[data-ui-style] #term-modal,
+html[data-ui-style] .ui-style-popover,
+html[data-ui-style] .course-card,
+html[data-ui-style] .learn-scenario,
+html[data-ui-style] .learn-compare-col,
+html[data-ui-style] .learn-tabs,
+html[data-ui-style] .learn-faq details,
+html[data-ui-style] .learn-checklist,
+html[data-ui-style] .learn-cheat-sheet details,
+html[data-ui-style] .learn-interview details,
+html[data-ui-style] .learn-param-slider,
+html[data-ui-style] .learn-micro-check,
+html[data-ui-style] .welcome-panel,
+html[data-ui-style] .outline-table {
+  border-width: var(--style-border-width) !important;
+}
+
+html[data-ui-style] .btn,
+html[data-ui-style] .btn-topbar-icon,
+html[data-ui-style] .btn-portal,
+html[data-ui-style] .btn-import,
+html[data-ui-style] .topbar button,
+html[data-ui-style] .topbar-actions button,
+html[data-ui-style] .quiz-actions button,
+html[data-ui-style] .fill-input,
+html[data-ui-style] .btn-copy,
+html[data-ui-style] .btn-mark-done,
+html[data-ui-style] #btn-copy-prompt,
+html[data-ui-style] .ui-style-option,
+html[data-ui-style] .term-actions .btn-term,
+html[data-ui-style] .outline-ch-index {
+  border-radius: var(--style-btn-shape) !important;
+}
+
+html[data-ui-style] #progress-bar,
+html[data-ui-style] .progress-track,
+html[data-ui-style] .progress-fill,
+html[data-ui-style] #toast,
+html[data-ui-style] .phase-tag,
+html[data-ui-style] .course-tag,
+html[data-ui-style] .chapter-done-badge {
+  border-radius: var(--radius-pill) !important;
+}
+
+html[data-ui-style] .steps li::before,
+html[data-ui-style] .course-title::before,
+html[data-ui-style] .portal-title::before,
+html[data-ui-style] .course-card-dot {
+  border-radius: var(--radius-marker) !important;
+}
+
+html[data-ui-style] .chapter :not(pre) > code,
+html[data-ui-style] .demo-box code,
+html[data-ui-style] .steps code,
+html[data-ui-style] .notice code,
+html[data-ui-style] .quiz-item code {
+  border-radius: var(--radius-xs) !important;
+}
+
+/* 非科技风：清除 clip-path，避免切换残留 */
+html[data-ui-style="minimal"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="vibrant"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="nord"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="paper"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="glass"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="terminal"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="sakura"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="compact"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="outline"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block),
+html[data-ui-style="soft"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block) {
+  clip-path: none !important;
+}
+
+/* ═══════════════════════════════════════
+   八风格签名（全局，三页面均生效）
+   ═══════════════════════════════════════ */
+
+/* 简约 · 扁平小圆角 */
+html[data-ui-style="minimal"] :is(.meta-card, .role-card, .course-card, .chapter .section-block, .code-block) {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-ui-style="minimal"] .chapter-header {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-ui-style="minimal"] section[data-chapter].done .chapter-header {
+  border-left: 3px solid var(--accent) !important;
+}
+html[data-ui-style="minimal"] section[data-chapter].in-progress:not(.done) .chapter-header {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+}
+html[data-ui-style="minimal"] .topbar {
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+html[data-ui-style="minimal"] .chapter .section-block > h3,
+html[data-ui-style="minimal"] .chapter h3 {
+  border-left: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* 科技 · 直角切角 + 霓虹 */
+html[data-ui-style="tech"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block) {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)) !important;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+  box-shadow: var(--shadow-sm), 0 0 18px var(--accent-glow) !important;
+}
+html[data-ui-style="tech"] :is(.meta-card, .role-card, .course-card)::before {
+  opacity: 1 !important;
+  height: 2px !important;
+}
+html[data-ui-style="tech"] :is(.btn-mark-done, .quiz-actions .btn-check, .btn-portal, .phase-tag) {
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  font-size: 0.78rem !important;
+}
+html[data-ui-style="tech"] :is(.course-title, .portal-title, .welcome-header h2, .portal-hero h2) {
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--accent) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* 活力 · 超大圆角 + 玻璃 */
+html[data-ui-style="vibrant"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+  border-radius: var(--radius) !important;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  overflow: hidden;
+}
+html[data-ui-style="vibrant"] :is(.course-title, .welcome-header h2, .portal-hero h2) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt), var(--success)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+html[data-ui-style="vibrant"] .chapter .section-block > h3 {
+  border-left: none !important;
+  background: linear-gradient(90deg, var(--accent-soft), transparent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* 北欧 · 左侧色条 + 胶囊 */
+html[data-ui-style="nord"] :is(.chapter-header, .meta-card, .role-card, .course-card) {
+  border-radius: 0 var(--radius) var(--radius) 0 !important;
+  border-left: 4px solid var(--accent-alt) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="nord"] .chapter .section-block > h3 {
+  display: inline-block !important;
+  border-left: none !important;
+  padding: 0.25rem 0.7rem !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-radius: var(--radius-pill) !important;
+}
+html[data-ui-style="nord"] :is(.course-title, .welcome-header h2, .portal-hero h2) {
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  color: var(--text) !important;
+}
+
+/* 纸感 · 全直角 + 叠影 */
+html[data-ui-style="paper"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block, .code-block, .outline-table-wrap) {
+  border-radius: 0 !important;
+  box-shadow: var(--style-card-shadow) !important;
+  border-width: 2px !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="paper"] :is(.meta-card, .role-card, .course-card)::before {
+  opacity: 1 !important;
+  height: 5px !important;
+  border-radius: 0 !important;
+  background: var(--accent) !important;
+}
+html[data-ui-style="paper"] .chapter .section-block > h3 {
+  font-style: italic !important;
+  border-left: none !important;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--border)) !important;
+  border-radius: 0 !important;
+}
+html[data-ui-style="paper"] :is(.welcome-header h2, .portal-hero h2) {
+  font-style: italic !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* 玻璃 · 磨砂 + 冰蓝 */
+html[data-ui-style="glass"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block, .topbar) {
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  border-color: color-mix(in srgb, #ffffff 45%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow) !important;
+}
+html[data-ui-style="glass"] :is(.meta-card, .role-card, .course-card)::before {
+  opacity: 1 !important;
+  height: 3px !important;
+  border-radius: var(--radius-pill) !important;
+}
+html[data-ui-style="glass"] .chapter .section-block > h3 {
+  border-left: none !important;
+  background: linear-gradient(90deg, var(--accent-soft), transparent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+html[data-ui-style="glass"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* 终端 · 等宽磷光 */
+html[data-ui-style="terminal"] body {
+  font-family: var(--font-sans) !important;
+}
+html[data-ui-style="terminal"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+  box-shadow: var(--style-card-shadow) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="terminal"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  letter-spacing: 0.03em !important;
+}
+html[data-ui-style="terminal"][data-theme="dark"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  color: var(--accent) !important;
+}
+html[data-ui-style="terminal"] .chapter .section-block > h3,
+html[data-ui-style="terminal"] .chapter h3 {
+  border-left: 2px solid var(--accent) !important;
+  color: var(--text) !important;
+  font-size: 0.85rem !important;
+}
+html[data-ui-style="terminal"][data-theme="dark"] .chapter .section-block > h3,
+html[data-ui-style="terminal"][data-theme="dark"] .chapter h3 {
+  color: var(--accent) !important;
+}
+html[data-ui-style="terminal"] :is(.chapter :not(pre) > code, .demo-box code, .steps code, .notice code, .quiz-item code) {
+  background: var(--code-inline-bg, var(--code-bg)) !important;
+  color: var(--code-inline-fg, var(--text)) !important;
+  border-color: var(--code-inline-border, var(--border)) !important;
+}
+html[data-ui-style="terminal"] .outline-table thead th {
+  background: var(--table-head-bg, var(--code-header)) !important;
+  color: var(--table-head-fg, var(--muted)) !important;
+  border-bottom-color: var(--table-head-border, var(--border)) !important;
+}
+html[data-ui-style="terminal"] .code-toolbar {
+  background: var(--code-toolbar-bg, var(--code-header)) !important;
+  border-bottom-color: var(--code-toolbar-border, var(--border)) !important;
+}
+html[data-ui-style="terminal"] .code-toolbar .lang-tag {
+  color: var(--code-toolbar-fg, var(--muted)) !important;
+}
+html[data-ui-style="terminal"] .code-block pre {
+  background: var(--code-bg) !important;
+}
+html[data-ui-style="terminal"] .quiz-item .fill-input {
+  background: var(--input-bg, var(--surface)) !important;
+  color: var(--input-fg, var(--text)) !important;
+  border-color: var(--input-border, var(--border)) !important;
+}
+html[data-ui-style="terminal"] .quiz-item .fill-input::placeholder {
+  color: var(--input-placeholder, var(--muted)) !important;
+}
+
+/* 樱粉 · 渐变标题 + 柔边 */
+html[data-ui-style="sakura"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+}
+html[data-ui-style="sakura"] :is(.meta-card, .role-card, .course-card)::before {
+  opacity: 1 !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt)) !important;
+}
+html[data-ui-style="sakura"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+html[data-ui-style="sakura"] .chapter .section-block > h3 {
+  border-left: none !important;
+  color: var(--accent) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border)) !important;
+}
+
+/* 紧凑 · 高密度排版（主题色来自 theme.css） */
+html[data-ui-style="compact"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="compact"] .chapter .content-section,
+html[data-ui-style="compact"] .chapter .section-block {
+  padding: 0.85rem 1rem !important;
+}
+html[data-ui-style="compact"] .chapter .section-block > h3,
+html[data-ui-style="compact"] .chapter h3 {
+  border-left: 2px solid var(--accent) !important;
+  color: var(--text) !important;
+  font-size: 0.9rem !important;
+  padding-left: 0.45rem !important;
+}
+html[data-ui-style="compact"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* 线框 · 粗边框无填充阴影 */
+html[data-ui-style="outline"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block, .quiz-item) {
+  background: var(--surface) !important;
+  border-width: 2px !important;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border)) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="outline"] :is(.meta-card, .role-card, .course-card)::before {
+  display: none !important;
+}
+html[data-ui-style="outline"] .chapter .section-block > h3,
+html[data-ui-style="outline"] .chapter h3 {
+  border-left: none !important;
+  border-bottom: 2px solid var(--accent) !important;
+  color: var(--text) !important;
+  padding-left: 0 !important;
+}
+html[data-ui-style="outline"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* 柔圆 · 大圆角 + 胶囊标题（主题色来自 theme.css） */
+html[data-ui-style="soft"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block) {
+  border: none !important;
+  box-shadow: var(--style-card-shadow) !important;
+  backdrop-filter: none !important;
+}
+html[data-ui-style="soft"] :is(.meta-card, .role-card, .course-card)::before {
+  display: none !important;
+}
+html[data-ui-style="soft"] .chapter .section-block > h3,
+html[data-ui-style="soft"] .chapter h3 {
+  border-left: none !important;
+  display: inline-block !important;
+  padding: 0.28rem 0.75rem !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-radius: var(--radius-pill) !important;
+}
+html[data-ui-style="soft"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* 赛博 · 切角霓虹 + 扫描网格（accent 来自 theme.css） */
+html[data-ui-style="cyber"] body {
+  background-size: 24px 24px, 24px 24px, 100% 100% !important;
+}
+html[data-ui-style="cyber"] :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block, .quiz-item) {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)) !important;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+  box-shadow: var(--style-card-shadow), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+html[data-ui-style="cyber"] :is(.meta-card, .role-card, .course-card)::before {
+  opacity: 1 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt)) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
+}
+html[data-ui-style="cyber"] .topbar {
+  border-bottom-color: color-mix(in srgb, var(--accent) 50%, var(--border)) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 55%, transparent) !important;
+}
+html[data-ui-style="cyber"] .chapter .section-block > h3,
+html[data-ui-style="cyber"] .chapter h3 {
+  border-left: none !important;
+  border-image: none !important;
+  text-transform: uppercase !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.1em !important;
+  color: var(--accent) !important;
+  text-shadow: 0 0 14px var(--accent-glow) !important;
+  padding-left: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+  border-radius: 0 !important;
+}
+html[data-ui-style="cyber"] :is(.welcome-header h2, .portal-hero h2, .course-title) {
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  color: var(--accent) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  text-shadow: 0 0 20px var(--accent-glow) !important;
+}
+html[data-ui-style="cyber"] :is(.btn-mark-done, .quiz-actions .btn-check, .phase-tag) {
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  font-size: 0.78rem !important;
+  box-shadow: 0 0 16px var(--accent-glow) !important;
+}
+html[data-ui-style="cyber"] .outline-table thead th {
+  background: var(--table-head-bg, var(--code-header)) !important;
+  color: var(--table-head-fg, var(--muted)) !important;
+  border-bottom-color: var(--table-head-border, var(--border)) !important;
+}
+html[data-ui-style="cyber"] .code-toolbar {
+  background: var(--code-toolbar-bg, var(--code-header)) !important;
+  border-bottom-color: var(--code-toolbar-border, var(--border)) !important;
+}
+html[data-ui-style="cyber"] .code-toolbar .lang-tag {
+  color: var(--code-toolbar-fg, var(--muted)) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+}
+html[data-ui-style="cyber"] .quiz-item .fill-input {
+  background: var(--input-bg, var(--surface)) !important;
+  color: var(--input-fg, var(--text)) !important;
+  border-color: var(--input-border, var(--border)) !important;
+}
+html[data-ui-style="cyber"] .quiz-item .fill-input::placeholder {
+  color: var(--input-placeholder, var(--muted)) !important;
+}
+
+/* ═══════════════════════════════════════
+   A · 课程选择页
+   ═══════════════════════════════════════ */
+html[data-ui-style="paper"] body.page-portal .course-card-footer {
+  border-top-style: dashed !important;
+}
+
+/* ═══════════════════════════════════════
+   B · 课程首页（welcome）
+   ═══════════════════════════════════════ */
+html[data-ui-style="tech"] body.page-course.page-welcome .welcome-header h2 {
+  font-size: 1.35rem !important;
+}
+
+/* ═══════════════════════════════════════
+   C · 章节页
+   ═══════════════════════════════════════ */
+html[data-ui-style="minimal"] body.page-course.page-chapter #sidebar {
+  border-right: 2px solid var(--border) !important;
+}
+html[data-ui-style="tech"] body.page-course.page-chapter #sidebar {
+  border-right-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--accent-glow) 50%, transparent) !important;
+}

@@ -1,0 +1,381 @@
+<section id="ch-practice-02-discovery-gateway" class="chapter" data-chapter="practice-02-discovery-gateway">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>服务注册发现与 API 网关</h2>
+    <button type="button" class="btn-mark-done" data-chapter="practice-02-discovery-gateway" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>38 分钟</strong> · 阶段：<strong>Java 微服务栈实战</strong> · 能力：搭建注册中心、注册 order/inventory 并通过 Gateway 统一入口访问</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-practice-01-spring-cloud-bootstrap">上一章</a> 能单点启动 order-service；多实例、多服务后客户端不能再记 IP:端口。 <span class="term" data-term-id="service-discovery" tabindex="0">服务发现</span> 解决「找谁」；<span class="term" data-term-id="api-gateway" tabindex="0">API 网关</span> 解决「从哪进、横切怎么做」。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>对比 Eureka 与 Nacos 选型，并在 ShopFlow 落地 Eureka</li>
+          <li>让 order-service、inventory-service 注册、续约与下线</li>
+          <li>用 Spring Cloud Gateway 配置路由、谓词与过滤器</li>
+          <li>透传鉴权头、重写路径，并用 Docker Compose 起本地最小栈</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>先注册中心、再业务服务、最后网关</strong>：实例列表为空时 Gateway 无法路由。</li>
+          <li><strong>网关只做横切</strong>：路由、鉴权头、限流；业务编排仍在 order-service（见 <a href="#ch-basics-05-communication-patterns">通信模式</a>）。</li>
+          <li><strong>心跳 ≠ 强一致</strong>：注册表是近似视图，调用仍可能命中刚下线的实例（<a href="#ch-practice-03-sync-calls">下一章</a> LoadBalancer + 超时重试）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>Eureka / Nacos 注册中心选型对比</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 本地与云上</span>
+        团队先在笔记本 Docker 里联调，未来可能上 K8s。注册中心要<strong>与 Spring Cloud 2025 BOM 兼容</strong>、学习曲线低，且能支撑 order / inventory / payment 三服务实例列表。
+      </aside>
+      <p><strong>服务注册发现</strong>：服务启动时向注册中心<strong>登记</strong>自己的 host、port、元数据；消费者从注册中心<strong>查询</strong>可用实例，而不是写死 URL。ShopFlow 本课选用 Netflix <strong>Eureka</strong>（Spring Cloud 一等公民）；Nacos 在阿里生态与配置中心一体化场景更常见。</p>
+
+      <h4>Eureka vs Nacos（ShopFlow 视角）</h4>
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>维度</th><th>Eureka</th><th>Nacos</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Spring Cloud 集成</strong></td>
+            <td><code>eureka-server/client</code> 成熟，本课 BOM 直接管理版本</td>
+            <td><code>spring-cloud-alibaba</code> 另需对齐 BOM</td>
+          </tr>
+          <tr>
+            <td><strong>配置中心</strong></td>
+            <td>否（Config Server 另章）</td>
+            <td>注册 + 配置一体</td>
+          </tr>
+          <tr>
+            <td><strong>健康模型</strong></td>
+            <td>客户端心跳 + 服务端剔除</td>
+            <td>心跳 + 可选 CP 模式</td>
+          </tr>
+          <tr>
+            <td><strong>本课选择</strong></td>
+            <td>✓ 教程默认，Compose 一键起</td>
+            <td>延伸阅读；生产可评估</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">硬编码地址</span>
+          <ul>
+            <li><code>http://192.168.1.8:8081</code> 写进 Feign</li>
+            <li>扩容 / 换端口要改代码</li>
+            <li>无法感知实例宕机</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">注册发现</span>
+          <ul>
+            <li>按 <code>spring.application.name</code> 查实例</li>
+            <li>LoadBalancer 轮询 / 随机</li>
+            <li>心跳过期后剔除（最终一致）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>order-service、inventory-service 注册与心跳</h3>
+      <p>在 <a href="#ch-practice-01-spring-cloud-bootstrap">脚手架</a> 基础上，为各 service 模块添加 Eureka Client（版本由 <span class="term" data-term-id="spring-cloud-bom" tabindex="0">Spring Cloud BOM</span> 管理），并新增独立模块 <code>shopflow-discovery-server</code>（或 Docker 镜像）作为注册中心。</p>
+
+      <h4>Discovery Server（Eureka Server）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">@SpringBootApplication
+@EnableEurekaServer
+public class DiscoveryServerApplication {
+  public static void main(String[] args) {
+    SpringApplication.run(DiscoveryServerApplication.class, args);
+  }
+}</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># discovery-server / application-local.yml
+server:
+  port: 8761
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false</code></pre>
+      </div>
+
+      <h4>业务服务注册（Client）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># order-service / application-local.yml
+spring:
+  application:
+    name: order-service
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10</code></pre>
+      </div>
+      <p><code>inventory-service</code> 同理，<code>spring.application.name</code> 必须为 <strong>inventory-service</strong>（与 Gateway 路由 <code>lb://inventory-service</code> 一致）。</p>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 注册与心跳</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant O as order-service
+  participant E as Eureka :8761
+  participant I as inventory-service
+  O->>E: REGISTER (8081)
+  I->>E: REGISTER (8082)
+  loop 每 10s
+    O->>E: RENEW 心跳
+    I->>E: RENEW 心跳
+  end
+  Note over E: 超时未续约则剔除实例</pre>
+        <p class="diagram-caption">注册表是软状态；调用方仍可能遇到 <span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span>，需客户端超时与重试。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>Spring Cloud Gateway 路由与谓词过滤器</h3>
+      <p>新增 <code>shopflow-gateway</code> 模块，依赖 <code>spring-cloud-starter-gateway-server-webflux</code>（Spring Cloud 2025 命名；WebFlux 网关为 ShopFlow 默认）。Gateway 从 Eureka 拉取实例，按<strong>路由（Route）</strong> = 谓词（Predicate）+ 过滤器（Filter）+ 目标 URI 转发流量。</p>
+
+      <h4>最小路由：按路径前缀</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># gateway / application-local.yml（Spring Cloud 2025 属性前缀）
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: order-route
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
+            - id: inventory-route
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/inventory/**</code></pre>
+      </div>
+      <p><code>lb://</code> 表示通过 Spring Cloud LoadBalancer 从 Eureka 选实例。若从旧版迁移，可用 <code>spring-boot-properties-migrator</code> 对照 <code>spring.cloud.gateway.*</code> → <code>spring.cloud.gateway.server.webflux.*</code>。</p>
+
+      <div class="learn-tabs" role="tablist" aria-label="Gateway 概念">
+        <input type="radio" name="prac02-gw-tab" id="prac02-gw-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="prac02-gw-tab" id="prac02-gw-tab-b" class="learn-tab-input" />
+        <label for="prac02-gw-tab-a">谓词 Predicate</label>
+        <label for="prac02-gw-tab-b">过滤器 Filter</label>
+        <div class="learn-tab-panel" id="prac02-gw-panel-a" role="tabpanel">
+          <ul>
+            <li><code>Path</code>：路径匹配，最常用</li>
+            <li><code>Header</code>、<code>Method</code>：按头或 HTTP 方法</li>
+            <li><code>After</code> / <code>Before</code>：时间窗口（金丝雀可扩展）</li>
+          </ul>
+        </div>
+        <div class="learn-tab-panel" id="prac02-gw-panel-b" role="tabpanel">
+          <ul>
+            <li><code>AddRequestHeader</code>：注入 traceId、租户 ID</li>
+            <li><code>StripPrefix</code>：去掉路径前缀再转发</li>
+            <li><code>RequestRateLimiter</code>：限流（advanced 章展开）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>统一入口：鉴权头透传与路径重写</h3>
+      <p>外部客户端只访问 <code>https://api.shopflow.example</code>（本地 <code>:8080</code>），Gateway 负责 TLS 终止（生产）、JWT 校验（<a href="#ch-advanced-03-security-deploy">安全与部署</a> 章）与<strong>把用户身份传给下游</strong>。业务服务不应再对外暴露端口。</p>
+
+      <h4>StripPrefix + 鉴权头透传</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml">spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: order-api
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
+              filters:
+                - StripPrefix=1
+                - AddRequestHeader=X-ShopFlow-User-Id, #{headers['X-ShopFlow-User-Id']}
+# 外部: GET /api/orders/123  →  order-service: GET /orders/123</code></pre>
+      </div>
+      <p>本章仅演示<strong>头透传</strong>占位；完整 OAuth2 Resource Server 在 Gateway 统一验签后，将 <code>sub</code> 写入 <code>X-ShopFlow-User-Id</code> 即可。勿在 Gateway 写「下单编排」——那是 order-service 职责。</p>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：为何 StripPrefix=1 后，下游 Controller 仍映射 <code>/orders/{id}</code>？</summary>
+        <p>对外 API 带 <code>/api</code> 命名空间便于版本与 BFF 区分；对内 <span class="term" data-term-id="microservices" tabindex="0">微服务</span> 保持领域路径简洁。StripPrefix 去掉第一段 <code>api</code>，避免每个 Controller 重复写前缀。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>本地 Docker Compose 最小依赖栈</h3>
+      <p>本地联调推荐 Compose 起 Eureka；业务服务仍可用 IDE / Maven 启动便于断点。Gateway 与 order / inventory 需能访问 <code>8761</code>。</p>
+
+      <h4>compose 片段</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># demos/practice-02-discovery-gateway-lab/docker-compose.yml
+services:
+  discovery-server:
+    image: eclipse-temurin:21-jre
+    ports:
+      - "8761:8761"
+    # 实际项目: 挂载 discovery-server.jar 或 build 镜像
+    environment:
+      SPRING_PROFILES_ACTIVE: docker</code></pre>
+      </div>
+
+      <h4>推荐启动顺序</h4>
+      <ol class="steps">
+        <li><code>docker compose up -d discovery-server</code>（或本地跑 DiscoveryServerApplication）</li>
+        <li>打开 <code>http://localhost:8761</code>，确认 Eureka 控制台可用</li>
+        <li>启动 <code>inventory-service</code>（8082）、<code>order-service</code>（8081），在控制台看到 <code>UP</code> 实例</li>
+        <li>启动 <code>api-gateway</code>（8080），<code>curl http://localhost:8080/api/orders/actuator/health</code>（经路由转发）</li>
+      </ol>
+
+      <div class="notice">
+        <strong>验收要点</strong>
+        <ul>
+          <li>Eureka 上至少 2 个应用：<code>ORDER-SERVICE</code>、<code>INVENTORY-SERVICE</code>（大写为默认展示）</li>
+          <li>经 Gateway 访问成功，直连业务端口仅用于调试</li>
+          <li>停掉 inventory 后，Gateway 路由应在一段时间后不再转发到该实例</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>注册中心选型</strong>：ShopFlow 用 Eureka + Spring Cloud BOM；Nacos 适合需配置一体的阿里栈，另评估 BOM。</li>
+        <li><strong>注册与心跳</strong>：<code>eureka-client</code> + <code>defaultZone</code>；<code>spring.application.name</code> 即服务 ID；心跳续约后注册表才可靠。</li>
+        <li><strong>Gateway 路由</strong>：<code>Path</code> 谓词 + <code>lb://service-id</code>；2025 属性前缀 <code>gateway.server.webflux</code>。</li>
+        <li><strong>统一入口</strong>：StripPrefix 与鉴权头透传；网关不做业务编排。</li>
+        <li><strong>本地栈</strong>：Compose 起 Eureka → 业务服务 → Gateway；按顺序验收控制台与 curl。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_practice02">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="eureka" /> Eureka 控制台能看到 order / inventory 实例 UP</label></li>
+          <li><label><input type="checkbox" data-id="gateway-route" /> 能解释 <code>lb://order-service</code> 如何解析</label></li>
+          <li><label><input type="checkbox" data-id="strip" /> 能说明 StripPrefix 对外/对内路径差异</label></li>
+          <li><label><input type="checkbox" data-id="order-start" /> 能按顺序启动 discovery → services → gateway</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <p class="chapter-review-next">下一步：完成 Demo 与测验；继续 <a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a>，实现 order 同步调用 inventory 预留库存。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-cloud-netflix/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud Netflix (Eureka)</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-gateway/reference/" target="_blank" rel="noopener">Spring Cloud Gateway Reference</a></li>
+      <li><a href="https://github.com/spring-cloud/spring-cloud-release/wiki/Spring-Cloud-2025.0-Release-Notes" target="_blank" rel="noopener">Spring Cloud 2025.0 Release Notes（Gateway 命名与属性迁移）</a></li>
+      <li><a href="https://nacos.io/en/docs/latest/guide/user/quick-start/" target="_blank" rel="noopener">Nacos Quick Start（对比阅读）</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">按「推荐启动顺序」搭 Eureka + order/inventory + Gateway，完成 8080 转发与实例剔除观察。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>启动 discovery-server（8761），对照 <code>register-with-eureka: false</code> 解释为何 Server 不注册自己。</li>
+      <li>为 order/inventory 添加「业务服务注册」yaml，确认控制台 <code>ORDER-SERVICE</code>、<code>INVENTORY-SERVICE</code> 为 UP。</li>
+      <li>写入 Gateway 路由 yaml（<code>Path=/api/orders/**</code> → <code>lb://order-service</code>），<code>curl http://localhost:8080/api/orders/actuator/health</code> 经网关可达。</li>
+      <li>增加 <code>StripPrefix=1</code>，说明 <code>/api/orders/...</code> 到下游 <code>/orders/...</code> 的映射。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">Gateway 先于 Eureka 启动最可能导致长时间 503。请写出正确启动顺序（① Eureka ② inventory ③ order ④ Gateway）。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>正确顺序：① → ③ → ② → ④</strong>（或 ① → ② → ③ → ④，业务服务顺序可互换，但必须在 Gateway 前）。Gateway 依赖注册表中有可用实例，否则 <code>lb://</code> 无法解析。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">路由写 <code>uri: http://localhost:8081</code> 而非 <code>lb://order-service</code>，且已有 2 实例。会有什么问题？改哪一行？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>无法负载均衡与故障转移，扩缩容需改 Gateway 配置。应改路由 <code>uri</code> 为 <code>lb://order-service</code>，由 LoadBalancer 从 Eureka 选实例。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：Eureka + Gateway 本地栈</h4>
+      <p>目录：<code>demos/practice-02-discovery-gateway-lab/</code>。<strong>验收</strong>：Eureka 2 应用 UP + 8080 curl health 成功 + 停 inventory 后观察剔除。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>上一章</strong>：<a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a></li>
+      <li><strong>下一章</strong>：<a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-commons/reference/spring-cloud-commons/loadbalancer.html" target="_blank" rel="noopener">Spring Cloud LoadBalancer</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-webflux/gatewayfilter-factories.html" target="_blank" rel="noopener">GatewayFilter Factories</a></li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,499 @@
+<section id="ch-basics-04-domain-api" class="chapter" data-chapter="basics-04-domain-api">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>领域建模、边界上下文与 API 契约</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-04-domain-api" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>30 分钟</strong> · 阶段：<strong>分布式基石</strong> · 能力：划分限界上下文并设计可演进的 REST/OpenAPI 契约</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a> 选了「单体还是微服务」；本章回答<strong>边界画在哪、对外说什么语言</strong>。没有清晰的 <span class="term" data-term-id="bounded-context" tabindex="0">限界上下文</span> 与 <span class="term" data-term-id="openapi" tabindex="0">OpenAPI</span> 契约，拆服务只会得到多个互相渗透的「小泥球」——集成靠口头约定，改接口即全站停摆。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>用 DDD 战略设计说明 ShopFlow 的 Order / Inventory / Payment 三大上下文与子域类型</li>
+          <li>对比「按业务能力拆分」与「按技术层拆分」，并识别模型泄漏信号</li>
+          <li>设计 REST 资源 URI、版本策略与统一错误码，并理解契约优先与 <span class="term" data-term-id="consumer-driven-contract" tabindex="0">消费者驱动契约</span> 的价值</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>上下文即边界</strong>：每个限界上下文有独立<strong>统一语言</strong>与模型；跨上下文只通过显式 API/事件，禁止直接读对方表。</li>
+          <li><strong>契约先于实现</strong>：OpenAPI 是团队间「法律文本」；改契约须版本化与消费者协商，而非偷偷改 JSON 字段。</li>
+          <li><strong>ShopFlow 三上下文</strong>：Order 管订单生命周期；Inventory 管预留/扣减与防超卖；Payment 管支付与退款——各管各的数据。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>DDD 战略设计：限界上下文与子域</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 术语冲突</span>
+        订单团队把「商品」叫 <code>Product</code>（含促销价）；库存团队把「商品」叫 <code>Sku</code>（含仓库位）。若共用一个实体类，改促销逻辑会误改库存表字段——这就是缺少限界上下文的信号。
+      </aside>
+      <p><strong>领域驱动设计（DDD）战略设计</strong>关注「大问题如何切」：识别<strong>子域（Subdomain）</strong>类型，并为每个核心能力划定<strong><span class="term" data-term-id="bounded-context" tabindex="0">限界上下文（Bounded Context）</span></strong>。</p>
+
+      <h4>子域三分法</h4>
+      <table class="outline-table">
+        <thead>
+          <tr><th>类型</th><th>含义</th><th>ShopFlow 示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>核心域</strong></td>
+            <td>差异化竞争力，值得自研投入</td>
+            <td>订单编排、库存防超卖策略</td>
+          </tr>
+          <tr>
+            <td><strong>支撑域</strong></td>
+            <td>必需但非差异化，可适度定制</td>
+            <td>支付对接、物流通知</td>
+          </tr>
+          <tr>
+            <td><strong>通用域</strong></td>
+            <td>行业通用能力，优先买/用 SaaS</td>
+            <td>短信验证码、对象存储</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>限界上下文的关键属性</h4>
+      <ul>
+        <li><strong>统一语言（Ubiquitous Language）</strong>：上下文内术语一致；Order 里的 <code>OrderLine</code> 与 Inventory 里的 <code>StockReservation</code> 不必强行合并。</li>
+        <li><strong>模型边界</strong>：实体、聚合根、仓储仅在本上下文内完整；对外只暴露 DTO / 应用服务 / 事件。</li>
+        <li><strong>与部署单元的关系</strong>：理想上一上下文对应一个可独立演进的服务（或模块化单体中的一个模块），与 <span class="term" data-term-id="conways-law" tabindex="0">康威定律</span> 对齐。</li>
+      </ul>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 三大限界上下文（战略视图）</h5>
+        <pre class="mermaid">flowchart LR
+  subgraph orderCtx [Order 上下文]
+    O[Order 聚合]
+    OL[OrderLine]
+  end
+  subgraph invCtx [Inventory 上下文]
+    S[Sku / Stock]
+    R[Reservation]
+  end
+  subgraph payCtx [Payment 上下文]
+    P[Payment]
+    Ref[Refund]
+  end
+  orderCtx -->|ReserveCommand API| invCtx
+  orderCtx -->|InitiatePayment API| payCtx
+  payCtx -->|PaymentCompleted 事件| orderCtx</pre>
+        <p class="diagram-caption">箭头表示<strong>集成关系</strong>（API 或事件），不是共享数据库。各上下文内部模型互不直接引用。</p>
+      </div>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">模型泄漏</span>
+          <ul>
+            <li>Order 实体里嵌套 Inventory 的 <code>Warehouse</code> 字段</li>
+            <li>跨上下文 JOIN 同一张宽表</li>
+            <li>改库存字段导致订单编译失败</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">清晰边界</span>
+          <ul>
+            <li>Order 只持有 <code>skuId</code>、<code>qty</code> 等集成所需最小字段</li>
+            <li>库存详情通过 <code>GET /skus/{id}</code> 按需查询</li>
+            <li>上下文间契约版本化，内部重构不影响对方</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>按业务能力拆分 vs 按技术层拆分</h3>
+      <p><a href="#ch-basics-03-architecture-styles">架构风格：单体、SOA 与微服务</a> 已对比<strong>分层单体</strong>与<strong>模块化单体</strong>；本节从 DDD 视角强调：<strong>微服务边界应沿业务能力（限界上下文）切</strong>，而非沿 Controller / Service / Repository 等技术层切。</p>
+
+      <h4>两种切法对比</h4>
+      <table class="learn-decision-table outline-table">
+        <thead>
+          <tr><th>维度</th><th>按技术层拆分</th><th>按业务能力 / 限界上下文拆分</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>包/服务结构</strong></td>
+            <td><code>user-controller</code>、<code>order-controller</code> 各一服务，共享同一 DB</td>
+            <td><code>order-service</code>、<code>inventory-service</code>，各管各的数据</td>
+          </tr>
+          <tr>
+            <td><strong>变更影响</strong></td>
+            <td>改订单逻辑仍可能动「公共 order 表」</td>
+            <td>订单模型变更局限在 Order 上下文内</td>
+          </tr>
+          <tr>
+            <td><strong>团队对齐</strong></td>
+            <td>按「前端组 / 后端组」分工，与业务脱节</td>
+            <td>订单小队拥有 Order 上下文全栈</td>
+          </tr>
+          <tr>
+            <td><strong>分布式代价</strong></td>
+            <td>背上网络调用却无独立数据边界 → <span class="term" data-term-id="distributed-monolith" tabindex="0">分布式单体</span></td>
+            <td>真正独立部署与演进，但须设计 API/事件与一致性</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>代码对比：集成方式</h4>
+      <div class="learn-code-compare">
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 反例：按「层」拆服务，却共享 order 表与实体
+// order-query-service 直接读 order 表 join inventory 表
+@Query("SELECT o, i FROM Order o JOIN Inventory i ON ...")
+List&lt;OrderDetailDto&gt; findAllWithStock();</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span class="lang-tag">java</span>
+            <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+          </div>
+          <pre><code class="language-java">// 推荐：Order 上下文通过契约调用 Inventory
+public OrderView getOrder(UUID orderId) {
+  Order order = orderRepo.findById(orderId);
+  StockSnapshot stock = inventoryClient.getSku(order.getSkuId());
+  return OrderView.from(order, stock); // 组合视图，非共享实体
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="notice">
+        <strong>实践提示</strong>
+        <p>模块/服务内仍可分层（controller → application → domain → infra）；<strong>拆分维度</strong>是业务能力，不是禁止分层。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>REST 资源建模、版本化与错误码规范</h3>
+      <p>限界上下文对外通常以 <strong>RESTful HTTP API</strong> 暴露能力（practice 阶段亦用 OpenFeign 消费）。好的资源建模让调用方「读 URI 即懂语义」，并预留演进空间。</p>
+
+      <h4>资源 URI 原则</h4>
+      <ul>
+        <li><strong>名词复数、表意资源</strong>：<code>/orders</code>、<code>/skus/{skuId}/reservations</code>，避免 <code>/createOrder</code> 动词路径。</li>
+        <li><strong>动作用语义子资源或 PATCH</strong>：取消订单 <code>POST /orders/{id}/cancel</code> 或 <code>PATCH /orders/{id}</code> + <code>{"status":"CANCELLED"}</code>。</li>
+        <li><strong>跨上下文 ID 引用</strong>：Order 只存 <code>skuId</code>，不在 URI 里嵌 inventory 内部仓库 ID，除非该 ID 已是稳定集成标识。</li>
+        <li><strong><span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span></strong>：写操作（如 <code>POST /reservations</code>）要求 Header <code>Idempotency-Key</code> 或 body 内 <code>requestId</code>，应对 <span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span> 重试。</li>
+      </ul>
+
+      <h4>ShopFlow 核心端点（示意）</h4>
+      <table class="outline-table">
+        <thead>
+          <tr><th>上下文</th><th>方法</th><th>路径</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Order</td><td>POST</td><td><code>/api/v1/orders</code></td><td>创建订单</td></tr>
+          <tr><td>Order</td><td>GET</td><td><code>/api/v1/orders/{orderId}</code></td><td>查询订单</td></tr>
+          <tr><td>Inventory</td><td>POST</td><td><code>/api/v1/reservations</code></td><td>预留库存（幂等）</td></tr>
+          <tr><td>Inventory</td><td>GET</td><td><code>/api/v1/skus/{skuId}</code></td><td>查询 SKU 可售量</td></tr>
+          <tr><td>Payment</td><td>POST</td><td><code>/api/v1/payments</code></td><td>发起支付</td></tr>
+        </tbody>
+      </table>
+
+      <h4>版本化策略</h4>
+      <div class="learn-tabs" id="bas04-version-tabs" role="tablist" aria-label="API 版本化策略">
+        <input type="radio" name="bas04-version-tab" id="bas04-version-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="bas04-version-tab" id="bas04-version-tab-b" class="learn-tab-input" />
+        <label for="bas04-version-tab-a">URI 版本（常用）</label>
+        <label for="bas04-version-tab-b">Header / 媒体类型</label>
+        <div id="bas04-version-panel-a" class="learn-tab-panel" role="tabpanel">
+          <ul>
+            <li><code>/api/v1/orders</code> → <code>/api/v2/orders</code>：直观，网关路由简单</li>
+            <li>旧版保留 deprecate 周期，文档标明下线日</li>
+            <li>ShopFlow 入门推荐：路径前缀 <code>/api/v1</code></li>
+          </ul>
+        </div>
+        <div id="bas04-version-panel-b" class="learn-tab-panel" role="tabpanel">
+          <ul>
+            <li><code>Accept: application/vnd.shopflow.order.v2+json</code></li>
+            <li>或 Header <code>Api-Version: 2</code></li>
+            <li>URI 不变，适合公开 API 长期兼容；网关配置稍复杂</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>统一错误响应</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">json</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-json">{
+  "code": "INVENTORY_INSUFFICIENT",
+  "message": "SKU-1001 可售库存不足",
+  "traceId": "7f3a2b1c-...",
+  "details": { "skuId": "SKU-1001", "requested": 5, "available": 2 }
+}</code></pre>
+      </div>
+      <ul>
+        <li><strong>code</strong>：机器可读、文档化枚举（各服务可前缀 <code>ORDER_</code> / <code>INV_</code>，网关可映射为统一表）。</li>
+        <li><strong>traceId</strong>：与日志、链路追踪关联，便于排障。</li>
+        <li>HTTP 状态码表达<strong>协议层</strong>语义（404 资源不存在、409 冲突、422 业务校验失败），body 的 <code>code</code> 表达<strong>业务层</strong>语义。</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <h3>契约优先：OpenAPI 与消费者驱动契约</h3>
+      <p><strong>契约优先（Contract First）</strong>：先写 <span class="term" data-term-id="openapi" tabindex="0">OpenAPI</span> 规范，再生成/实现 Controller 与客户端桩代码。这样 Order 与 Inventory 团队在编码前就对齐字段、错误码与幂等语义。</p>
+
+      <h4>OpenAPI 片段（Inventory · 预留库存）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml">openapi: 3.1.0
+info:
+  title: ShopFlow Inventory API
+  version: 1.0.0
+paths:
+  /api/v1/reservations:
+    post:
+      operationId: createReservation
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, skuId, quantity]
+              properties:
+                orderId: { type: string, format: uuid }
+                skuId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: 预留成功
+        '409':
+          description: 库存不足或冲突</code></pre>
+      </div>
+
+      <h4>契约优先工作流</h4>
+      <ol>
+        <li>领域专家 + 开发在 PR 中评审 <code>openapi/inventory-api.yaml</code>。</li>
+        <li>CI 校验 breaking change（如删除字段、改类型）。</li>
+        <li>实现方对照契约写 Spring MVC / WebFlux；消费方用 OpenFeign + 生成 DTO 或手写映射。</li>
+        <li>契约测试（Pact 等）在 CI 验证「消费者期望 ⊆ 提供者实现」。</li>
+      </ol>
+
+      <h4><span class="term" data-term-id="consumer-driven-contract" tabindex="0">消费者驱动契约（CDC）</span></h4>
+      <p>在 <span class="term" data-term-id="microservices" tabindex="0">微服务</span> 集成中，<strong>调用方（消费者）</strong> 定义「我需要哪些字段与状态码」，写入契约文件；<strong>提供方</strong> 在 CI 中验证能否满足。这样 inventory 重构内部表结构时，只要仍满足 order-service 的契约，集成测试即可通过。</p>
+
+      <div class="mermaid-wrap">
+        <h5>契约优先 + CDC 协作</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant OC as order-service 消费者
+  participant Pact as 契约仓库 / CI
+  participant IS as inventory-service 提供者
+  OC->>Pact: 提交期望契约（reserve 201/409）
+  IS->>Pact: Provider 验证任务
+  Pact->>IS: 验证通过 / 失败
+  Note over OC,IS: 实现前对齐；改 API 须双方评审</pre>
+        <p class="diagram-caption">对比「联调当天才发现字段少了」：契约将集成失败左移到 PR 阶段。</p>
+      </div>
+
+      <details class="learn-faq">
+        <summary>FAQ：OpenAPI 与 Java 代码谁为准？</summary>
+        <p>团队应<strong>显式选定真源</strong>：契约优先则以 YAML 为准；代码优先则须 CI 反向生成/校验 OpenAPI  diff。ShopFlow 教程采用<strong>契约优先</strong>，与 SpringDoc 可并存（由 YAML 生成或双向校验）。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>ShopFlow：订单、库存、支付上下文划分</h3>
+      <p>将本章方法落到 ShopFlow 全课主线：三个上下文各司其职，通过 <span class="term" data-term-id="api-gateway" tabindex="0">API 网关</span> 对外统一入口，内部走同步 API + 异步事件。</p>
+
+      <h4>上下文职责表</h4>
+      <table class="outline-table">
+        <thead>
+          <tr><th>上下文</th><th>核心聚合</th><th>拥有的数据</th><th>对外能力</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Order</strong></td>
+            <td>Order</td>
+            <td>订单头、明细、状态机</td>
+            <td>创建/查询/取消订单；订阅 PaymentCompleted</td>
+          </tr>
+          <tr>
+            <td><strong>Inventory</strong></td>
+            <td>Sku、Reservation</td>
+            <td>可售量、预留记录</td>
+            <td>预留/释放/扣减；<span class="term" data-term-id="strong-consistency" tabindex="0">强一致</span> 防超卖</td>
+          </tr>
+          <tr>
+            <td><strong>Payment</strong></td>
+            <td>Payment</td>
+            <td>支付单、渠道回调</td>
+            <td>发起支付、退款；发布 PaymentCompleted</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>下单 happy path（集成视图）</h4>
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 创建订单（同步 + 事件）</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant GW as API Gateway
+  participant O as order-service
+  participant I as inventory-service
+  participant P as payment-service
+  U->>GW: POST /api/v1/orders
+  GW->>O: 转发
+  O->>I: POST /reservations (Idempotency-Key)
+  I-->>O: 201 Reserved
+  O->>P: POST /payments
+  P-->>O: 202 Accepted
+  O-->>U: 201 Order PENDING_PAYMENT
+  P-->>O: PaymentCompleted 事件
+  O->>O: 状态 → PAID</pre>
+        <p class="diagram-caption">Order 编排流程；Inventory 与 Payment 不直接互调。失败补偿在 <a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a>（Saga）展开。</p>
+      </div>
+
+      <h4>上下文映射（Context Map）简图</h4>
+      <ul>
+        <li><strong>Order → Inventory</strong>：Customer-Supplier（Order 为客，Inventory 为供）；Inventory 上游发布 OpenAPI，Order 消费。</li>
+        <li><strong>Order → Payment</strong>：同上；Payment 完成后以<strong>事件</strong>通知 Order（避免 Payment 同步回调 Order 造成环依赖）。</li>
+        <li><strong>Anti-corruption Layer</strong>：Order 内 <code>InventoryClient</code> 将外部 DTO 转为域内 <code>ReservationResult</code>，隔离外部模型变化。</li>
+      </ul>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：能否让 Payment 服务直接 UPDATE order 表的 status 字段？</summary>
+        <p><strong>不应</strong>：违反上下文数据所有权。应通过 API 或事件让 Order 上下文自行变更状态；跨库写是 <span class="term" data-term-id="distributed-monolith" tabindex="0">分布式单体</span> 典型信号。事件可靠投递可结合 <span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span>（<a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> 预览，<a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a> 展开）。</p>
+      </details>
+
+      <p>下一章 <a href="#ch-basics-05-communication-patterns">通信模式：同步、异步与事件驱动</a> 将把同步/异步、编排与编舞、<span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 与本章契约映射到 Spring Cloud 概念。</p>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3，用于评审前 30 秒复述。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>战略 DDD</strong>：用子域分类投入优先级；限界上下文划定统一语言与模型边界，跨上下文禁止共享实体与随意 JOIN。</li>
+        <li><strong>拆分维度</strong>：按业务能力/限界上下文切服务或模块，而非按 Controller 等技术层；否则易成分布式单体。</li>
+        <li><strong>REST 规范</strong>：资源 URI、路径版本、统一错误码与幂等键；HTTP 状态与业务 code 分工明确。</li>
+        <li><strong>契约优先</strong>：OpenAPI 先行 + CI 防 breaking change；CDC 让消费者定义期望，集成失败左移到 PR。</li>
+        <li><strong>ShopFlow 三上下文</strong>：Order 编排、Inventory 防超卖、Payment 收单；网关统一入口，Payment 以事件回传 Order。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_basics04">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="bc-subdomain" /> 能说明核心/支撑/通用子域并各举 ShopFlow 一例</label></li>
+          <li><label><input type="checkbox" data-id="biz-vs-tech" /> 能对比按业务能力 vs 按技术层拆分的后果</label></li>
+          <li><label><input type="checkbox" data-id="rest-openapi" /> 能写出预留库存 API 的 URI、幂等头与一条错误 code</label></li>
+          <li><label><input type="checkbox" data-id="cdc" /> 能解释契约优先与消费者驱动契约如何减少联调风险</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>本章速查卡</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>概念</th><th>一句</th></tr></thead>
+              <tbody>
+                <tr><td>限界上下文</td><td>独立语言与模型；对外只暴露 API/事件</td></tr>
+                <tr><td>按能力拆分</td><td>Order/Inventory/Payment，非按 Controller 拆</td></tr>
+                <tr><td>契约优先</td><td>OpenAPI 先评审再编码</td></tr>
+                <tr><td>CDC</td><td>消费者定义期望，提供者 CI 验证</td></tr>
+                <tr><td>幂等键</td><td>写操作 Header Idempotency-Key</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="learn-interview">
+        <details>
+          <summary>答辩 / 面试口述题</summary>
+          <div class="learn-interview-body">
+            <ol>
+              <li>什么是模型泄漏？举 ShopFlow 一个反例与一个推荐做法。</li>
+              <li>URI 版本与 Header 版本各适合什么场景？</li>
+              <li>为何 Payment 不应直接更新 order 表？应如何集成？</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+
+      <p class="chapter-review-next">下一步：勾选过关清单、完成测验与 Demo；下一章 <a href="#ch-basics-05-communication-patterns">通信模式：同步、异步与事件驱动</a> 讲同步/异步通信与 Outbox 预览。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://spec.openapis.org/oas/v3.1.0" target="_blank" rel="noopener">OpenAPI Specification 3.1</a></li>
+      <li><a href="https://springdoc.org/" target="_blank" rel="noopener">SpringDoc OpenAPI</a></li>
+      <li><a href="https://docs.pact.io/" target="_blank" rel="noopener">Pact — Consumer Driven Contract Testing</a></li>
+      <li><a href="https://martinfowler.com/bliki/BoundedContext.html" target="_blank" rel="noopener">Martin Fowler — Bounded Context</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">产出 Inventory 最小 OpenAPI 与三上下文映射图，对照错误码与幂等头约定自检。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>按「REST 错误码约定」表，为 <code>POST /api/v1/reservations</code> 补全 409 库存不足与幂等冲突的 JSON body（含 <code>code</code>、<code>message</code>）。</li>
+      <li>在 YAML 中添加 <code>Idempotency-Key</code> header 参数，与正文 OpenAPI 片段对齐。</li>
+      <li>绘制三上下文映射图，标 Customer-Supplier 边与 <code>PaymentCompleted</code> 事件方向。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">哪条 API 设计违反契约？① Inventory 暴露 <code>PATCH /orders/{id}/status</code> ② Order 调 <code>POST /reservations</code> 带幂等键 ③ Payment 回调用 <code>callbackToken</code> 验签</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>答：①</strong>。订单状态属 Order 上下文，Inventory 不应直接改 <code>orders</code>；应通过 API/事件让 Order 自行变更。②③ 符合契约与幂等/验签约定。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">OpenAPI 缺少 <code>Idempotency-Key</code> header，却写「支持重复提交安全」。违反哪条约定？应改哪一段？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>违反契约优先与预留接口幂等约定。应在 OpenAPI <code>parameters</code> 增加 header 定义，并在 POST 说明中引用；实现与文档保持一致。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：限界上下文与 API 契约实验室</h4>
+      <p>目录：<code>demos/basics-04-domain-api-lab/</code>。<strong>验收</strong>：YAML 含 reservations 路径 + 响应码 201/409/422。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>下一章</strong>：<a href="#ch-basics-05-communication-patterns">通信模式：同步、异步与事件驱动</a>：同步/异步、编排与编舞</li>
+      <li><a href="https://www.domainlanguage.com/ddd/reference/" target="_blank" rel="noopener">Eric Evans — DDD Reference</a></li>
+      <li><a href="https://restfulapi.net/resource-naming/" target="_blank" rel="noopener">REST API Resource Naming</a></li>
+      <li><a href="https://microservices.io/patterns/data/api-composition.html" target="_blank" rel="noopener">Microservices.io — API Composition</a></li>
+    </ul>
+  </div>
+</section>

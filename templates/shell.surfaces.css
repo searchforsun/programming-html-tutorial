@@ -1,0 +1,112 @@
+/* 全局表面形状 + 卡片 hover（仅消费 token，不含风格装饰） */
+
+/* ── 表面圆角（全局统一，不含 hover 放大）── */
+
+/* 卡片类：圆角 + 边框宽度 token */
+:is(
+  .meta-card, .role-card, .course-card,
+  .quiz-item, .outline-table-wrap, .demo-box, .steps li,
+  .code-block, #term-modal, .ui-style-popover,
+  .learn-scenario, .learn-compare-col,
+  .learn-tabs, .learn-faq details, .learn-checklist,
+  .learn-cheat-sheet details, .learn-interview details,
+  .learn-param-slider, .learn-micro-check, .welcome-panel,
+  .portal-empty, .outline-table, .mermaid-shell
+) {
+  border-radius: var(--radius);
+  border-width: var(--style-border-width);
+}
+
+/* 结构块：仅统一圆角，保留各自边框语义（章首状态块 left bar 等） */
+:is(
+  .chapter-header, .chapter .content-section, .chapter .section-block,
+  .notice
+) {
+  border-radius: var(--radius);
+}
+
+/* ── 控件圆角 ── */
+:is(
+  .btn, .btn-topbar-icon, .btn-portal, .btn-import,
+  .topbar button, .topbar-actions button, .quiz-actions button,
+  .fill-input, .btn-copy, .phase-tag, .chapter-done-badge,
+  #toast, .course-tag, .ui-style-option, .btn-mark-done,
+  #term-modal .btn-icon-close, .selection-term-toolbar .btn-selection-term,
+  #btn-copy-prompt, .term-actions .btn-term, .outline-ch-index,
+  .learn-tabs > label, .learn-tabs > .learn-tab-label,
+  #sidebar a, .chapter-toc-fab
+) {
+  border-radius: var(--style-btn-shape);
+}
+
+/* ── 胶囊 / 进度 ── */
+:is(
+  #progress-bar, .progress-track, .progress-fill,
+  .code-block pre::-webkit-scrollbar-thumb,
+  #sidebar::-webkit-scrollbar-thumb,
+  #chapter-toc::-webkit-scrollbar-thumb
+) {
+  border-radius: var(--radius-pill);
+}
+
+/* ── 标记圆点 ── */
+:is(
+  .steps li::before, .course-title::before, .portal-title::before,
+  .course-card-dot, #sidebar .ch-done-icon, .outline-section-list li::before,
+  .ui-style-swatch
+) {
+  border-radius: var(--radius-marker);
+}
+
+/* ── 行内 code ── */
+:is(
+  .chapter :not(pre) > code, .demo-box code, .steps code,
+  .notice code, .quiz-item code, .welcome-lead code
+) {
+  border-radius: var(--radius-xs);
+}
+
+/*
+ * ── 卡片 hover 放大（仅限独立可点击/可浏览卡片）──
+ * 适用：.course-card .meta-card .role-card .learn-scenario .learn-compare-col
+ * 不适用：正文容器、代码块、测验、折叠面板、表格、提示框等（见 shell 文档注释）
+ */
+:is(
+  .course-card,
+  .meta-card,
+  .role-card,
+  .learn-scenario,
+  .learn-compare-col
+) {
+  transition:
+    transform var(--style-hover-duration, 0.22s) var(--style-hover-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--style-hover-duration, 0.22s) ease,
+    border-color var(--style-hover-duration, 0.22s) ease;
+  transform: var(--style-hover-rest, none);
+  transform-origin: center center;
+}
+
+:is(
+  .course-card,
+  .meta-card,
+  .role-card,
+  .learn-scenario,
+  .learn-compare-col
+):hover {
+  transform: var(--style-hover-transform);
+  box-shadow: var(--style-hover-shadow, var(--shadow-md));
+  border-color: var(--style-hover-border, color-mix(in srgb, var(--accent) 28%, var(--border)));
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .course-card,
+    .meta-card,
+    .role-card,
+    .learn-scenario,
+    .learn-compare-col
+  ):hover {
+    transform: var(--style-hover-rest, none);
+  }
+}

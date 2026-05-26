@@ -1,0 +1,403 @@
+<section id="ch-basics-05-communication-patterns" class="chapter" data-chapter="basics-05-communication-patterns">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>通信模式：同步、异步与事件驱动</h2>
+    <button type="button" class="btn-mark-done" data-chapter="basics-05-communication-patterns" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>32 分钟</strong> · 阶段：<strong>分布式基石</strong> · 能力：为 ShopFlow 选型同步/异步通信并理解编排与 Outbox</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p>前四章定了边界与契约；本章回答<strong>服务之间怎么说话</strong>。选错模式会把 <span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span> 放大成长链路阻塞，或把本该异步的通知硬拉成同步耦合。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>为 ShopFlow 各集成点选择 REST/OpenFeign、gRPC 或消息，并说明理由</li>
+          <li>对比<strong><span class="term" data-term-id="orchestration" tabindex="0">编排</span></strong>与<strong><span class="term" data-term-id="choreography" tabindex="0">编舞</span></strong>，识别 Order 下单链适合哪种</li>
+          <li>说明 <span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span>、去重与 <span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 如何配合异步事件</li>
+          <li>将本章概念映射到 Spring Cloud 实战章节（OpenFeign、Kafka、Gateway）</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>同步要短</strong>：需要立即知道成败的步骤（预留库存）用请求/响应；链路过长须熔断、超时与幂等。</li>
+          <li><strong>异步解耦</strong>：支付结果、通知类用事件 + 消费者组；接受 <span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span>，靠幂等与对账收敛。</li>
+          <li><strong>发消息要可靠</strong>：「写库 + 发 Kafka」用 Outbox，避免双写不一致。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>请求/响应、RPC 与 gRPC 适用场景</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 下单须当场知道库存</span>
+        用户点击「提交订单」后，若 3 秒内看不到「库存不足」或「已预留」，体验不可接受。此时 order → inventory 的 <code>POST /reservations</code> 适合<strong>同步 HTTP</strong>。
+      </aside>
+      <p><strong>请求/响应（Request/Response）</strong>是分布式中最直观的模式：调用方发请求、阻塞或异步等待响应。在 Java 微服务中常体现为 REST + <span class="term" data-term-id="openapi" tabindex="0">OpenAPI</span> 契约，practice 阶段用 OpenFeign 消费。</p>
+
+      <h4>三种同步风格对比</h4>
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>风格</th><th>特点</th><th>ShopFlow 示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>REST/HTTP + JSON</strong></td>
+            <td>通用、易调试、网关友好；性能略低于二进制 RPC</td>
+            <td>order → inventory 预留、查询 SKU</td>
+          </tr>
+          <tr>
+            <td><strong>RPC（如 gRPC）</strong></td>
+            <td>强类型契约、HTTP/2、流式；需生成桩代码</td>
+            <td>高 QPS 内部调用、多语言团队（可选）</td>
+          </tr>
+          <tr>
+            <td><strong>GraphQL / BFF 聚合</strong></td>
+            <td>前端一次取多资源；聚合层负责扇出</td>
+            <td>商品详情页聚合（<a href="#ch-advanced-04-performance-scale">性能、容量与数据扩展</a> 再展开）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">同步滥用</span>
+          <ul>
+            <li>order → inventory → payment → 通知 全同步链</li>
+            <li>无超时，线程阻塞堆积</li>
+            <li>下游慢一步拖垮整站</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">同步克制</span>
+          <ul>
+            <li>仅「须当场确认」的步骤同步（预留库存）</li>
+            <li>显式超时 + 有限重试 + <span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span></li>
+            <li>支付结果改走事件（见下一节）</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>OpenFeign 调用预览（YAML）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># 详见 OpenFeign、负载均衡与服务间调用；此处仅示意超时与幂等头
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          inventory-service:
+            connectTimeout: 1000
+            readTimeout: 2000
+# 调用时 Header: Idempotency-Key: {orderId}</code></pre>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>消息队列、发布订阅与事件通知</h3>
+      <p>当调用方<strong>不必</strong>立即知道下游处理结果，或需要削峰、解耦多订阅者时，使用<strong>异步消息</strong>。ShopFlow 中 <code>PaymentCompleted</code>、<code>OrderCreated</code> 等领域事件适合走 Kafka 等 MQ（详见 <a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a>）。</p>
+
+      <h4>核心概念</h4>
+      <ul>
+        <li><strong>消息队列（Queue）</strong>：点对点，一条消息通常被一个消费者处理（任务分发）。</li>
+        <li><strong>发布/订阅（Pub/Sub）</strong>：一条事件可被多个订阅者各自处理（订单创建 → 库存、积分、通知各订一份）。</li>
+        <li><strong>领域事件</strong>：用过去式命名（<code>OrderCreated</code>、<code>PaymentCompleted</code>），载荷含最小集成字段 + 事件 ID。</li>
+        <li><strong>消费者组</strong>：同组内竞争消费保证扩展；不同组各自完整消费一遍。</li>
+      </ul>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · PaymentCompleted 发布订阅</h5>
+        <pre class="mermaid">flowchart LR
+  Pay[payment-service] -->|publish| K[(Kafka topic)]
+  K --> G1[order-service 消费者组]
+  K --> G2[analytics 消费者组]
+  G1 --> O[更新订单 PAID]
+  G2 --> A[报表入库]</pre>
+        <p class="diagram-caption">order 与 analytics 各用消费者组，互不影响进度；须幂等处理重复投递。</p>
+      </div>
+
+      <div class="learn-tabs" role="tablist" aria-label="同步与异步选型">
+        <input type="radio" name="bas05-comm-tab" id="bas05-comm-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="bas05-comm-tab" id="bas05-comm-tab-b" class="learn-tab-input" />
+        <label for="bas05-comm-tab-a">倾向同步</label>
+        <label for="bas05-comm-tab-b">倾向异步</label>
+        <div class="learn-tab-panel" id="bas05-comm-panel-a" role="tabpanel">
+          <ul>
+            <li>须立即向用户反馈成败（预留库存、校验优惠券）</li>
+            <li>链路短、调用方少、QPS 可控</li>
+            <li>可接受 <span class="term" data-term-id="partial-failure" tabindex="0">部分失败</span> 语义已设计（幂等 + 查询）</li>
+          </ul>
+        </div>
+        <div class="learn-tab-panel" id="bas05-comm-panel-b" role="tabpanel">
+          <ul>
+            <li>支付回调、发货通知、积分累计</li>
+            <li>多下游订阅同一业务事实</li>
+            <li>可接受秒级 <span class="term" data-term-id="eventual-consistency" tabindex="0">最终一致</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>编排 vs 编舞（Choreography）</h3>
+      <p>跨多个服务的业务流程（如下单 → 预留 → 支付 → 确认）如何协调？两种主流思路：<strong><span class="term" data-term-id="orchestration" tabindex="0">编排（Orchestration）</span></strong> 由中央协调者按脚本推进；<strong><span class="term" data-term-id="choreography" tabindex="0">编舞（Choreography）</span></strong> 各服务监听事件、自行决定下一步，无中心大脑。</p>
+
+      <h4>对比表</h4>
+      <table class="outline-table">
+        <thead>
+          <tr><th>维度</th><th>编排</th><th>编舞</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>协调者</strong></td>
+            <td>order-service 或独立 orchestrator 调用各步</td>
+            <td>各服务订阅事件，本地状态机驱动</td>
+          </tr>
+          <tr>
+            <td><strong>可见性</strong></td>
+            <td>流程集中在一点，易画序列图</td>
+            <td>流程分散，须链路追踪串联</td>
+          </tr>
+          <tr>
+            <td><strong>耦合</strong></td>
+            <td>协调者知悉所有步骤 API</td>
+            <td>服务只关心相关事件，添加订阅者较易</td>
+          </tr>
+          <tr>
+            <td><strong>失败处理</strong></td>
+            <td>常配合 <span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span> 补偿，由协调者触发</td>
+            <td>每服务自行补偿或发补偿事件</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 编排式下单（简化）</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant O as order-service 编排者
+  participant I as inventory-service
+  participant P as payment-service
+  O->>I: 同步 reserve
+  I-->>O: 201
+  O->>P: 同步 initiate payment
+  P-->>O: 202
+  Note over O: 等待 PaymentCompleted 事件
+  P-->>O: event PaymentCompleted
+  O->>O: 状态 PAID</pre>
+        <p class="diagram-caption">ShopFlow 入门采用「order 编排 + 支付异步事件」混合：关键同步、通知异步。</p>
+      </div>
+
+      <div class="notice">
+        <strong>选型提示</strong>
+        <p>步骤 ≤ 3 且团队小：order 内编排往往足够。步骤多、多团队自治：可逐步引入编舞，但须统一事件 schema 与可观测性。勿在 <span class="term" data-term-id="api-gateway" tabindex="0">API 网关</span> 里写编排逻辑。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>幂等键、去重与 Outbox 模式预览</h3>
+      <p>异步与重试使「至少一次投递」成为常态。须从<strong>生产端</strong>与<strong>消费端</strong>双侧保证正确性。</p>
+
+      <h4>消费端：幂等与去重</h4>
+      <ul>
+        <li><strong><span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span></strong>：同步写操作 Header <code>Idempotency-Key</code>；异步用 <code>eventId</code> 或业务键。</li>
+        <li><strong>去重表</strong>：消费者处理前插入 <code>processed_events(event_id)</code>，重复则跳过。</li>
+        <li><strong>业务幂等</strong>：如「订单已 PAID 则忽略重复 PaymentCompleted」。</li>
+      </ul>
+
+      <h4>生产端：Transactional Outbox</h4>
+      <p>问题：订单入库与发 Kafka 两个操作无法共用一个本地事务。 <span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 将待发事件与业务写入<strong>同一数据库事务</strong>，后台投递器异步发到 MQ。</p>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">@Transactional
+void createOrder(CreateOrder cmd) {
+  Order order = orderRepo.save(new Order(cmd));
+  outboxRepo.save(new OutboxEvent(
+    "OrderCreated",
+    order.getId().toString(),
+    toJson(new OrderCreatedPayload(order.getId(), ...))
+  ));
+  // 同一事务；投递器稍后 poll outbox → Kafka
+}</code></pre>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：消费者收到两次相同 eventId 的 PaymentCompleted，应如何处理？</summary>
+        <p>第二次应<strong>识别为重复</strong>：查去重表或订单状态已为 PAID，直接 ack 不再改库。若仍重复扣减或重复发券，说明缺少消费端幂等。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>为 Spring Cloud 实战做概念映射</h3>
+      <p>basics 阶段原理收官。下表将本章概念映射到 practice 阶段 ShopFlow 工程（Java 21 + Spring Boot 3.5 + Spring Cloud 2025）。</p>
+
+      <table class="outline-table">
+        <thead>
+          <tr><th>本章概念</th><th>Spring Cloud / 组件</th><th>实战章节</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>同步 REST + 契约</td>
+            <td>OpenFeign + LoadBalancer</td>
+            <td><a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a></td>
+          </tr>
+          <tr>
+            <td>统一入口、路由</td>
+            <td>Spring Cloud Gateway</td>
+            <td><a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a></td>
+          </tr>
+          <tr>
+            <td>注册发现</td>
+            <td>Eureka / Nacos</td>
+            <td><a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a></td>
+          </tr>
+          <tr>
+            <td>领域事件、Pub/Sub</td>
+            <td>Spring Cloud Stream + Kafka</td>
+            <td><a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a></td>
+          </tr>
+          <tr>
+            <td>Outbox、跨服务一致</td>
+            <td>本地事务 + 投递器 / Saga</td>
+            <td><a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a></td>
+          </tr>
+          <tr>
+            <td>脚手架、BOM</td>
+            <td>Spring Boot 3.5 + Cloud BOM</td>
+            <td><a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="notice notice-outcome">
+        <strong>阶段一（basics）完成</strong>
+        <p>你已具备分布式问题域、CAP、架构形态、DDD 边界、API 契约与通信选型基础。下一阶段在 ShopFlow 仓库中<strong>动手搭服务</strong>，建议从 <a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a> 开始。</p>
+      </div>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3，basics 阶段收官复述。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>同步通信</strong>：REST/OpenFeign 适合须当场确认的步骤；链宜短，配超时、幂等与熔断；gRPC 等留给高性能内部场景。</li>
+        <li><strong>异步事件</strong>：Pub/Sub + 消费者组解耦支付通知等多订阅者；接受最终一致，消费端必须幂等。</li>
+        <li><strong>编排 vs 编舞</strong>：ShopFlow 入门用 order 编排 + 事件混合；编舞适合多团队自治但需统一事件契约与追踪。</li>
+        <li><strong>可靠投递</strong>：幂等键 + 去重表 + Outbox 解决重试与「写库发消息」原子性；与 <a href="#ch-basics-02-consistency-cap">CAP、BASE 与一致性模型</a> BASE 路径一致。</li>
+        <li><strong>实战映射</strong>：见上一节 Spring Cloud 映射表；下一阶段从 <a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a> 起步。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_basics05">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="sync-async" /> 能说明 ShopFlow 预留库存为何同步、支付结果为何异步</label></li>
+          <li><label><input type="checkbox" data-id="orch-choreo" /> 能对比编排与编舞并说出 ShopFlow 混合方案</label></li>
+          <li><label><input type="checkbox" data-id="outbox" /> 能解释 Outbox 解决什么问题</label></li>
+          <li><label><input type="checkbox" data-id="practice-map" /> 能对应 practice 02～05 各章负责的组件</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>本章速查卡</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>概念</th><th>一句</th></tr></thead>
+              <tbody>
+                <tr><td>同步</td><td>当场要结果；宜短链 + 幂等</td></tr>
+                <tr><td>异步</td><td>事件解耦；消费幂等</td></tr>
+                <tr><td>编排</td><td>中央协调多步</td></tr>
+                <tr><td>编舞</td><td>各服务听事件自行反应</td></tr>
+                <tr><td>Outbox</td><td>写库与待发事件同事务</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="learn-interview">
+        <details>
+          <summary>答辩 / 面试口述题</summary>
+          <div class="learn-interview-body">
+            <ol>
+              <li>为什么 PaymentCompleted 用 Kafka 而不是 order 同步轮询 payment？</li>
+              <li>Outbox 与「先 commit 再发消息」有何区别？</li>
+              <li>编舞模式下如何排查「订单卡在未支付」？</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+
+      <p class="chapter-review-next">下一步：勾选过关清单、完成测验与 Demo；进入 practice 阶段，从 <a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a> 搭建 ShopFlow 工程。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud OpenFeign Reference</a></li>
+      <li><a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka Documentation</a></li>
+      <li><a href="https://microservices.io/patterns/data/transactional-outbox.html" target="_blank" rel="noopener">Microservices.io — Transactional Outbox</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-stream/reference/" target="_blank" rel="noopener">Spring Cloud Stream Reference</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">填写同步/异步选型与 Spring Cloud 映射表，并解释 Outbox 与 <code>createOrder</code> 代码块关系。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>复制「PaymentCompleted 发布订阅」Mermaid，在 order、analytics 消费者旁各写一句消费端幂等策略。</li>
+      <li>为「编排式下单」序列图中 reserve、initiate payment、等事件三步各标 sync/async。</li>
+      <li>对照 <code>createOrder</code> + <code>OutboxEvent</code> 片段：去掉 outbox 直接发 Kafka 会破坏哪条 BASE 配套手段？</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">「order→inventory→payment→短信→积分」全 OpenFeign 同步且无超时。最先应改哪一处？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>支付改异步事件</strong>（或至少缩短链并设超时）。支付结果不必阻塞 order 线程；全同步长链最易触发「同步滥用」中的线程堆积与级联失败。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">PaymentCompleted 被 order 与 analytics 分别消费——编舞还是编排？新增 analytics 订阅者应改 order 还是只加消费者？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>analytics 侧属<strong>编舞</strong>（听事件自行处理）。新增 analytics 订阅者<strong>只加 Kafka 消费者</strong>，无需改 order 编排代码，这是编舞扩展性优势。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：通信模式选型实验室</h4>
+      <p>目录：<code>demos/basics-05-communication-patterns-lab/</code>。<strong>验收</strong>：集成点选型表 3 行均已填模式 + 理由。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>下一阶段</strong>：<a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a>：ShopFlow 工程起步</li>
+      <li><a href="https://www.enterpriseintegrationpatterns.com/" target="_blank" rel="noopener">Enterprise Integration Patterns</a></li>
+      <li><a href="https://martinfowler.com/articles/201701-event-driven.html" target="_blank" rel="noopener">Martin Fowler — What do you mean by Event-Driven</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/choreography" target="_blank" rel="noopener">Choreography pattern (Microsoft)</a></li>
+    </ul>
+  </div>
+</section>

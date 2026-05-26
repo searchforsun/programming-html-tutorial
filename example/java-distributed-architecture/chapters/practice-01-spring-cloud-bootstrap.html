@@ -1,0 +1,395 @@
+<section id="ch-practice-01-spring-cloud-bootstrap" class="chapter" data-chapter="practice-01-spring-cloud-bootstrap">
+  <header class="chapter-header">
+    <h2><span class="chapter-done-badge">已完成</span>Spring Boot 3.5 与 Spring Cloud 脚手架</h2>
+    <button type="button" class="btn-mark-done" data-chapter="practice-01-spring-cloud-bootstrap" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>35 分钟</strong> · 阶段：<strong>Java 微服务栈实战</strong> · 能力：搭建 ShopFlow 多模块父工程并本地启动首个服务</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p>basics 阶段定了边界与通信；practice 从<strong>可运行的工程骨架</strong>开始。版本对齐（Boot + Cloud BOM）、模块分层与 Profile 约定若在一开始做错，后续注册发现、Feign、Kafka 会在依赖冲突与配置漂移上反复踩坑。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>用 JDK 21 + Maven 导入 <span class="term" data-term-id="spring-cloud-bom" tabindex="0">Spring Cloud BOM</span>，与 Spring Boot 3.5 对齐</li>
+          <li>按 api / service / common 拆分 ShopFlow 多模块工程</li>
+          <li>约定 <code>application.yml</code>、Profile 与本地启动顺序</li>
+          <li>启用 <span class="term" data-term-id="spring-boot-actuator" tabindex="0">Actuator</span> 健康检查与统一 JSON 日志格式</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>BOM 管版本</strong>：Cloud 组件版本由 <code>spring-cloud-dependencies</code> 统一管理，子模块勿手写版本号。</li>
+          <li><strong>模块边界</strong>：api 放 DTO/契约，service 可运行，common 放跨服务工具；与 <span class="term" data-term-id="bounded-context" tabindex="0">限界上下文</span> 一一对应。</li>
+          <li><strong>先单体模块、后拆进程</strong>：本章先跑通 order-service；全链路注册发现见 <a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a>。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>JDK 21、Maven BOM 与 Spring Cloud 2025 对齐</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 三小队并行</span>
+        order / inventory / payment 三个小队将在同一父工程下各自维护 service 模块。父 POM 必须锁定 <strong>同一套</strong> Boot 与 Cloud 版本，避免「A 服务用 Gateway 2024、B 服务用 2025」的集成噩梦。
+      </aside>
+      <p>本课栈：<strong>Java 21 LTS</strong>、<strong>Spring Boot 3.5.x</strong>、<strong>Spring Cloud 2025.0.x</strong>（2025.1 发布列车）。Spring Cloud 采用<strong>发布列车（Release Train）</strong>命名：<code>2025.0.1</code> 与 Boot 3.5 在官方兼容矩阵中配对，子项目通过 BOM <code>import</code> 继承版本。</p>
+
+      <h4>父 POM：Boot 父 + Cloud BOM</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;!-- shopflow/pom.xml 片段 --&gt;
+&lt;parent&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+  &lt;version&gt;3.5.0&lt;/version&gt;
+&lt;/parent&gt;
+
+&lt;properties&gt;
+  &lt;java.version&gt;21&lt;/java.version&gt;
+  &lt;spring-cloud.version&gt;2025.0.1&lt;/spring-cloud.version&gt;
+&lt;/properties&gt;
+
+&lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;
+      &lt;version&gt;${spring-cloud.version}&lt;/version&gt;
+      &lt;type&gt;pom&lt;/type&gt;
+      &lt;scope&gt;import&lt;/scope&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</code></pre>
+      </div>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">版本散落</span>
+          <ul>
+            <li>各 service 的 pom 手写 <code>openfeign</code> 版本</li>
+            <li>Boot 3.4 与 Cloud 2025 混用</li>
+            <li>CI 与本地 JDK 不一致（仍用 17）</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">BOM 统一</span>
+          <ul>
+            <li>父 POM 一处定义 <code>spring-cloud.version</code></li>
+            <li>子模块依赖不写 <code>&lt;version&gt;</code></li>
+            <li><code>.mvn/jvm.config</code> 或 CI 固定 JDK 21</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="learn-faq">
+        <summary>FAQ：能否只用 Spring Boot、暂不引 Cloud？</summary>
+        <p>可以跑单个 REST 服务，但 ShopFlow 实战依赖注册发现、Gateway、OpenFeign。本章仍引入 Cloud BOM，以便下一章直接加 <code>spring-cloud-starter-netflix-eureka-client</code> 而无需改版本矩阵。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>多模块工程：api / service / common 分层</h3>
+      <p>将 <a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a> 中的 ShopFlow 三上下文落到 Maven 模块：<strong>每个上下文至少 api + service</strong>，共享能力放入 common。这与 <span class="term" data-term-id="modular-monolith" tabindex="0">模块化单体</span> 的分模块思路一致，只是 service 模块将独立进程部署为 <span class="term" data-term-id="microservices" tabindex="0">微服务</span>。</p>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow 多模块拓扑（本章目标范围）</h5>
+        <pre class="mermaid">flowchart TB
+  subgraph parent[shopflow-parent]
+    C[shopflow-common]
+    OA[order-api]
+    OS[order-service]
+    IA[inventory-api]
+    IS[inventory-service]
+    PA[payment-api]
+    PS[payment-service]
+  end
+  OS --> OA
+  OS --> C
+  IS --> IA
+  IS --> C
+  PS --> PA
+  PS --> C</pre>
+        <p class="diagram-caption">service 依赖对应 api + common；service 之间<strong>禁止</strong>直接依赖对方 implementation，跨上下文走 HTTP/事件（见 basics 契约）。</p>
+      </div>
+
+      <h4>各层职责</h4>
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>模块后缀</th><th>职责</th><th>ShopFlow 示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>-api</strong></td>
+            <td>DTO、Feign 接口、<span class="term" data-term-id="openapi" tabindex="0">OpenAPI</span> 生成物；无 Spring 运行时</td>
+            <td><code>CreateOrderRequest</code>、<code>OrderApi</code></td>
+          </tr>
+          <tr>
+            <td><strong>-service</strong></td>
+            <td><code>@SpringBootApplication</code>、Controller、领域逻辑、持久化</td>
+            <td><code>order-service</code> 端口 8081</td>
+          </tr>
+          <tr>
+            <td><strong>common</strong></td>
+            <td>错误码枚举、JSON 工具、日志 MDC 助手</td>
+            <td><code>ShopFlowErrorCodes</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>order-service 最小依赖</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;!-- shopflow-order-service/pom.xml --&gt;
+&lt;dependencies&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;com.shopflow&lt;/groupId&gt;
+    &lt;artifactId&gt;shopflow-order-api&lt;/artifactId&gt;
+  &lt;/dependency&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;com.shopflow&lt;/groupId&gt;
+    &lt;artifactId&gt;shopflow-common&lt;/artifactId&gt;
+  &lt;/dependency&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+  &lt;/dependency&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+  &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>配置外部化与 Profile 约定</h3>
+      <p>多服务本地联调时，端口、数据源、日志级别必须可切换且<strong>可预测</strong>。ShopFlow 约定：</p>
+      <ul>
+        <li><strong>默认</strong>：<code>application.yml</code> 放共享默认（应用名、Actuator 暴露端点）。</li>
+        <li><strong>环境</strong>：<code>application-local.yml</code> 本地 H2/端口；<code>application-docker.yml</code> 供 Compose（见 practice-02）。</li>
+        <li><strong>激活</strong>：<code>spring.profiles.active=local</code>（IDE Run Configuration 或环境变量）。</li>
+        <li><strong>敏感项</strong>：不进 Git；用 <code>.env</code> / 环境变量占位（生产走 Config Server，见 advanced 章）。</li>
+      </ul>
+
+      <div class="learn-tabs" role="tablist" aria-label="配置分层">
+        <input type="radio" name="prac01-config-tab" id="prac01-config-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="prac01-config-tab" id="prac01-config-tab-b" class="learn-tab-input" />
+        <label for="prac01-config-tab-a">application.yml</label>
+        <label for="prac01-config-tab-b">application-local.yml</label>
+        <div class="learn-tab-panel" id="prac01-config-panel-a" role="tabpanel">
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span class="lang-tag">yaml</span>
+              <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+            </div>
+            <pre><code class="language-yaml">spring:
+  application:
+    name: order-service
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized</code></pre>
+          </div>
+        </div>
+        <div class="learn-tab-panel" id="prac01-config-panel-b" role="tabpanel">
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span class="lang-tag">yaml</span>
+              <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+            </div>
+            <pre><code class="language-yaml">server:
+  port: 8081
+logging:
+  level:
+    com.shopflow: DEBUG</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：为何不把 8081 端口写死在 Java 代码里？</summary>
+        <p>同一 artifact 要在本地、CI、容器中使用不同端口与环境；外部化后只需改 Profile 或环境变量，避免重新编译。也与 <a href="#ch-basics-05-communication-patterns">通信模式</a> 中「契约稳定、部署可变」一致。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>ShopFlow 仓库结构与本地启动顺序</h3>
+      <p>推荐 monorepo 根目录 <code>shopflow/</code>，与课程 Demo 对齐。首章只需能启动 <strong>order-service</strong> 并访问健康检查；inventory / payment 可先留空模块占位。</p>
+
+      <h4>目录树（精简）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">bash</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-bash">shopflow/
+├── pom.xml                      # 父 POM + BOM
+├── shopflow-common/
+├── shopflow-order-api/
+├── shopflow-order-service/
+│   └── src/main/java/.../OrderServiceApplication.java
+├── shopflow-inventory-api/
+├── shopflow-inventory-service/
+├── shopflow-payment-api/
+└── shopflow-payment-service/</code></pre>
+      </div>
+
+      <h4>本地启动顺序（本章）</h4>
+      <ol class="steps">
+        <li>确认 <code>java -version</code> 为 21；根目录 <code>mvn -q -DskipTests install</code> 编译全模块。</li>
+        <li>进入 <code>shopflow-order-service</code>，<code>mvn spring-boot:run -Dspring-boot.run.profiles=local</code>。</li>
+        <li>访问 <code>http://localhost:8081/actuator/health</code>，期望 <code>{"status":"UP"}</code>。</li>
+        <li>（可选）用 IDE 运行 <code>OrderServiceApplication</code>，VM options 加 <code>-Dspring.profiles.active=local</code>。</li>
+      </ol>
+
+      <div class="notice">
+        <strong>与后续章节衔接</strong>
+        <p>practice-02 将先启动注册中心，再启动 order / inventory 并注册；本章无需 Eureka，但请保持<strong>应用名</strong> <code>spring.application.name</code> 与模块名一致，便于后续服务发现。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>健康检查 Actuator 与统一日志格式</h3>
+      <p><span class="term" data-term-id="spring-boot-actuator" tabindex="0">Spring Boot Actuator</span> 提供生产就绪端点。本地与 K8s 探针都依赖 <code>/actuator/health</code>；统一 JSON 日志则便于后续接入 ELK 与 traceId（<a href="#ch-advanced-02-observability">可观测性</a> 章展开）。</p>
+
+      <h4>健康检查分组（入门）</h4>
+      <ul>
+        <li><strong>liveness</strong>：进程是否存活（默认 health 即可）。</li>
+        <li><strong>readiness</strong>：是否可接流量（后续加 DB、注册中心检查）。</li>
+        <li>勿对外暴露 <code>env</code>、<code>beans</code> 等敏感端点；生产用 Spring Security 或网络策略。</li>
+      </ul>
+
+      <h4>统一 JSON 日志（Logback）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;!-- shopflow-common/src/main/resources/logback-spring.xml 片段 --&gt;
+&lt;appender name="JSON" class="ch.qos.logback.core.ConsoleAppender"&gt;
+  &lt;encoder class="net.logstash.logback.encoder.LogstashEncoder"&gt;
+    &lt;includeMdcKeyName&gt;traceId&lt;/includeMdcKeyName&gt;
+    &lt;customFields&gt;{"service":"${spring.application.name:-unknown}"}&lt;/customFields&gt;
+  &lt;/encoder&gt;
+&lt;/appender&gt;</code></pre>
+      </div>
+      <p>本章在 common 中引入 <code>logstash-logback-encoder</code>，各 service 自动继承；日志行含 <code>service</code>、预留 <code>traceId</code> MDC 字段，与 <span class="term" data-term-id="spring-cloud-bom" tabindex="0">Cloud 可观测组件</span> 后续对齐。</p>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>Actuator 端点速查</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>路径</th><th>用途</th></tr></thead>
+              <tbody>
+                <tr><td><code>/actuator/health</code></td><td>存活/就绪（K8s 探针）</td></tr>
+                <tr><td><code>/actuator/info</code></td><td>构建版本、Git 信息（可选）</td></tr>
+                <tr><td><code>/actuator/metrics</code></td><td>Micrometer 指标（advanced 章）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3，practice 阶段起步复述。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>版本对齐</strong>：父 POM 用 Boot 3.5 + <code>spring-cloud-dependencies</code> 2025.0.x BOM；JDK 21；子模块不写 Cloud 组件版本。</li>
+        <li><strong>模块分层</strong>：api / service / common 对应限界上下文；service 可独立启动，跨上下文只走 API/事件。</li>
+        <li><strong>配置约定</strong>：<code>application.yml</code> + Profile（local/docker）；端口与敏感项外部化。</li>
+        <li><strong>启动顺序</strong>：根目录 install → 单服务 <code>spring-boot:run</code> → 验证 <code>/actuator/health</code>。</li>
+        <li><strong>可运维基线</strong>：Actuator health + 统一 JSON 日志，为注册发现与可观测性铺路。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_practice01">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="bom" /> 能写出父 POM 中 Cloud BOM import 片段</label></li>
+          <li><label><input type="checkbox" data-id="modules" /> 能说明 api / service / common 各自放什么</label></li>
+          <li><label><input type="checkbox" data-id="profile" /> 能解释 local Profile 与默认 yml 的分工</label></li>
+          <li><label><input type="checkbox" data-id="health" /> 本地 curl health 返回 UP</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <p class="chapter-review-next">下一步：完成 Demo 与测验；继续 <a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a>，把 order / inventory 注册到 Eureka 并经由 Gateway 统一入口。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/" target="_blank" rel="noopener">Spring Boot Reference Documentation</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud/docs/current/reference/html/" target="_blank" rel="noopener">Spring Cloud Reference Documentation</a></li>
+      <li><a href="https://github.com/spring-cloud/spring-cloud-release/wiki/Spring-Cloud-2025.0-Release-Notes" target="_blank" rel="noopener">Spring Cloud 2025.0 Release Notes</a></li>
+      <li><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html" target="_blank" rel="noopener">Spring Boot Actuator</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">在本地跑通 order-service，完成父 POM、多模块、Profile 与 Actuator 命令级验收。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>确认 <code>shopflow/pom.xml</code> 含 <code>spring-cloud.version</code> 与 BOM <code>import</code>；在子模块手写 <code>&lt;version&gt;</code> 观察冲突后改回。</li>
+      <li>按「多模块拓扑」Mermaid，列出 order-service 允许依赖的 2 个模块，并说明为何不能依赖 inventory implementation。</li>
+      <li>配置 <code>application-local.yml</code> 端口，<code>mvn spring-boot:run -Dspring-boot.run.profiles=local</code>，<code>curl -s localhost:8081/actuator/health</code> 期望 <code>UP</code>。</li>
+      <li>在 common 添加 JSON Logback encoder，确认日志含 <code>"service":"order-service"</code>。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">端口写进 Java 静态字段且无 <code>application-local.yml</code>。两处应改回外部化的位置？违反哪条 Profile 约定？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>删除 Java 硬编码；在 <code>application-local.yml</code> 写 <code>server.port</code>，默认 <code>application.yml</code> 放共享项。违反「环境差异外部化、同一 artifact 多环境复用」。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">子模块 pom 中 OpenFeign 写死 <code>4.0.0</code>，与 BOM 2025.0.1 并存。应删哪段？保留有何风险？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>删除子模块依赖上的 <code>&lt;version&gt;4.0.0&lt;/version&gt;</code>，由 BOM 管理。保留可能导致与 Boot 3.5 矩阵不兼容、集成测试通过但生产 classpath 冲突。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：ShopFlow 脚手架起步</h4>
+      <p>目录：<code>demos/practice-01-spring-cloud-bootstrap-lab/</code>。<strong>验收</strong>：<code>mvn install</code> 成功 + health 为 UP + 改端口后仍可达。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>上一阶段回顾</strong>：<a href="#ch-basics-05-communication-patterns">通信模式：同步、异步与事件驱动</a> · Spring Cloud 概念映射表</li>
+      <li><strong>下一章</strong>：<a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a>：Eureka + Gateway 本地栈</li>
+      <li><a href="https://start.spring.io/" target="_blank" rel="noopener">Spring Initializr</a>（对照依赖选型，本课用手写多模块）</li>
+      <li><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.profiles" target="_blank" rel="noopener">Spring Boot Profiles</a></li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,61 @@
+{
+  "shellVersion": "2.10.1",
+  "globalThemeKey": "study-self_theme",
+  "globalUiStyleKey": "study-self_ui-style",
+  "defaultUiStyle": "vibrant",
+  "uiStyles": [
+    { "id": "minimal", "label": "简约" },
+    { "id": "tech", "label": "科技" },
+    { "id": "cyber", "label": "赛博" },
+    { "id": "vibrant", "label": "活力" },
+    { "id": "nord", "label": "北欧" },
+    { "id": "paper", "label": "纸感" },
+    { "id": "glass", "label": "玻璃" },
+    { "id": "terminal", "label": "终端" },
+    { "id": "sakura", "label": "樱粉" },
+    { "id": "compact", "label": "紧凑" },
+    { "id": "outline", "label": "线框" },
+    { "id": "soft", "label": "柔圆" }
+  ],
+  "useEnrichment": {
+    "default": true,
+    "comment": "useEnrichment !== false 时 assemble 注入 enrichment.base.css，并按需补齐 welcome 内联脚本"
+  },
+  "cdn": {
+    "highlightJs": "11.9.0",
+    "mermaid": "10.9.0"
+  },
+  "phases": [
+    { "phaseId": "basics", "defaultTitle": "基础", "prefix": "basics" },
+    { "phaseId": "practice", "defaultTitle": "实践", "prefix": "practice" },
+    { "phaseId": "advanced", "defaultTitle": "进阶", "prefix": "advanced" }
+  ],
+  "phasePolicy": {
+    "minChaptersPerPhase": 3,
+    "maxChaptersPerPhase": 6,
+    "minSectionsPerChapter": 2,
+    "maxSectionsPerChapter": 5,
+    "narrowTopicMinChapters": 2
+  },
+  "chapterBlocks": [
+    "concept",
+    "official-links",
+    "code-block",
+    "mermaid-wrap",
+    "steps",
+    "demo-box",
+    "resources"
+  ],
+  "chapterBlocksOptionalByDomainType": {
+    "E": ["mermaid-wrap", "demo-box"],
+    "F": ["demo-box"]
+  },
+  "domainTypes": {
+    "A": "语言/运行时",
+    "B": "框架/库",
+    "C": "平台/中间件",
+    "D": "运维/云原生",
+    "E": "窄专题",
+    "F": "横切能力"
+  }
+}

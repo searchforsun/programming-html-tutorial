@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-ui-style="{{DEFAULT_UI_STYLE}}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+{{UI_STYLE_BOOTSTRAP_SCRIPT}}
+  </script>
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/highlight.min.js"></script>
+{{HLJS_LANG_SCRIPTS}}
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+{{SHELL_SHARED_CSS}}
+{{SHELL_BASE_CSS}}
+{{THEME_CSS}}
+{{SHELL_SURFACES_CSS}}
+  </style>
+{{SHELL_STYLE_SHEETS_HTML}}
+  <script>
+{{UI_STYLE_SHEET_BOOTSTRAP_SCRIPT}}
+  </script>
+</head>
+<body class="page-course">
+  <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <header class="topbar">
+    <a href="../index.html" id="btn-portal" class="btn-portal" title="返回课程选择">← 全部课程</a>
+    <h1 class="course-title">{{TITLE}}</h1>
+    <div class="topbar-actions">
+      <div class="progress-wrap" aria-label="学习进度">
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div id="progress-bar"></div>
+        </div>
+        <span id="progress-text">0/0 (0%)</span>
+      </div>
+      <div class="ui-style-menu-wrap">
+        <button type="button" id="btn-ui-style" class="btn-ui-style btn-topbar-icon" aria-label="切换界面风格" aria-haspopup="menu" aria-expanded="false" title="界面风格">
+          <svg class="icon-ui-style" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+        </button>
+        <div id="ui-style-popover" class="ui-style-popover" role="menu" aria-label="界面风格" hidden>
+{{UI_STYLE_MENU_HTML}}
+        </div>
+      </div>
+      <button type="button" id="btn-theme" class="btn-theme btn-topbar-icon" aria-label="切换明暗主题">
+        <svg class="icon-theme icon-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-theme icon-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button type="button" id="btn-export-progress">导出进度</button>
+      <label class="btn-import">导入进度<input type="file" id="import-progress" accept=".json" hidden /></label>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar" aria-label="课程大纲"></aside>
+    <div class="main-area">
+      <main id="main-content">
+        <div id="welcome" class="welcome">
+{{WELCOME_HTML}}
+        </div>
+        <div id="content">
+{{CHAPTERS_HTML}}
+        </div>
+        <div id="quiz-panel">
+{{QUIZ_HTML}}
+        </div>
+      </main>
+      <aside id="chapter-toc" class="chapter-toc" aria-label="本章大纲" hidden>
+        <div class="chapter-toc-header">
+          <span class="chapter-toc-title">大纲</span>
+          <button type="button" id="btn-chapter-toc-toggle" class="btn-chapter-toc-toggle" aria-label="隐藏大纲" aria-expanded="true">隐藏</button>
+        </div>
+        <nav id="chapter-toc-nav" class="chapter-toc-nav" aria-label="本章大纲导航"></nav>
+      </aside>
+    </div>
+  </div>
+  <button type="button" id="chapter-toc-fab" class="chapter-toc-fab" hidden aria-label="显示大纲">大纲</button>
+
+  <dialog id="term-modal">
+    <div class="term-modal-header">
+      <h3 id="term-title"></h3>
+      <button type="button" class="btn-icon-close" id="btn-close-term-x" aria-label="关闭">×</button>
+    </div>
+    <div class="term-modal-body">
+      <div id="term-prompt" class="term-prompt" role="document"></div>
+      <div class="term-actions">
+        <button type="button" id="btn-copy-prompt" class="btn-term" aria-label="复制 AI 提示词">复制提示词</button>
+{{TERM_PLATFORM_LINKS}}
+        <button type="button" id="btn-close-term" class="btn-term" aria-label="关闭对话框">关闭</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script id="course-data" type="application/json">
+{{COURSE_DATA_JSON}}
+  </script>
+  <script>
+{{SHELL_APP_JS}}
+  </script>
+</body>
+</html>
