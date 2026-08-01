@@ -7,13 +7,17 @@
 {{UI_STYLE_BOOTSTRAP_SCRIPT}}
   </script>
   <title>{{TITLE}}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/highlight.min.js"></script>
-{{HLJS_LANG_SCRIPTS}}
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/highlight.min.js"></script>
+{{HLJS_LANG_SCRIPTS}}
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
 {{SHELL_SHARED_CSS}}
