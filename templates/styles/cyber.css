@@ -1,4 +1,4 @@
-/* UI 风格包 · cyber（独立加载，互斥启用） */
+/* UI 风格包 · cyber */
 
 :root {
 --radius: 0px;
@@ -16,12 +16,12 @@
   --style-btn-shape: var(--radius-pill);
   --style-border-width: 1px;
   --style-letter-spacing: 0.08em;
-  --style-hover-rest: none;
   --style-hover-transform: scale(1.015);
   --style-hover-shadow: var(--shadow-md), 0 0 28px var(--accent-glow);
   --style-hover-border: color-mix(in srgb, var(--accent) 65%, var(--border));
   --style-hover-duration: 0.16s;
   --style-hover-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 body {
@@ -114,80 +114,80 @@ text-transform: uppercase;
 }
 
 body {
-background-size: 24px 24px, 24px 24px, 100% 100% !important;
+background-size: 24px 24px, 24px 24px, 100% 100%;
 }
 
 :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .content-section, .chapter .section-block, .code-block, .quiz-item) {
-clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)) !important;
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
-  box-shadow: var(--style-card-shadow), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: var(--style-card-shadow), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 :is(.meta-card, .role-card, .course-card)::before {
-opacity: 1 !important;
-  height: 2px !important;
-  background: linear-gradient(90deg, var(--accent), var(--accent-alt)) !important;
-  box-shadow: 0 0 12px var(--accent-glow) !important;
+opacity: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-alt));
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .topbar {
-border-bottom-color: color-mix(in srgb, var(--accent) 50%, var(--border)) !important;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 55%, transparent) !important;
+border-bottom-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-glow) 55%, transparent);
 }
 
 .chapter .section-block > h3,
 .chapter h3 {
-border-left: none !important;
-  border-image: none !important;
-  text-transform: uppercase !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.1em !important;
-  color: var(--accent) !important;
-  text-shadow: 0 0 14px var(--accent-glow) !important;
-  padding-left: 0 !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
-  border-radius: 0 !important;
+border-left: none;
+  border-image: none;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-glow);
+  padding-left: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 0;
 }
 
 :is(.welcome-header h2, .portal-hero h2, .course-title) {
-background: none !important;
-  -webkit-text-fill-color: unset !important;
-  color: var(--accent) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  text-shadow: 0 0 20px var(--accent-glow) !important;
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 20px var(--accent-glow);
 }
 
 :is(.btn-mark-done, .quiz-actions .btn-check, .phase-tag) {
-text-transform: uppercase !important;
-  letter-spacing: 0.07em !important;
-  font-size: 0.78rem !important;
-  box-shadow: 0 0 16px var(--accent-glow) !important;
+text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.78rem;
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .outline-table thead th {
-background: var(--table-head-bg, var(--code-header)) !important;
-  color: var(--table-head-fg, var(--muted)) !important;
-  border-bottom-color: var(--table-head-border, var(--border)) !important;
+background: var(--table-head-bg, var(--code-header));
+  color: var(--table-head-fg, var(--muted));
+  border-bottom-color: var(--table-head-border, var(--border));
 }
 
 .code-toolbar {
-background: var(--code-toolbar-bg, var(--code-header)) !important;
-  border-bottom-color: var(--code-toolbar-border, var(--border)) !important;
+background: var(--code-toolbar-bg, var(--code-header));
+  border-bottom-color: var(--code-toolbar-border, var(--border));
 }
 
 .code-toolbar .lang-tag {
-color: var(--code-toolbar-fg, var(--muted)) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.12em !important;
+color: var(--code-toolbar-fg, var(--muted));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .quiz-item .fill-input {
-background: var(--input-bg, var(--surface)) !important;
-  color: var(--input-fg, var(--text)) !important;
-  border-color: var(--input-border, var(--border)) !important;
+background: var(--input-bg, var(--surface));
+  color: var(--input-fg, var(--text));
+  border-color: var(--input-border, var(--border));
 }
 
 .quiz-item .fill-input::placeholder {
-color: var(--input-placeholder, var(--muted)) !important;
+color: var(--input-placeholder, var(--muted));
 }

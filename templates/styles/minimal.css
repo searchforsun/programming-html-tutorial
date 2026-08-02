@@ -1,4 +1,4 @@
-/* UI 风格包 · minimal（独立加载，互斥启用） */
+/* UI 风格包 · minimal */
 
 :root {
 --radius: 6px;
@@ -16,12 +16,12 @@
   --style-btn-shape: var(--radius-pill);
   --style-border-width: 1px;
   --style-letter-spacing: -0.02em;
-  --style-hover-rest: none;
   --style-hover-transform: scale(1.012);
   --style-hover-shadow: var(--shadow-md);
   --style-hover-border: color-mix(in srgb, var(--accent) 22%, var(--border));
   --style-hover-duration: 0.2s;
   --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="light"] {
@@ -46,6 +46,12 @@
   --progress-gradient: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 75%, var(--accent-alt)));
   --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(37, 99, 235, 0.06), transparent);
   --scrollbar-thumb: #cbd5e1;
+  --style-hover-transform: scale(1.012);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent) 22%, var(--border));
+  --style-hover-duration: 0.2s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="dark"] {
@@ -70,6 +76,12 @@
   --progress-gradient: linear-gradient(90deg, var(--accent), var(--accent-alt));
   --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(83, 155, 245, 0.07), transparent);
   --scrollbar-thumb: #484f58;
+  --style-hover-transform: scale(1.012);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent) 22%, var(--border));
+  --style-hover-duration: 0.2s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 .meta-card,
@@ -147,38 +159,38 @@ border-radius: var(--radius-sm);
 }
 
 :is(.meta-card, .role-card, .course-card, .chapter .section-block, .code-block) {
-box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .chapter-header {
-box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 section[data-chapter].done .chapter-header {
-border-left: 3px solid var(--accent) !important;
+border-left: 3px solid var(--accent);
 }
 
 section[data-chapter].in-progress:not(.done) .chapter-header {
-border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
 .topbar {
-backdrop-filter: none !important;
-  box-shadow: none !important;
+backdrop-filter: none;
+  box-shadow: none;
 }
 
 .chapter .section-block > h3,
 .chapter h3 {
-border-left: none !important;
-  border-bottom: 1px solid var(--border) !important;
-  border-radius: 0 !important;
-  padding-left: 0 !important;
+border-left: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding-left: 0;
 }
 
 body.page-course.page-chapter #sidebar {
-border-right: 2px solid var(--border) !important;
+border-right: 2px solid var(--border);
 }

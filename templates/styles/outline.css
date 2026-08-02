@@ -1,4 +1,4 @@
-/* UI 风格包 · outline（独立加载，互斥启用） */
+/* UI 风格包 · outline */
 
 :root {
 --radius: 8px;
@@ -16,12 +16,12 @@
   --style-btn-shape: var(--radius-pill);
   --style-border-width: 2px;
   --style-letter-spacing: 0.01em;
-  --style-hover-rest: none;
   --style-hover-transform: translate(-2px, -2px);
   --style-hover-shadow: none;
   --style-hover-border: color-mix(in srgb, var(--accent) 55%, var(--border));
   --style-hover-duration: 0.14s;
   --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 .meta-card,
@@ -79,27 +79,27 @@ border-width: 2px;
 }
 
 :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block, .quiz-item) {
-background: var(--surface) !important;
-  border-width: 2px !important;
-  border-color: color-mix(in srgb, var(--accent) 28%, var(--border)) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
+background: var(--surface);
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 :is(.meta-card, .role-card, .course-card)::before {
-display: none !important;
+display: none;
 }
 
 .chapter .section-block > h3,
 .chapter h3 {
-border-left: none !important;
-  border-bottom: 2px solid var(--accent) !important;
-  color: var(--text) !important;
-  padding-left: 0 !important;
+border-left: none;
+  border-bottom: 2px solid var(--accent);
+  color: var(--text);
+  padding-left: 0;
 }
 
 :is(.welcome-header h2, .portal-hero h2, .course-title) {
-color: var(--text) !important;
-  background: none !important;
-  -webkit-text-fill-color: unset !important;
+color: var(--text);
+  background: none;
+  -webkit-text-fill-color: unset;
 }

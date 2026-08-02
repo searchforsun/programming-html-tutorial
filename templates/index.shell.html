@@ -20,14 +20,15 @@
   <script defer src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-{{SHELL_SHARED_CSS}}
-{{SHELL_BASE_CSS}}
-{{THEME_CSS}}
-{{SHELL_SURFACES_CSS}}
+{{MERGED_CSS}}
   </style>
-{{SHELL_STYLE_SHEETS_HTML}}
-  <script>
-{{UI_STYLE_SHEET_BOOTSTRAP_SCRIPT}}
+  <!-- Course-specific theme（unlayered — 优先级高于所有 @layer） -->
+  <style>
+{{THEME_CSS}}
+  </style>
+  <!-- Per-style CSS data for on-demand injection -->
+  <script id="style-data" type="application/json">
+{{STYLE_DATA_JSON}}
   </script>
 </head>
 <body class="page-course">

@@ -1,4 +1,4 @@
-/* UI 风格包 · nord（独立加载，互斥启用） */
+/* UI 风格包 · nord */
 
 :root {
 --radius: 20px;
@@ -16,12 +16,12 @@
   --style-btn-shape: var(--radius-pill);
   --style-border-width: 1px;
   --style-letter-spacing: 0;
-  --style-hover-rest: none;
   --style-hover-transform: scale(1.015);
   --style-hover-shadow: var(--shadow-md);
   --style-hover-border: color-mix(in srgb, var(--accent-alt) 40%, var(--border));
   --style-hover-duration: 0.22s;
   --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="light"] {
@@ -46,6 +46,12 @@
   --progress-gradient: linear-gradient(90deg, #5e81ac, #88c0d0, #a3be8c);
   --bg-accent: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(136, 192, 208, 0.2), transparent);
   --scrollbar-thumb: #b8c5d6;
+  --style-hover-transform: scale(1.015);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent-alt) 40%, var(--border));
+  --style-hover-duration: 0.22s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="dark"] {
@@ -70,6 +76,12 @@
   --progress-gradient: linear-gradient(90deg, #5e81ac, #88c0d0, #a3be8c);
   --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(136, 192, 208, 0.1), transparent);
   --scrollbar-thumb: #4c566a;
+  --style-hover-transform: scale(1.015);
+  --style-hover-shadow: var(--shadow-md);
+  --style-hover-border: color-mix(in srgb, var(--accent-alt) 40%, var(--border));
+  --style-hover-duration: 0.22s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 .meta-card,
@@ -151,23 +163,23 @@ border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 :is(.chapter-header, .meta-card, .role-card, .course-card) {
-border-radius: 0 var(--radius) var(--radius) 0 !important;
-  border-left: 4px solid var(--accent-alt) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
+border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: 4px solid var(--accent-alt);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .chapter .section-block > h3 {
-display: inline-block !important;
-  border-left: none !important;
-  padding: 0.25rem 0.7rem !important;
-  background: var(--accent-soft) !important;
-  color: var(--accent) !important;
-  border-radius: var(--radius-pill) !important;
+display: inline-block;
+  border-left: none;
+  padding: 0.25rem 0.7rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-pill);
 }
 
 :is(.course-title, .welcome-header h2, .portal-hero h2) {
-background: none !important;
-  -webkit-text-fill-color: unset !important;
-  color: var(--text) !important;
+background: none;
+  -webkit-text-fill-color: unset;
+  color: var(--text);
 }

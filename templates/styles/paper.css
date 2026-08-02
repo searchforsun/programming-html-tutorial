@@ -1,4 +1,4 @@
-/* UI 风格包 · paper（独立加载，互斥启用） */
+/* UI 风格包 · paper */
 
 :root {
 --radius: 0px;
@@ -16,12 +16,12 @@
   --style-btn-shape: var(--radius-pill);
   --style-border-width: 2px;
   --style-letter-spacing: 0.01em;
-  --style-hover-rest: none;
   --style-hover-transform: translate(-3px, -3px);
   --style-hover-shadow: 7px 7px 0 color-mix(in srgb, var(--border) 70%, transparent);
   --style-hover-border: color-mix(in srgb, var(--accent) 35%, var(--border));
   --style-hover-duration: 0.16s;
   --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="light"] {
@@ -46,6 +46,12 @@
   --progress-gradient: linear-gradient(90deg, #c2410c, #ea580c, #15803d);
   --bg-accent: radial-gradient(ellipse 80% 50% at 30% -10%, rgba(251, 146, 60, 0.12), transparent);
   --scrollbar-thumb: #d6d3d1;
+  --style-hover-transform: translate(-3px, -3px);
+  --style-hover-shadow: 7px 7px 0 color-mix(in srgb, var(--border) 70%, transparent);
+  --style-hover-border: color-mix(in srgb, var(--accent) 35%, var(--border));
+  --style-hover-duration: 0.16s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 [data-theme="dark"] {
@@ -70,6 +76,12 @@
   --progress-gradient: linear-gradient(90deg, #ea580c, #fb923c, #4ade80);
   --bg-accent: radial-gradient(ellipse 70% 45% at 50% -15%, rgba(251, 146, 60, 0.08), transparent);
   --scrollbar-thumb: #57534e;
+  --style-hover-transform: translate(-3px, -3px);
+  --style-hover-shadow: 7px 7px 0 color-mix(in srgb, var(--border) 70%, transparent);
+  --style-hover-border: color-mix(in srgb, var(--accent) 35%, var(--border));
+  --style-hover-duration: 0.16s;
+  --style-hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --style-hover-rest: none;
 }
 
 body {
@@ -174,32 +186,32 @@ border-radius: 0;
 }
 
 :is(.meta-card, .role-card, .course-card, .chapter-header, .chapter .section-block, .code-block, .outline-table-wrap) {
-border-radius: 0 !important;
-  box-shadow: var(--style-card-shadow) !important;
-  border-width: 2px !important;
-  backdrop-filter: none !important;
+border-radius: 0;
+  box-shadow: var(--style-card-shadow);
+  border-width: 2px;
+  backdrop-filter: none;
 }
 
 :is(.meta-card, .role-card, .course-card)::before {
-opacity: 1 !important;
-  height: 5px !important;
-  border-radius: 0 !important;
-  background: var(--accent) !important;
+opacity: 1;
+  height: 5px;
+  border-radius: 0;
+  background: var(--accent);
 }
 
 .chapter .section-block > h3 {
-font-style: italic !important;
-  border-left: none !important;
-  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--border)) !important;
-  border-radius: 0 !important;
+font-style: italic;
+  border-left: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--border));
+  border-radius: 0;
 }
 
 :is(.welcome-header h2, .portal-hero h2) {
-font-style: italic !important;
-  background: none !important;
-  -webkit-text-fill-color: unset !important;
+font-style: italic;
+  background: none;
+  -webkit-text-fill-color: unset;
 }
 
 body.page-portal .course-card-footer {
-border-top-style: dashed !important;
+border-top-style: dashed;
 }

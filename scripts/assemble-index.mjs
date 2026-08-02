@@ -55,7 +55,7 @@ function loadHljsScripts(meta, hljsVer) {
   return langs
     .map(
       (lang) =>
-        `  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/${hljsVer}/languages/${lang}.min.js"></script>`
+        `  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/${hljsVer}/languages/${lang}.min.js"></script>`
     )
     .join('\n');
 }
@@ -110,17 +110,12 @@ function assemble(dir, outFile) {
     course.meta.themePreset = course.meta.slug || 'default';
   }
 
-  execSync('node scripts/build-style-sheets.mjs', { cwd: SKILL_ROOT, stdio: 'inherit' });
+  execSync('node scripts/build-merged-css.mjs', { cwd: SKILL_ROOT, stdio: 'inherit' });
 
   let shellHtml = fs.readFileSync(path.join(SKILL_ROOT, 'templates/index.shell.html'), 'utf8');
   shellHtml = applyShellTemplatePlaceholders(shellHtml, defaults);
-  const sharedCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.shared.css'), 'utf8');
-  const baseCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.base.css'), 'utf8');
-  const surfacesCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.surfaces.css'), 'utf8');
-  const styleSheetsHtml = fs.readFileSync(
-    path.join(SKILL_ROOT, 'templates/shell.style-sheets.html'),
-    'utf8'
-  );
+  const mergedCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.merged.css'), 'utf8');
+  const styleDataJson = readIf(path.join(SKILL_ROOT, 'templates/shell.style-data.json'));
   let themeCss = readIf(path.join(dir, 'theme.css'));
   const useEnrichment = course.meta.useEnrichment !== false;
   if (useEnrichment) {
@@ -153,11 +148,9 @@ function assemble(dir, outFile) {
     .replace(/\{\{TITLE\}\}/g, course.meta.title || course.meta.domain || 'Tutorial')
     .replace(/\{\{HLJS_LANG_SCRIPTS\}\}/g, loadHljsScripts(course.meta, hljsVer))
     .replace(/\{\{TERM_PLATFORM_LINKS\}\}/g, loadTermPlatformLinks())
-    .replace(/\{\{SHELL_SHARED_CSS\}\}/g, sharedCss)
-    .replace(/\{\{SHELL_BASE_CSS\}\}/g, baseCss)
+    .replace(/\{\{MERGED_CSS\}\}/g, mergedCss)
     .replace(/\{\{THEME_CSS\}\}/g, themeCss)
-    .replace(/\{\{SHELL_SURFACES_CSS\}\}/g, surfacesCss)
-    .replace(/\{\{SHELL_STYLE_SHEETS_HTML\}\}/g, styleSheetsHtml)
+    .replace(/\{\{STYLE_DATA_JSON\}\}/g, styleDataJson || '{}')
     .replace(/\{\{WELCOME_HTML\}\}/g, welcomeInner)
     .replace(/\{\{CHAPTERS_HTML\}\}/g, chaptersHtml)
     .replace(/\{\{QUIZ_HTML\}\}/g, quizHtml)

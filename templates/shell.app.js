@@ -127,12 +127,38 @@
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
   }
 
+  function injectStyle(css) {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    return style;
+  }
+
+  function removeStyle(styleEl) {
+    if (styleEl && styleEl.parentNode) {
+      styleEl.parentNode.removeChild(styleEl);
+    }
+  }
+
   function applyUiStyle(style) {
     if (UI_STYLE_IDS.indexOf(style) === -1) style = '{{DEFAULT_UI_STYLE}}';
     document.documentElement.setAttribute('data-ui-style', style);
     document.querySelectorAll('[data-ui-style-sheet]').forEach(function (el) {
       el.disabled = el.getAttribute('data-ui-style-sheet') !== style;
     });
+    // Remove any previously injected unlayered style
+    const prevInjected = document.querySelector('head > style:not([data-ui-style-sheet])');
+    if (prevInjected) {
+      removeStyle(prevInjected);
+    }
+    // Inject new unlayered style if not default
+    if (style !== '{{DEFAULT_UI_STYLE}}') {
+      const styleData = JSON.parse(document.getElementById('style-data').textContent);
+      const css = styleData[style];
+      if (css && css.trim()) {
+        injectStyle(css);
+      }
+    }
     storageSet(GLOBAL_UI_STYLE_KEY, style);
     syncUiStyleMenu(style);
   }
