@@ -5,16 +5,20 @@
  * Usage:
  *   node scripts/assemble-index.mjs --dir <project>/courses/<slug>
  *   node scripts/assemble-index.mjs --dir <project>/courses/<slug> --out <path>/index.html
+ *
+ * Now uses Handlebars for template rendering — replaces fragile string substitution
+ * with compiled templates and compile-time missing-key detection.
  */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import {
-  loadDefaults,
-  applyShellTemplatePlaceholders,
   applyShellAppPlaceholders,
+  renderUiStyleBootstrapScript,
+  renderUiStyleMenuHtml,
 } from './lib/ui-styles.mjs';
+import { renderTemplate, validateContext } from './lib/template-helpers.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.join(__dirname, '..');
@@ -69,7 +73,6 @@ function loadEnrichmentScriptBody(skillRoot) {
     .trim();
 }
 
-/** 交互脚本内联进 welcome，不生成 courses/<slug>/assets/*.js */
 function applyWelcomeEnrichment(welcomeHtml, skillRoot, useEnrichment) {
   if (!welcomeHtml) return welcomeHtml;
   let html = welcomeHtml.replace(
@@ -110,33 +113,49 @@ function assemble(dir, outFile) {
     course.meta.themePreset = course.meta.slug || 'default';
   }
 
+  // Step 1: Build CSS artifacts (merged + style-data)
   execSync('node scripts/build-merged-css.mjs', { cwd: SKILL_ROOT, stdio: 'inherit' });
 
-  let shellHtml = fs.readFileSync(path.join(SKILL_ROOT, 'templates/index.shell.html'), 'utf8');
-  shellHtml = applyShellTemplatePlaceholders(shellHtml, defaults);
-  const mergedCss = fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.merged.css'), 'utf8');
-  const styleDataJson = readIf(path.join(SKILL_ROOT, 'templates/shell.style-data.json'));
+  // Step 2: Read shell template source + shell JS
+  const templateSource = fs.readFileSync(
+    path.join(SKILL_ROOT, 'templates', 'index.shell.hbs'),
+    'utf8'
+  );
+  const shellAppJsRaw = fs.readFileSync(
+    path.join(SKILL_ROOT, 'templates', 'shell.app.js'),
+    'utf8'
+  );
+
+  // Step 3: Read / compute all content fragments
+  const mergedCss = fs.readFileSync(
+    path.join(SKILL_ROOT, 'templates', 'shell.merged.css'),
+    'utf8'
+  );
+  const styleDataJson = readIf(path.join(SKILL_ROOT, 'templates', 'shell.style-data.json')) || '{}';
+
   let themeCss = readIf(path.join(dir, 'theme.css'));
   const useEnrichment = course.meta.useEnrichment !== false;
   if (useEnrichment) {
-    const enrichPath = path.join(SKILL_ROOT, 'templates/enrichment.base.css');
+    const enrichPath = path.join(SKILL_ROOT, 'templates', 'enrichment.base.css');
     if (fs.existsSync(enrichPath)) {
       const enrichCss = fs.readFileSync(enrichPath, 'utf8');
       themeCss = themeCss ? `${themeCss}\n\n${enrichCss}` : enrichCss;
     }
   }
+
   let welcomeInner = readIf(path.join(dir, 'welcome.partial.html'));
   welcomeInner = applyWelcomeEnrichment(welcomeInner, SKILL_ROOT, useEnrichment);
-  const shellJs = applyShellAppPlaceholders(
-    fs.readFileSync(path.join(SKILL_ROOT, 'templates/shell.app.js'), 'utf8'),
-    defaults
-  );
 
   const chaptersDir = path.join(dir, 'chapters');
   let chaptersHtml = '';
   if (fs.existsSync(chaptersDir)) {
-    const files = fs.readdirSync(chaptersDir).filter((f) => f.endsWith('.html')).sort();
-    chaptersHtml = files.map((f) => fs.readFileSync(path.join(chaptersDir, f), 'utf8').trim()).join('\n');
+    const files = fs
+      .readdirSync(chaptersDir)
+      .filter((f) => f.endsWith('.html'))
+      .sort();
+    chaptersHtml = files
+      .map((f) => fs.readFileSync(path.join(chaptersDir, f), 'utf8').trim())
+      .join('\n');
   }
 
   const quizHtml = readIf(path.join(dir, 'quiz.partial.html'));
@@ -144,20 +163,51 @@ function assemble(dir, outFile) {
   const hljsVer = defaults.cdn.highlightJs;
   const mermaidVer = defaults.cdn.mermaid;
 
-  let html = shellHtml
-    .replace(/\{\{TITLE\}\}/g, course.meta.title || course.meta.domain || 'Tutorial')
-    .replace(/\{\{HLJS_LANG_SCRIPTS\}\}/g, loadHljsScripts(course.meta, hljsVer))
-    .replace(/\{\{TERM_PLATFORM_LINKS\}\}/g, loadTermPlatformLinks())
-    .replace(/\{\{MERGED_CSS\}\}/g, mergedCss)
-    .replace(/\{\{THEME_CSS\}\}/g, themeCss)
-    .replace(/\{\{STYLE_DATA_JSON\}\}/g, styleDataJson || '{}')
-    .replace(/\{\{WELCOME_HTML\}\}/g, welcomeInner)
-    .replace(/\{\{CHAPTERS_HTML\}\}/g, chaptersHtml)
-    .replace(/\{\{QUIZ_HTML\}\}/g, quizHtml)
-    .replace(/\{\{COURSE_DATA_JSON\}\}/g, JSON.stringify(course, null, 2))
-    .replace(/\{\{SHELL_APP_JS\}\}/g, shellJs)
-    .replace(/\{\{HLJS_VERSION\}\}/g, hljsVer)
-    .replace(/\{\{MERMAID_VERSION\}\}/g, mermaidVer);
+  // Step 4: Pre-process shell.app.js (its own placeholders are independent of Handlebars)
+  const shellAppJs = applyShellAppPlaceholders(shellAppJsRaw, defaults);
+
+  // Step 5: Build render context (single object → Handlebars)
+  const defStyle = defaults.defaultUiStyle || 'vibrant';
+  const context = {
+    // Simple string values (double-brace {{ }} — auto-escaped)
+    defaultUiStyle: defStyle,
+    title: course.meta.title || course.meta.domain || 'Tutorial',
+    hljsVersion: hljsVer,
+    mermaidVersion: mermaidVer,
+
+    // Raw HTML/CSS/JS content (triple-brace {{{ }}} — no escaping)
+    uiStyleBootstrapScript: renderUiStyleBootstrapScript(defaults),
+    uiStyleMenuHtml: renderUiStyleMenuHtml(defaults),
+    hljsLangScripts: loadHljsScripts(course.meta, hljsVer),
+    termPlatformLinks: loadTermPlatformLinks(),
+    mergedCss: mergedCss,
+    themeCss: themeCss,
+    styleDataJson: styleDataJson,
+    welcomeHtml: welcomeInner,
+    chaptersHtml: chaptersHtml,
+    quizHtml: quizHtml,
+    shellAppJs: shellAppJs,
+
+    // Complex objects for {{json}} helper
+    courseData: course,
+  };
+
+  // Step 6: Validate context completeness
+  const requiredKeys = [
+    'defaultUiStyle', 'title', 'hljsVersion', 'mermaidVersion',
+    'uiStyleBootstrapScript', 'uiStyleMenuHtml', 'hljsLangScripts',
+    'termPlatformLinks', 'mergedCss', 'styleDataJson',
+    'shellAppJs', 'courseData',
+  ];
+  const optionalKeys = ['themeCss', 'welcomeHtml', 'chaptersHtml', 'quizHtml'];
+  const warnings = validateContext(context, requiredKeys, optionalKeys);
+  if (warnings.length > 0) {
+    console.warn('Template variable warnings:');
+    warnings.forEach((w) => console.warn(`  - ${w}`));
+  }
+
+  // Step 7: Render
+  const html = renderTemplate(templateSource, context);
 
   fs.writeFileSync(outFile, html, 'utf8');
   console.log(`Assembled ${outFile} (shell ${SHELL_VERSION}, ${course.meta.slug})`);
