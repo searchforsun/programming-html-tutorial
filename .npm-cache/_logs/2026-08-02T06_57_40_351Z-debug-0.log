@@ -1,0 +1,91 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.9.2
+2 info using node@v22.14.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/workspace/wt-1b385872d4/.npmrc
+5 silly config load:file:/home/sandbox/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install handlebars
+8 verbose argv "install" "handlebars" "--save" "--cache" "/workspace/wt-1b385872d4/.npm-cache"
+9 verbose logfile logs-max:10 dir:/workspace/wt-1b385872d4/.npm-cache/_logs/2026-08-02T06_57_40_351Z-
+10 verbose logfile /workspace/wt-1b385872d4/.npm-cache/_logs/2026-08-02T06_57_40_351Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:1098907648 maxSize:274726912 maxEntrySize:137363456
+13 silly idealTree buildDeps
+14 silly fetch manifest handlebars@*
+15 silly packumentCache full:https://registry.npmjs.org/handlebars cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/handlebars 1708ms (cache miss)
+17 silly packumentCache full:https://registry.npmjs.org/handlebars set size:undefined disposed:false
+18 silly placeDep ROOT handlebars@4.7.9 OK for: programming-html-tutorial@1.7.6 want: *
+19 silly fetch manifest minimist@^1.2.5
+20 silly packumentCache full:https://registry.npmjs.org/minimist cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/minimist 408ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/minimist set size:undefined disposed:false
+23 silly fetch manifest neo-async@^2.6.2
+24 silly packumentCache full:https://registry.npmjs.org/neo-async cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/neo-async 416ms (cache miss)
+26 silly packumentCache full:https://registry.npmjs.org/neo-async set size:undefined disposed:false
+27 silly fetch manifest source-map@^0.6.1
+28 silly packumentCache full:https://registry.npmjs.org/source-map cache-miss
+29 http fetch GET 200 https://registry.npmjs.org/source-map 624ms (cache miss)
+30 silly packumentCache full:https://registry.npmjs.org/source-map set size:undefined disposed:false
+31 silly fetch manifest wordwrap@^1.0.0
+32 silly packumentCache full:https://registry.npmjs.org/wordwrap cache-miss
+33 http fetch GET 200 https://registry.npmjs.org/npm 3734ms
+34 http fetch GET 200 https://registry.npmjs.org/wordwrap 1286ms (cache miss)
+35 silly packumentCache full:https://registry.npmjs.org/wordwrap set size:undefined disposed:false
+36 silly fetch manifest uglify-js@^3.1.4
+37 silly packumentCache full:https://registry.npmjs.org/uglify-js cache-miss
+38 http fetch GET 200 https://registry.npmjs.org/uglify-js 922ms (cache miss)
+39 silly packumentCache full:https://registry.npmjs.org/uglify-js set size:undefined disposed:false
+40 silly placeDep ROOT minimist@1.2.8 OK for: handlebars@4.7.9 want: ^1.2.5
+41 silly placeDep ROOT neo-async@2.6.2 OK for: handlebars@4.7.9 want: ^2.6.2
+42 silly placeDep ROOT source-map@0.6.1 OK for: handlebars@4.7.9 want: ^0.6.1
+43 silly placeDep ROOT uglify-js@3.19.3 OK for: handlebars@4.7.9 want: ^3.1.4
+44 silly placeDep ROOT wordwrap@1.0.0 OK for: handlebars@4.7.9 want: ^1.0.0
+45 silly reify moves {}
+46 silly audit bulk request {
+46 silly audit   handlebars: [ '4.7.9' ],
+46 silly audit   minimist: [ '1.2.8' ],
+46 silly audit   'neo-async': [ '2.6.2' ],
+46 silly audit   'source-map': [ '0.6.1' ],
+46 silly audit   'uglify-js': [ '3.19.3' ],
+46 silly audit   wordwrap: [ '1.0.0' ]
+46 silly audit }
+47 http cache wordwrap@https://registry.npmjs.org/wordwrap/-/wordwrap-1.0.0.tgz 0ms (cache hit)
+48 http cache neo-async@https://registry.npmjs.org/neo-async/-/neo-async-2.6.2.tgz 0ms (cache hit)
+49 http cache uglify-js@https://registry.npmjs.org/uglify-js/-/uglify-js-3.19.3.tgz 0ms (cache hit)
+50 http cache source-map@https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz 0ms (cache hit)
+51 http cache handlebars@https://registry.npmjs.org/handlebars/-/handlebars-4.7.9.tgz 0ms (cache hit)
+52 http cache minimist@https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz 0ms (cache hit)
+53 silly tarball no local data for wordwrap@https://registry.npmjs.org/wordwrap/-/wordwrap-1.0.0.tgz. Extracting by manifest.
+54 silly tarball no local data for neo-async@https://registry.npmjs.org/neo-async/-/neo-async-2.6.2.tgz. Extracting by manifest.
+55 silly tarball no local data for uglify-js@https://registry.npmjs.org/uglify-js/-/uglify-js-3.19.3.tgz. Extracting by manifest.
+56 silly tarball no local data for source-map@https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz. Extracting by manifest.
+57 silly tarball no local data for handlebars@https://registry.npmjs.org/handlebars/-/handlebars-4.7.9.tgz. Extracting by manifest.
+58 silly tarball no local data for minimist@https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz. Extracting by manifest.
+59 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 249ms
+60 silly audit report {}
+61 http fetch GET 200 https://registry.npmjs.org/wordwrap/-/wordwrap-1.0.0.tgz 418ms (cache miss)
+62 http fetch GET 200 https://registry.npmjs.org/neo-async/-/neo-async-2.6.2.tgz 895ms (cache miss)
+63 http fetch GET 200 https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz 1170ms (cache miss)
+64 http fetch GET 200 https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz 1955ms (cache miss)
+65 http fetch GET 200 https://registry.npmjs.org/uglify-js/-/uglify-js-3.19.3.tgz 2530ms (cache miss)
+66 http fetch GET 200 https://registry.npmjs.org/handlebars/-/handlebars-4.7.9.tgz 7684ms (cache miss)
+67 silly ADD node_modules/wordwrap
+68 silly ADD node_modules/uglify-js
+69 silly ADD node_modules/source-map
+70 silly ADD node_modules/neo-async
+71 silly ADD node_modules/minimist
+72 silly ADD node_modules/handlebars
+73 verbose cwd /workspace/wt-1b385872d4
+74 verbose os Linux 5.15.0-177-generic
+75 verbose node v22.14.0
+76 verbose npm  v10.9.2
+77 notice
+77 notice New major version of npm available! 10.9.2 -> 12.0.2
+77 notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+77 notice To update run: npm install -g npm@12.0.2
+77 notice  { force: true, [Symbol(proc-log.meta)]: true }
+78 verbose exit 0
+79 info ok
