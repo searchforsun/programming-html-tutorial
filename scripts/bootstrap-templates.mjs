@@ -7,9 +7,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { SKILL_ROOT } from './lib/paths.mjs';
+
 const htmlPath = process.argv[2];
 if (!htmlPath) {
   console.error('Usage: node bootstrap-templates.mjs <path/to/assembled/index.html>');
@@ -17,7 +17,7 @@ if (!htmlPath) {
 }
 
 const html = fs.readFileSync(path.resolve(htmlPath), 'utf8');
-const tpl = path.join(__dirname, '../templates');
+const tpl = path.join(SKILL_ROOT, 'templates');
 fs.mkdirSync(tpl, { recursive: true });
 
 const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];

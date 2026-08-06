@@ -7,16 +7,15 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { loadDefaults, applyPortalUiStyleFragments } from './lib/ui-styles.mjs';
+import { SKILL_ROOT } from './lib/paths.mjs';
 
-const skillRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const templates = path.join(skillRoot, 'templates');
+const templates = path.join(SKILL_ROOT, 'templates');
 const portalPath = path.join(templates, 'portal.index.html');
-const defaults = loadDefaults(skillRoot);
+const defaults = loadDefaults(SKILL_ROOT);
 
-execSync('node scripts/build-style-sheets.mjs', { cwd: skillRoot, stdio: 'inherit' });
+execSync('node scripts/build-style-sheets.mjs', { cwd: SKILL_ROOT, stdio: 'inherit' });
 
 const indent = (text) => text.split('\n').map((line) => (line ? '    ' + line : '')).join('\n');
 

@@ -2,12 +2,11 @@
 /** Extract course.json, welcome, chapters, theme.css from monolithic index.html */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const defaults = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'config', 'defaults.json'), 'utf8')
-);
+import { loadDefaults } from './lib/ui-styles.mjs';
+import { SKILL_ROOT } from './lib/paths.mjs';
+
+const defaults = loadDefaults(SKILL_ROOT);
 
 const htmlPath = process.argv[2];
 if (!htmlPath) {

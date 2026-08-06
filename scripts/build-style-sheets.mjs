@@ -5,14 +5,13 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const skillRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const templates = path.join(skillRoot, 'templates');
+import { loadDefaults } from './lib/ui-styles.mjs';
+import { SKILL_ROOT } from './lib/paths.mjs';
+
+const templates = path.join(SKILL_ROOT, 'templates');
 const outDir = path.join(templates, 'styles');
-const defaults = JSON.parse(
-  fs.readFileSync(path.join(skillRoot, 'config/defaults.json'), 'utf8')
-);
+const defaults = loadDefaults(SKILL_ROOT);
 const STYLES = defaults.uiStyles.map((s) => s.id);
 
 const HOVER_TOKENS = {

@@ -1,0 +1,504 @@
+<section id="ch-practice-03-sync-calls" class="chapter" data-chapter="practice-03-sync-calls">
+  <header class="chapter-header">
+    <h2>OpenFeign、负载均衡与服务间调用</h2>
+    <button type="button" class="btn-mark-done" data-chapter="practice-03-sync-calls" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>40 分钟</strong> · 阶段：<strong>Java 微服务栈实战</strong> · 能力：用 OpenFeign 声明式调用 + LoadBalancer 选实例 + 超时重试策略，实现 order → inventory 下单链路</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-practice-02-discovery-gateway">上一章</a> 有了注册发现与网关入口，但 <code>order-service</code> 还不知道怎么调用 <code>inventory-service</code>。本章引入 <strong>OpenFeign</strong> 声明式 HTTP 客户端，配合 <span class="term" data-term-id="service-discovery" tabindex="0">服务发现</span> 与 Spring Cloud LoadBalancer，把 URL 从硬编码变成声明式接口，并补齐超时、重试与错误处理——让 ShopFlow 下单链路真正跑通。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>用 <code>@FeignClient</code> 声明式调用 inventory API，不写 <code>RestTemplate</code> 样板</li>
+          <li>配合 LoadBalancer 按 <code>lb://inventory-service</code> 从 Eureka 选实例</li>
+          <li>配置 connectTimeout / readTimeout、指数退避重试与错误解码</li>
+          <li>实现 order 同步调用 inventory 预留库存的完整链路</li>
+          <li>使用契约测试 + Mock Server 在 CI 中提前发现集成断裂</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>Feign 是接口，不是实现</strong>：只需声明 DTO 映射与路径，框架自动生成代理；切勿在 Controller 里手写 <code>new RestTemplate().postForEntity(...)</code>。</li>
+          <li><strong>超时 + 重试 ≠ 可靠</strong>：下游必须 <span class="term" data-term-id="idempotency-key" tabindex="0">幂等</span>，否则多次调用会多扣库存（<a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a> 展开）。</li>
+          <li><strong>LoadBalancer 只选实例，不保证可用</strong>：选到的实例仍可能宕机，需配合熔断（<a href="#ch-advanced-01-resilience">韧性工程</a>）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>声明式 HTTP 客户端与 DTO 映射</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · order → inventory 第一步</span>
+        用户下单时，<code>order-service</code> 需同步调用 <code>inventory-service</code> 预留库存。团队不想写 <code>RestTemplate</code> 的 host/port/header 样板——能否像调本地方法一样调远程服务？
+      </aside>
+      <p><strong>OpenFeign</strong> 是 Spring Cloud 的声明式 HTTP 客户端：定义 Java 接口 → 加 <code>@FeignClient</code> 注解 → 方法签名字段映射为请求路径、参数与返回体。Feign 在运行时生成代理，自动完成 JSON 序列化/反序列化。相较于手写 <code>RestTemplate</code>，Feign 把「怎么调」托管给框架，团队只关注「调什么」。</p>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">RestTemplate 样板</span>
+          <ul>
+            <li>每次调用手写 URI 拼接、header 设置</li>
+            <li>泛型 <code>ParameterizedTypeReference</code> 易出错</li>
+            <li>超时、重试需另配 <code>RequestConfig</code></li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">Feign 声明式</span>
+          <ul>
+            <li>接口 + 注解即客户端；DTO 复用 api 模块</li>
+            <li>返回类型直接写 <code>ReserveResponse</code></li>
+            <li>超时/重试集中在配置文件</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Inventory Feign 接口（定义在 order-api）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-order-api / com.shopflow.order.client.InventoryClient
+@FeignClient(name = "inventory-service", path = "/api/reservations")
+public interface InventoryClient {
+
+  @PostMapping
+  ReserveResponse reserve(@RequestBody ReserveRequest request);
+
+  @GetMapping("/{reservationId}")
+  ReserveStatus status(@PathVariable String reservationId);
+}</code></pre>
+      </div>
+      <p><code>name = "inventory-service"</code> 即 <code>spring.application.name</code>，与 Eureka 注册名一致。无需写 <code>url</code>——配合 LoadBalancer 解析。</p>
+
+      <h4>DTO 放在订单 api 模块（契约复用）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-order-api / com.shopflow.order.dto
+public record ReserveRequest(
+  @NotBlank String sku,
+  @Positive  int quantity,
+  @NotBlank String idempotencyKey  // 幂等键：重复提交返回同一结果
+) {}
+
+public record ReserveResponse(
+  String reservationId,
+  ReserveStatus status,
+  int reservedQty
+) {}</code></pre>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：为何 DTO 放在 order-api 而非 inventory 侧？</summary>
+        <p>消费者定义期望的契约字段（<a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a> 中 <span class="term" data-term-id="consumer-driven-contract" tabindex="0">消费者驱动契约</span>）。inventory 实现时可参考同名字段，跨上下文不共享实体——防止模型泄漏。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>Spring Cloud LoadBalancer 与实例选择</h3>
+      <p><code>@FeignClient</code> 与 <code>spring-cloud-starter-loadbalancer</code> 配合后，<code>name</code> 会自动解析为 <code>lb://inventory-service</code>：先从 Eureka 拉取实例列表，再按策略选一个。Spring Cloud 2025 默认使用 <strong>RoundRobinLoadBalancer</strong>，也可切换为随机或基于 Zone 的偏好。</p>
+
+      <h4>LoadBalancer 配置（可选切换策略）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># order-service / application-local.yml
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          inventory-service:
+            connectTimeout: 2000
+            readTimeout: 5000
+    loadbalancer:
+      configurations: round-robin  # 默认；也可 random</code></pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · Feign + LoadBalancer 调用链</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant O as OrderController
+  participant F as Feign Proxy
+  participant LB as LoadBalancer
+  participant E as Eureka :8761
+  participant I as inventory-service
+
+  O->>F: inventoryClient.reserve(req)
+  F->>LB: 解析 inventory-service
+  LB->>E: 拉取实例列表
+  E-->>LB: [192.168.1.10:8082, 192.168.1.11:8082]
+  LB->>LB: RoundRobin 选 192.168.1.10
+  LB->>I: POST /api/reservations (8082)
+  I-->>LB: 200 {reservationId, status}
+  LB-->>F: ReserveResponse
+  F-->>O: 返回结果</pre>
+        <p class="diagram-caption">Feign 代理拦截调用 → LoadBalancer 查注册表 → 选实例 → 发起 HTTP。实例列表由 Eureka 定期刷新，并非每次调用都查注册中心。</p>
+      </div>
+
+      <div class="learn-tabs" role="tablist" aria-label="LoadBalancer 策略">
+        <input type="radio" name="prac03-lb-tab" id="prac03-lb-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="prac03-lb-tab" id="prac03-lb-tab-b" class="learn-tab-input" />
+        <label for="prac03-lb-tab-a">RoundRobin</label>
+        <label for="prac03-lb-tab-b">Random / Zone</label>
+        <div class="learn-tab-panel" id="prac03-lb-panel-a" role="tabpanel">
+          <ul>
+            <li>依次轮转实例；默认策略</li>
+            <li>适合各节点规格一致</li>
+            <li>无状态服务首选</li>
+          </ul>
+        </div>
+        <div class="learn-tab-panel" id="prac03-lb-panel-b" role="tabpanel">
+          <ul>
+            <li><strong>Random</strong>：随机选，适合压测分散</li>
+            <li><strong>ZonePreference</strong>：同可用区优先，降低跨 AZ 延迟</li>
+            <li>Spring Cloud 2025 通过 <code>ServiceInstanceListSupplier</code> 扩展</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>超时、重试与错误解码策略</h3>
+      <p>同步调用中最容易踩的坑：默认超时过长导致线程池耗尽，或重试不幂等导致重复扣减。ShopFlow 约定：<strong>connectTimeout 2s + readTimeout 5s</strong>，重试仅针对 <strong>可重试状态码</strong>（503/网络异常），且请求必须带 <span class="term" data-term-id="idempotency-key" tabindex="0">幂等键</span>。</p>
+
+      <h4>Feign 超时与重试配置（Spring Cloud 2025）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># order-service / application-local.yml
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          inventory-service:
+            connectTimeout: 2000
+            readTimeout: 5000
+            retryer: com.shopflow.common.ShopFlowRetryer
+      compression:
+        request:
+          enabled: true
+        response:
+          enabled: true</code></pre>
+      </div>
+
+      <h4>自定义 Retryer：指数退避 + 仅可重试异常</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-common / com.shopflow.common.ShopFlowRetryer
+public class ShopFlowRetryer implements Retryer {
+  private final int maxAttempts = 3;
+  private final long backoffMs = 300;
+  private int attempt = 1;
+
+  @Override
+  public void continueOrPropagate(RetryableException e) {
+    if (attempt++ > maxAttempts) throw e;
+    // 仅 5xx 或网络异常重试；4xx 直接抛出
+    if (e.status() >= 400 && e.status() < 500) throw e;
+    try {
+      Thread.sleep(backoffMs * (1L << (attempt - 2))); // 300 → 600
+    } catch (InterruptedException ignored) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  @Override
+  public Retryer clone() { return new ShopFlowRetryer(); }
+}</code></pre>
+      </div>
+
+      <h4>ErrorDecoder：区分 4xx / 5xx</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-order-service 配置类
+@Bean
+public ErrorDecoder inventoryErrorDecoder() {
+  return (methodKey, response) -> {
+    if (response.status() == 409) { // 库存不足
+      return new InsufficientStockException("库存不足，请稍后");
+    }
+    return new FeignException.FeignServerException(
+      response.status(), "inventory 调用失败", response.request(), null, null);
+  };
+}</code></pre>
+      </div>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">重试风暴</span>
+          <ul>
+            <li>无退避：3 次均在 0ms 后立即重试</li>
+            <li>4xx 也重试（400 Bad Request 重试仍 400）</li>
+            <li>被调用方无幂等键 → 重复扣库存</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">安全重试</span>
+          <ul>
+            <li>300ms → 600ms 指数退避，给下游恢复时间</li>
+            <li>仅 5xx / IOException 重试</li>
+            <li>每个请求附 <code>Idempotency-Key</code> 头</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>ShopFlow：下单链路同步调用 inventory</h3>
+      <p>order-service 收到 <code>POST /orders</code> 后：校验参数 → 生成 orderId → <strong>同步调用 inventory reserve</strong> → 若预留成功则持久化订单、返回 201；若库存不足（409）则返回友好错误。本章暂不涉及 payment——那是 <a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a> 的事件通知环节。</p>
+
+      <h4>OrderService：编排 reserve + 持久化</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / com.shopflow.order.service.OrderService
+@Service
+public class OrderService {
+  private final InventoryClient inventoryClient;
+  private final OrderRepository orderRepo;
+
+  public CreateOrderResponse createOrder(CreateOrderRequest req) {
+    // 1. 幂等键：requestId 或客户端生成
+    String idempotencyKey = req.idempotencyKey();
+
+    // 2. 同步预留库存
+    ReserveResponse reserve = inventoryClient.reserve(
+      new ReserveRequest(req.sku(), req.quantity(), idempotencyKey));
+
+    if (reserve.status() == ReserveStatus.INSUFFICIENT) {
+      throw new InsufficientStockException("SKU " + req.sku() + " 库存不足");
+    }
+
+    // 3. 持久化订单（本地 ACID）
+    Order order = Order.create(req, reserve.reservationId());
+    orderRepo.save(order);
+
+    return CreateOrderResponse.from(order, reserve);
+  }
+}</code></pre>
+      </div>
+
+      <h4>Controller：REST 入口</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">@RestController
+@RequestMapping("/orders")
+public class OrderController {
+  private final OrderService service;
+
+  @PostMapping
+  public ResponseEntity&lt;CreateOrderResponse&gt; create(
+      @Valid @RequestBody CreateOrderRequest req) {
+    return ResponseEntity.status(201).body(service.createOrder(req));
+  }
+}</code></pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 下单链路（同步部分）</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant C as Client
+  participant G as Gateway :8080
+  participant O as order-service
+  participant I as inventory-service
+
+  C->>G: POST /api/orders
+  G->>O: POST /orders (StripPrefix)
+  O->>O: 校验 + 生成 orderId
+  O->>I: Feign POST /api/reservations
+  I->>I: 扣减库存（串行化）
+  I-->>O: 201 {reservationId, RESERVED}
+  O->>O: 持久化订单
+  O-->>G: 201 {orderId, status: CREATED}
+  G-->>C: 201</pre>
+        <p class="diagram-caption">若 inventory 返回 409（库存不足）或超时（readTimeout 5s），order 不落库，返回对应错误码。幂等键保证重复提交不会多扣。</p>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：为何不先落库订单再调 inventory？</summary>
+        <p>若先落库后 reserve 失败，需回滚或补偿已落库的订单——即 <span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span>。保持「先 reserve → 再落库」的顺序，失败时订单未落库、无需补偿。但 inventory 若成功而订单落库失败，仍需补偿（<a href="#ch-practice-05-data-consistency">分布式数据</a> 展开）。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>契约测试与 Mock 服务协作</h3>
+      <p>order-service 单元测试中不应启动真实 inventory；用 <strong>WireMock</strong> 或 <strong>Spring Cloud Contract</strong> 模拟下游行为，在 CI 中每次 PR 都验证 order 对 inventory 契约的兼容性。这与 <a href="#ch-basics-04-domain-api">领域建模、边界上下文与 API 契约</a> 的 <span class="term" data-term-id="consumer-driven-contract" tabindex="0">消费者驱动契约</span> 一致：order 先写期望，inventory 侧验证能否满足。</p>
+
+      <h4>WireMock 桩：模拟 inventory reserve 成功</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / src/test
+@SpringBootTest
+@WireMockTest(httpPort = 8082)
+class OrderServiceIntegrationTest {
+
+  @DynamicPropertySource
+  static void overrideInventoryUrl(DynamicPropertyRegistry reg) {
+    // 让 Feign 指向 WireMock 而非真实 inventory
+    reg.add("spring.cloud.openfeign.client.config.inventory-service.url",
+            () -> "http://localhost:8082");
+  }
+
+  @Test
+  void shouldCreateOrderWhenInventoryReserveSucceeds() {
+    stubFor(post(urlEqualTo("/api/reservations"))
+      .willReturn(aResponse()
+        .withStatus(201)
+        .withHeader("Content-Type", "application/json")
+        .withBody("""
+          {"reservationId":"r-1","status":"RESERVED","reservedQty":1}""")));
+
+    // 调用 orderController 或 service
+    var resp = restTemplate.postForEntity("/orders", req, CreateOrderResponse.class);
+    assertThat(resp.getStatusCodeValue()).isEqualTo(201);
+    assertThat(resp.getBody().status()).isEqualTo("CREATED");
+  }
+
+  @Test
+  void shouldReturn409WhenInventoryInsufficient() {
+    stubFor(post(urlEqualTo("/api/reservations"))
+      .willReturn(aResponse()
+        .withStatus(409)
+        .withBody("""{"error":"INSUFFICIENT","message":"库存不足"}""")));
+
+    assertThatThrownBy(() -> service.createOrder(req))
+      .isInstanceOf(InsufficientStockException.class);
+  }
+}</code></pre>
+      </div>
+
+      <p>Mock 让 order 侧在无真实 inventory 时仍能验证：① 正常预留后落库 ② 库存不足时的异常分支 ③ 超时/5xx 时的重试行为。inventory 侧再跑 Pact/Spring Cloud Contract 验证其实现能通过 order 的契约。</p>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>Feign 常见问题速查</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>现象</th><th>根因</th><th>修复</th></tr></thead>
+              <tbody>
+                <tr><td><code>UnknownHostException</code> on <code>inventory-service</code></td><td>未加 loadbalancer 依赖或 Eureka 未就绪</td><td>确认 <code>spring-cloud-starter-loadbalancer</code>；先起 Eureka</td></tr>
+                <tr><td>Feign 返回 200 但 body 为 null</td><td>DTO 字段名与 JSON 不匹配</td><td>检查 <code>@JsonProperty</code> 或 record 命名</td></tr>
+                <tr><td>重试 3 次后仍 503</td><td>实例全部宕机或健康检查未通过</td><td>检查 Eureka 控制台实例状态；考虑 circuit breaker</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3，practice 阶段实操递进。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>Feign 声明式调用</strong>：<code>@FeignClient(name="inventory-service")</code> + DTO 契约；无需手写 RestTemplate 样板，跨上下文只依赖 api 模块。</li>
+        <li><strong>LoadBalancer 选实例</strong>：<code>lb://</code> 前缀触发 RoundRobin；实例列表由 Eureka 定期刷新而非每次调用都查。</li>
+        <li><strong>安全重试</strong>：指数退避 300→600ms，仅 5xx/IO 重试，4xx 直接失败；每个请求必须带幂等键。</li>
+        <li><strong>下单链路</strong>：先 reserve → 再落库，失败时不产生需补偿的孤儿订单；但 inventory 成功 + order 落库失败仍需补偿。</li>
+        <li><strong>契约测试</strong>：WireMock 模拟下游，order 独立验证正常/异常/超时分支；CI 中跑消费者契约，集成失败左移到 PR。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_practice03">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="feign" /> 能写出 <code>@FeignClient</code> 接口及 DTO 映射</label></li>
+          <li><label><input type="checkbox" data-id="lb" /> 能解释 <code>lb://inventory-service</code> 的解析流程</label></li>
+          <li><label><input type="checkbox" data-id="retry" /> 能说明为何 4xx 不重试、为何必须幂等键</label></li>
+          <li><label><input type="checkbox" data-id="order-flow" /> 能画出 order → inventory 同步调用时序图</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <p class="chapter-review-next">下一步：完成 Demo 与测验；继续 <a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a>，引入异步事件通知支付结果并用 Redis 缓存商品详情。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-cloud-openfeign/reference/" target="_blank" rel="noopener">Spring Cloud OpenFeign Reference</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-commons/reference/spring-cloud-commons/loadbalancer.html" target="_blank" rel="noopener">Spring Cloud LoadBalancer</a></li>
+      <li><a href="https://docs.spring.io/spring-cloud-contract/reference/" target="_blank" rel="noopener">Spring Cloud Contract（消费者驱动契约）</a></li>
+      <li><a href="https://wiremock.org/docs/" target="_blank" rel="noopener">WireMock Documentation</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">为 order-service 接入 Feign 调用 inventory，配置超时重试策略，并用 WireMock 编写两个分支测试。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>在 order-api 定义 <code>InventoryClient</code> 接口与 <code>ReserveRequest/Response</code> DTO，对照「Inventory Feign 接口」代码块。</li>
+      <li>order-service 添 Feign/LoadBalancer 依赖，启动 Eureka + inventory + order（参考 <a href="#ch-practice-02-discovery-gateway">上一章</a> 顺序），观察 <code>lb://inventory-service</code> 解析日志。</li>
+      <li>按「Feign 超时与重试配置」yaml，将 connectTimeout 设为 100ms 制造超时，验证指数退避重试后仍失败时抛出 RetryableException。</li>
+      <li>运行 WireMock 测试：正常 reserve 返回 201 与库存不足 409 两个分支，确保不依赖真实 inventory。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">Feign 调用 inventory 返回 404，日志显示 <code>POST /api/reservations</code> 返回 404。请排序排查步骤：A) 检查 inventory Controller 映射路径；B) 确认 Eureka 上 inventory-service 为 UP；C) 检查 order 侧的 Feign <code>path</code> 属性；D) curl inventory 直连端口。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>正确顺序：B → C → D → A</strong>。Eureka 注册正常才能排除服务发现问题；然后核对 Feign 的 path 参数与 Controller 的 RequestMapping 是否一致；直连 curl 验证下游可达；最后确认 Controller 代码路径。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">以下重试配置：<code>maxAttempts=5, backoffMs=50</code>，且 4xx 也重试、inventory 无幂等键。找出 3 处违反本章推荐的地方，并各用一句话说明修正。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>① <code>maxAttempts=5</code> 过多 → 建议 3（减少无效重试时延）。② <code>backoffMs=50</code> 无指数退避 → 改为 300ms 起步 ×2 翻倍，给下游恢复时间。③ 4xx 也重试且无幂等键 → 仅 5xx/IO 重试；下游加幂等键防重复扣减。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：Feign 同步调用链路</h4>
+      <p>目录：<code>demos/practice-03-sync-calls-lab/</code>。<strong>验收</strong>：<code>curl POST /api/orders</code> 经 Gateway → order → Feign → inventory 返回 201；WireMock 测试两个分支均通过。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>上一章</strong>：<a href="#ch-practice-02-discovery-gateway">服务注册发现与 API 网关</a></li>
+      <li><strong>下一章</strong>：<a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a>：PaymentCompleted 事件通知</li>
+      <li><a href="https://docs.spring.io/spring-cloud-openfeign/reference/spring-cloud-openfeign.html#spring-cloud-feign-circuitbreaker" target="_blank" rel="noopener">Feign + Circuit Breaker 集成</a></li>
+      <li><a href="https://github.com/OpenFeign/feign" target="_blank" rel="noopener">OpenFeign GitHub</a></li>
+    </ul>
+  </div>
+</section>

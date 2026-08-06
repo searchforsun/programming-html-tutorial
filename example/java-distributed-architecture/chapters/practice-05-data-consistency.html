@@ -1,0 +1,472 @@
+<section id="ch-practice-05-data-consistency" class="chapter" data-chapter="practice-05-data-consistency">
+  <header class="chapter-header">
+    <h2>分布式数据：事务、幂等与 Saga</h2>
+    <button type="button" class="btn-mark-done" data-chapter="practice-05-data-consistency" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>45 分钟</strong> · 阶段：<strong>Java 微服务栈实战</strong> · 能力：用 Seata AT + Saga 补偿 + Outbox 模式处理跨服务数据一致性，practice 阶段收官</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-practice-03-sync-calls">同步调用</a> 中出现的「inventory 成功但 order 落库失败」、<a href="#ch-practice-04-messaging-cache">Kafka 事件</a> 中「消息发了但 DB 没写」——都是分布式数据一致性的经典坑。本章用 <strong>Seata AT</strong> 实现自动回滚、<span class="term" data-term-id="saga-pattern" tabindex="0">Saga</span> 编排补偿事务、<span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 保证「写库 + 发消息」原子性，并补齐幂等表与业务唯一键的实际代码。practice 阶段三章形成一个完整闭环：调得通 → 扛得住 → 错得对。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>说明本地事务边界与跨库场景的差异，识别何时 ACID 不够用</li>
+          <li>选择 Seata AT、Saga 或 TCC 中的合适方案并写出配置与补偿代码</li>
+          <li>用 Outbox 模式原子化「写业务表 + 发 Kafka 消息」</li>
+          <li>设计幂等表与业务唯一键，防止重复提交与重复消费</li>
+          <li>完成 ShopFlow mini 项目自检清单，验证 practice 阶段所有技能点</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>分布式事务没有免费午餐</strong>：每种方案都在一致性、可用性与复杂度之间取舍；不要把 AT 当万能药。</li>
+          <li><strong>幂等是分布式系统第一戒律</strong>：网络不可靠 → 必然重试 → 必须幂等。幂等表或业务唯一键，每条写路径至少选一个。</li>
+          <li><strong>Outbox 先写后发</strong>：事件与业务数据同一本地事务写入 outbox 表，异步 relay 投递到 Kafka——这是保证「DB 有记录 ⇔ Kafka 有消息」的唯一安全路径。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>本地事务边界与跨库问题</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 二选一的死局</span>
+        <a href="#ch-practice-03-sync-calls">Feign 调用链路</a> 中 order 先 reserve 再落库：若 inventory 返回 201 但 order 落库时 DB 宕机——库存已扣、订单没记录。单服务内可以用 <code>@Transactional</code> 回滚，跨两个独立数据库就再也回不去了。
+      </aside>
+      <p><strong>本地事务（ACID）</strong>在单数据库内可用 <span class="term" data-term-id="acid-transaction" tabindex="0">ACID</span> 保证原子性：<code>@Transactional</code> 包裹下单 → 订单+明细同一连接、同一提交。但 ShopFlow 的 order DB 与 inventory DB 是两个独立 PostgreSQL 实例——<code>@Transactional</code> 无法跨连接。</p>
+
+      <div class="mermaid-wrap">
+        <h5>跨库场景：原子性边界断裂</h5>
+        <pre class="mermaid">sequenceDiagram
+  participant O as order-service
+  participant ODB as Order DB
+  participant I as inventory-service
+  participant IDB as Inventory DB
+
+  O->>I: POST /reserve
+  I->>IDB: UPDATE stock SET qty = qty - 1
+  IDB-->>I: OK (committed)
+  I-->>O: 201 {reservationId}
+  O->>ODB: INSERT INTO orders...
+  ODB--xO: Connection timeout!
+  Note over O,ODB: 库存已扣、订单丢失</pre>
+        <p class="diagram-caption">两个数据库独立提交，中间任何失败都会导致不一致。分布式事务要解决的就是这种多参与者场景。</p>
+      </div>
+
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>场景</th><th>适用方案</th><th>ShopFlow 示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>单服务多表</td>
+            <td><code>@Transactional</code> ACID</td>
+            <td>订单+明细同一 DB</td>
+          </tr>
+          <tr>
+            <td>跨 2～3 服务、实时一致性</td>
+            <td>Seata AT</td>
+            <td>order + inventory 同步预留</td>
+          </tr>
+          <tr>
+            <td>跨多服务、长流程</td>
+            <td>Saga 编排 + 补偿</td>
+            <td>下单→支付→物流（小时级）</td>
+          </tr>
+          <tr>
+            <td>异步事件 + DB 原子性</td>
+            <td>Transactional Outbox</td>
+            <td>发 OrderCreated 与订单同事务</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-block">
+      <h3>Seata AT 模式与适用边界</h3>
+      <p><strong>Seata AT（Automatic Transaction）</strong> 是阿里开源的分布式事务方案，对业务代码侵入最低：只需在全局事务发起方加 <code>@GlobalTransactional</code>，Seata 自动管理 undo_log 并做两阶段提交。但 AT 要求各参与方使用<strong>支持 ACID 的关系型数据库</strong>（MySQL/PostgreSQL），且不适合长事务。</p>
+
+      <h4>依赖与配置</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;!-- order-service & inventory-service pom --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-starter-alibaba-seata&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># order-service / application-local.yml
+seata:
+  tx-service-group: shopflow-tx-group
+  service:
+    vgroup-mapping:
+      shopflow-tx-group: default
+  registry:
+    type: eureka</code></pre>
+      </div>
+
+      <h4>全局事务发起方：order-service</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / OrderService
+@GlobalTransactional  // 替代 @Transactional，标记全局事务
+public CreateOrderResponse createOrder(CreateOrderRequest req) {
+  // 1. RPC 调 inventory reserve（参与方自动加入全局事务）
+  ReserveResponse reserve = inventoryClient.reserve(
+    new ReserveRequest(req.sku(), req.quantity(), req.idempotencyKey()));
+
+  if (reserve.status() == ReserveStatus.INSUFFICIENT) {
+    throw new InsufficientStockException("库存不足");
+  }
+
+  // 2. 本地持久化（Branch Transaction）
+  Order order = Order.create(req, reserve.reservationId());
+  orderRepo.save(order);
+
+  return CreateOrderResponse.from(order, reserve);
+  // 3. 任何一步抛异常 → Seata 协调二阶段回滚
+}</code></pre>
+      </div>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">AT 不适合的场景</span>
+          <ul>
+            <li>长事务（锁定资源数秒以上，并发急剧下降）</li>
+            <li>非关系型数据库参与方（MongoDB、Redis）</li>
+            <li>外部不可回滚操作（发邮件、调用第三方支付）</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">AT 适合的场景</span>
+          <ul>
+            <li>2～3 个关系型数据库的短事务</li>
+            <li>不希望改造业务代码（加一张 undo_log 表即可）</li>
+            <li>需要强一致、可接受短暂锁等待</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：AT 模式下 inventory reserve 成功后若 Seata Server 宕机，会发生什么？</summary>
+        <p>一阶段已提交的本地事务不会自动回滚；需 Seata Server 恢复后读取 undo_log 做二阶段回滚。这期间数据处于「已提交但不一定生效」的中间态——AT 并非真正的同步强一致，依赖 Seata Server 可用性。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>Saga 编排：补偿事务设计</h3>
+      <p>当流程超过 2 个参与者或涉及不可自动回滚的操作（如调用第三方支付），<strong>Saga</strong> 比 AT 更合适。Saga 把长事务拆成有序的本地事务序列，每个正向步骤对应一个<strong>补偿步骤</strong>：正向成功 → 继续下一步；正向失败 → 反向执行已成功步骤的补偿。</p>
+
+      <h4>ShopFlow 下单 Saga（编排式）</h4>
+      <div class="mermaid-wrap">
+        <h5>Saga 正向与补偿序列</h5>
+        <pre class="mermaid">flowchart TD
+  S1["① reserveInventory<br/>预留库存"] -->|成功| S2["② createOrder<br/>创建订单"]
+  S1 -->|失败| E1[结束：库存不足]
+  S2 -->|成功| S3["③ initiatePayment<br/>发起支付"]
+  S2 -->|失败| C1["⏪ releaseInventory<br/>释放库存"]
+  S3 -->|成功| DONE[✅ 下单完成]
+  S3 -->|失败| C2["⏪ cancelOrder<br/>取消订单"]
+  C2 --> C1</pre>
+        <p class="diagram-caption">编排式 Saga：order-service 作为协调者依次调用各步骤；任一步骤失败则逆序执行补偿。注意：补偿也可能失败，需重试或人工介入。</p>
+      </div>
+
+      <h4>Saga 协调者（order-service）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / SagaOrchestrator
+@Component
+public class CreateOrderSaga {
+  private final InventoryClient inventoryClient;
+  private final PaymentClient paymentClient;
+  private final OrderRepository orderRepo;
+
+  public CreateOrderResponse execute(CreateOrderRequest req) {
+    String reservationId = null;
+    String orderId = null;
+
+    try {
+      // Step 1: reserve
+      reservationId = inventoryClient.reserve(req.sku(), req.quantity(), req.idempotencyKey());
+    } catch (Exception e) {
+      throw new SagaFailedException("reserve failed", e); // 无需补偿
+    }
+
+    try {
+      // Step 2: create order
+      Order order = Order.create(req, reservationId);
+      orderRepo.save(order);
+      orderId = order.getId();
+    } catch (Exception e) {
+      // 补偿 Step 1
+      inventoryClient.releaseReservation(reservationId);
+      throw new SagaFailedException("createOrder failed, compensated", e);
+    }
+
+    try {
+      // Step 3: initiate payment
+      paymentClient.initiate(orderId, req.amount());
+    } catch (Exception e) {
+      // 补偿 Step 2 → Step 1
+      orderRepo.markCancelled(orderId);
+      inventoryClient.releaseReservation(reservationId);
+      throw new SagaFailedException("payment failed, compensated", e);
+    }
+
+    return new CreateOrderResponse(orderId, "CREATED");
+  }
+}</code></pre>
+      </div>
+
+      <div class="learn-tabs" role="tablist" aria-label="Saga 对比 AT">
+        <input type="radio" name="prac05-saga-tab" id="prac05-saga-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="prac05-saga-tab" id="prac05-saga-tab-b" class="learn-tab-input" />
+        <label for="prac05-saga-tab-a">编排式 Saga</label>
+        <label for="prac05-saga-tab-b">编舞式 Saga</label>
+        <div class="learn-tab-panel" id="prac05-saga-panel-a" role="tabpanel">
+          <ul>
+            <li>中心协调者控制步骤顺序与补偿</li>
+            <li>流程清晰、易于监控与排障</li>
+            <li>协调者成为单点，需持久化状态</li>
+            <li><strong>ShopFlow 选择</strong>：order-service 为协调者</li>
+          </ul>
+        </div>
+        <div class="learn-tab-panel" id="prac05-saga-panel-b" role="tabpanel">
+          <ul>
+            <li>各服务订阅事件自行决定下一步</li>
+            <li>无中心协调者，扩展性好</li>
+            <li>流程分散、排障需跨服务追踪</li>
+            <li>配合 Kafka 可实现（见 <a href="#ch-practice-04-messaging-cache">事件驱动</a>）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>幂等表、业务唯一键与重复提交</h3>
+      <p>无论 AT 还是 Saga，网络抖动都可能让同一请求被多次执行。<strong>幂等</strong> 不是「不重复」——是「重复执行与执行一次结果相同」。ShopFlow 两种实现方式视场景选用：</p>
+
+      <h4>方式一：幂等表（通用、精确）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / IdempotencyService
+@Transactional
+public &lt;T&gt; T executeIdempotently(String idempotencyKey,
+    Supplier&lt;T&gt; action, Function&lt;String, Optional&lt;T&gt;&gt; resultLookup) {
+
+  // 1. 幂等表已有记录？返回原始结果
+  Optional&lt;T&gt; existing = resultLookup.apply(idempotencyKey);
+  if (existing.isPresent()) return existing.get();
+
+  // 2. 插入幂等记录（唯一索引防并发 INSERT）
+  try {
+    idempotencyRepo.save(new IdempotencyRecord(idempotencyKey, "PROCESSING"));
+  } catch (DataIntegrityViolationException e) {
+    // 并发冲突：另一个请求已插入，等待并返回其结果
+    return pollForResult(idempotencyKey, resultLookup);
+  }
+
+  // 3. 执行业务
+  try {
+    T result = action.get();
+    idempotencyRepo.updateStatus(idempotencyKey, "DONE", toJson(result));
+    return result;
+  } catch (Exception e) {
+    idempotencyRepo.updateStatus(idempotencyKey, "FAILED", null);
+    throw e;
+  }
+}</code></pre>
+      </div>
+
+      <h4>方式二：业务唯一键（轻量、领域化）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">sql</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-sql">-- order 表：order_request_id 为业务唯一键
+ALTER TABLE orders ADD CONSTRAINT uk_order_request_id
+  UNIQUE (order_request_id);
+
+-- 重复 INSERT 直接失败，应用层 catch 后返回已有订单
+INSERT INTO orders (id, order_request_id, user_id, sku, quantity, status)
+VALUES (?, ?, ?, ?, ?, 'CREATED');</code></pre>
+      </div>
+
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>场景</th><th>推荐方式</th><th>理由</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>外部 API 入口（客户端重试）</td><td>幂等表</td><td>可返回原始结果，而非报错</td></tr>
+          <tr><td>Kafka 消费者重复消息</td><td>幂等表（eventId 唯一）</td><td>eventId 去重，消费一次</td></tr>
+          <tr><td>订单创建（业务唯一约束）</td><td>业务唯一键</td><td>requestId 天然唯一，无需额外表</td></tr>
+        </tbody>
+      </table>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>幂等设计反模式速查</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>反模式</th><th>风险</th><th>修正</th></tr></thead>
+              <tbody>
+                <tr><td>仅靠 UUID 请求头不加唯一约束</td><td>并发 INSERT 产生重复记录</td><td>幂等表用 unique index (key)</td></tr>
+                <tr><td>幂等检查与业务写在两个事务</td><td>间隙中其他请求插入</td><td>幂等记录与业务在同一事务</td></tr>
+                <tr><td>只幂等不返回原始结果</td><td>客户端收到不同响应体</td><td>存储并返回首次执行结果</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>ShopFlow mini 项目验收清单</h3>
+      <p>practice 阶段三章（01 脚手架 + 02 注册网关 + 03 Feign 调用 + 04 消息缓存 + 05 数据一致）构成完整闭环。以下清单逐项验证关键技能点：</p>
+
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_practice05">
+        <p class="learn-checklist-lead">ShopFlow mini 验收清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 10 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="m1" /> 父 POM BOM 对齐 Boot 3.5 + Cloud 2025，子模块不写版本</label></li>
+          <li><label><input type="checkbox" data-id="m2" /> order / inventory / payment 三服务注册到 Eureka，Eureka 控制台 UP</label></li>
+          <li><label><input type="checkbox" data-id="m3" /> Gateway 通过 <code>lb://</code> 路由到各服务，StripPrefix 正确</label></li>
+          <li><label><input type="checkbox" data-id="m4" /> Feign 调用 inventory reserve 成功，超时/409 分支经 WireMock 测试</label></li>
+          <li><label><input type="checkbox" data-id="m5" /> Kafka OrderCreated 事件被 payment 消费者正确接收</label></li>
+          <li><label><input type="checkbox" data-id="m6" /> Redis 缓存商品详情，击穿模拟仅 1 条 SQL</label></li>
+          <li><label><input type="checkbox" data-id="m7" /> Seata AT 或 Saga 补偿在 inventory 成功 + order 失败时释放库存</label></li>
+          <li><label><input type="checkbox" data-id="m8" /> 幂等表唯一索引防并发重复 INSERT</label></li>
+          <li><label><input type="checkbox" data-id="m9" /> Outbox 模式：事件与业务同一事务写入，relay 投递 Kafka</label></li>
+          <li><label><input type="checkbox" data-id="m10" /> 已通过全部 practice 阶段章节测验</label></li>
+        </ul>
+      </div>
+
+      <h4>Outbox 实现要点（与前章衔接）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service：Outbox 保证发消息与写库原子性
+@Transactional
+public void createOrderWithOutbox(CreateOrderRequest req) {
+  // 1. 业务写入
+  Order order = Order.create(req);
+  orderRepo.save(order);
+
+  // 2. Outbox 记录（同一事务）
+  OutboxEvent event = new OutboxEvent(
+    "OrderCreated",
+    order.getId(),                // aggregateId
+    toJson(OrderCreated.from(order)) // payload
+  );
+  outboxRepo.save(event);
+
+  // 3. 事务提交后，relay 线程轮询 outbox 表 → 发 Kafka → 标记已发送
+}</code></pre>
+      </div>
+
+      <div class="notice">
+        <strong>本章结论</strong>
+        <p>practice 阶段到此形成 <strong>调得通 → 扛得住 → 错得对</strong> 的递进闭环。advanced 阶段将在此基础上加入生产级韧性（熔断/限流）、可观测性（Metrics/Tracing）与安全部署——让 ShopFlow 从「能做对」走向「能上线」。</p>
+      </div>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>本地 vs 分布式事务</strong>：单库内 <code>@Transactional</code> 可用 ACID；跨 order/inventory/payment 三库时 ACID 边界断裂，需 AT/Saga/Outbox。</li>
+        <li><strong>Seata AT</strong>：<code>@GlobalTransactional</code> + undo_log 自动二阶段；适合 2～3 关系型 DB 短事务，不适合长事务或非关系型参与方。</li>
+        <li><strong>Saga 补偿</strong>：正向步骤 + 补偿步骤成对设计；编排式 order-service 做协调者，失败时逆序补偿；补偿也可能失败需重试/人工。</li>
+        <li><strong>幂等双方案</strong>：幂等表（通用，可返回原始结果）+ 业务唯一键（轻量，领域约束）；幂等检查必须在同一事务中。</li>
+        <li><strong>Outbox + 验收</strong>：事件与业务同事务写入 outbox 表，异步 relay 投递 Kafka；10 项验收清单覆盖 practice 全阶段技能。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <p class="chapter-review-next">下一步：完成 mini 项目验收清单与测验；practice 阶段通关后可进入 <a href="#ch-advanced-01-resilience">韧性工程：熔断、限流、重试与舱壁</a>，为 ShopFlow 加上生产级防护。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://seata.apache.org/zh-cn/docs/overview/what-is-seata/" target="_blank" rel="noopener">Seata 官方文档</a></li>
+      <li><a href="https://microservices.io/patterns/data/saga.html" target="_blank" rel="noopener">Microservices.io · Saga Pattern</a></li>
+      <li><a href="https://microservices.io/patterns/data/transactional-outbox.html" target="_blank" rel="noopener">Microservices.io · Transactional Outbox</a></li>
+      <li><a href="https://docs.spring.io/spring-framework/reference/data-access/transaction.html" target="_blank" rel="noopener">Spring Transaction Management</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">为 ShopFlow 加入 Seata AT / Saga 一致性方案、幂等表与 Outbox，跑通补偿流程并逐项验收。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>启动 Seata Server（Docker），按「依赖与配置」片段为 order / inventory 添加 Seata 依赖，验证 <code>@GlobalTransactional</code> 生效。</li>
+      <li>按「Saga 协调者」代码实现 order → reserve → create → compensate，模拟 inventory 成功 + order DB 失败，验证库存被释放。</li>
+      <li>在 order DB 创建幂等表（DDL），用 JMeter 同一 <code>idempotencyKey</code> 并发 10 次 POST /orders，确认仅创建 1 条订单。</li>
+      <li>实现 Outbox：同一事务写入 orders + outbox_events，用 <code>@Scheduled</code> 轮询 relay 到 Kafka，停 Kafka 后验证消息不丢。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">Saga 补偿步骤 <code>releaseInventory</code> 执行时因网络故障也失败。排障顺序：A) 检查 inventory 服务是否存活；B) 人工介入或定时补偿 Job 重试；C) 查看 order-service Saga 状态表当前步骤。请排序。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>正确顺序：C → A → B</strong>。先查 Saga 状态表确认补偿卡在哪一步、是否已重试；再确认目标服务可用；最后人工介入或死信队列重试。Saga 的补偿失败无法自动保证必定成功——这是 Saga 的「最终一致」语义。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">幂等表方案中：① UUID 请求头 ② 幂等记录无唯一索引 ③ 检查幂等在新事务、业务在另一事务。找出 3 处违反本章推荐的地方并各用一句话修正。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>① 仅 UUID 请求头不够 → 加幂等表 unique index (idempotency_key)。② 无唯一索引 → 建 <code>UNIQUE(idempotency_key)</code> 并发防重复 INSERT。③ 幂等检查与业务分两个事务 → 合并到同一 <code>@Transactional</code>，利用唯一约束 + 异常重试保证原子性。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：ShopFlow mini 一致性验收</h4>
+      <p>目录：<code>demos/practice-05-data-consistency-lab/</code>。<strong>验收</strong>：AT 模式下制造 DB 异常验证回滚；幂等并发仅 1 条订单；Kafka 停 5 分钟后恢复，outbox relay 补投成功。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>上一章</strong>：<a href="#ch-practice-04-messaging-cache">Kafka 事件驱动与 Redis 缓存</a></li>
+      <li><strong>下一阶段</strong>：<a href="#ch-advanced-01-resilience">韧性工程：熔断、限流、重试与舱壁</a></li>
+      <li><strong>practice 阶段回顾</strong>：<a href="#ch-practice-01-spring-cloud-bootstrap">Spring Boot 3.5 与 Spring Cloud 脚手架</a></li>
+      <li><a href="https://seata.apache.org/zh-cn/docs/user/quickstart/" target="_blank" rel="noopener">Seata Quick Start</a></li>
+      <li><a href="https://debezium.io/" target="_blank" rel="noopener">Debezium（CDC 替代轮询 outbox）</a></li>
+    </ul>
+  </div>
+</section>

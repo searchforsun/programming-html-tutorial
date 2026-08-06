@@ -5,35 +5,12 @@
  *   node scripts/validate-tutorial.mjs --dir <project>/courses/<slug>
  *   node scripts/validate-tutorial.mjs --dir <project>/courses/<slug> --strict
  */
-import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { getRequiredBlocks, checkChapterHtml } from './lib/chapter-blocks.mjs';
-import {
-  loadQualityConfig,
-  getChapterOutlineEntry,
-  reviewChapter,
-  countTerms,
-  extractTermIds,
-  isTheoryChapter,
-} from './lib/chapter-quality.mjs';
-import {
-  courseExpectsCjk,
-  validateEncoding,
-  validateIndexChapterSync,
-} from './lib/encoding-quality.mjs';
-
-function getChapterPhaseId(course, chapterId) {
-  for (const phase of course.outline || []) {
-    for (const ch of phase.chapters || []) {
-      if (ch.id === chapterId) return phase.phaseId;
-    }
-  }
-  return null;
-}
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SKILL_ROOT = path.join(__dirname, '..');
+import { loadDefaults } from './lib/ui-styles.mjs';
+import { SKILL_ROOT } from './lib/paths.mjs';
+import { validateCourse } from './lib/validate-course.mjs';
+import { validateChapters } from './lib/validate-chapter.mjs';
+import { validateIndex } from './lib/validate-index.mjs';
 
 const dir = process.argv.includes('--dir')
   ? path.resolve(process.argv[process.argv.indexOf('--dir') + 1])
@@ -55,187 +32,34 @@ function warn(msg) {
   warnings.push(msg);
 }
 
-const defaults = JSON.parse(
-  fs.readFileSync(path.join(SKILL_ROOT, 'config/defaults.json'), 'utf8')
-);
+const defaults = loadDefaults(SKILL_ROOT);
 
-const coursePath = path.join(dir, 'course.json');
-const indexPath = path.join(dir, 'index.html');
-if (!fs.existsSync(coursePath)) err('Missing course.json');
-if (!fs.existsSync(indexPath)) err('Missing index.html (run assemble-index.mjs)');
+// 1) course.json + welcome/quiz/theme
+const courseResult = validateCourse({ dir, defaults, strict, err, warn });
 
-let course;
-if (fs.existsSync(coursePath)) {
-  try {
-    course = JSON.parse(fs.readFileSync(coursePath, 'utf8'));
-  } catch (e) {
-    err('course.json parse error: ' + e.message);
-  }
-}
+let course = null;
+if (courseResult) {
+  course = courseResult.course;
 
-if (course) {
-  if (!course.meta?.slug) err('meta.slug required');
-  if (!course.outline?.length) err('outline required');
-  const phases = course.outline.map((p) => p.phaseId);
-  for (const id of ['basics', 'practice', 'advanced']) {
-    if (!phases.includes(id)) err(`outline missing phaseId: ${id}`);
-  }
-  const generic = ['基础', '实践', '进阶'];
-  const titles = course.outline.map((p) => p.phaseTitle);
-  if (titles.length === 3 && titles.every((t, i) => t === generic[i])) {
-    warn('phaseTitle 均为「基础/实践/进阶」，建议领域化（见 phase-design-prompts）');
-  }
-
-  const domainType = course.meta?.domainType || 'B';
-  const requiredBlocks = getRequiredBlocks(defaults, domainType);
-  const welcomePath = path.join(dir, 'welcome.partial.html');
-  const quizPartialPath = path.join(dir, 'quiz.partial.html');
-  const expectCjk = courseExpectsCjk(course);
-  const quizHtmlForQuality = fs.existsSync(quizPartialPath)
-    ? fs.readFileSync(quizPartialPath, 'utf8')
-    : '';
-  if (quizHtmlForQuality) {
-    validateEncoding({
-      label: 'quiz.partial.html',
-      text: quizHtmlForQuality,
-      expectCjk,
-      onError: err,
-    });
-  }
-  const welcomeHtmlForQuality =
-    fs.existsSync(welcomePath) ? fs.readFileSync(welcomePath, 'utf8') : '';
-  const qualityConfig = strict ? loadQualityConfig(SKILL_ROOT) : null;
-
-  const allIds = new Set();
-  for (const phase of course.outline) {
-    for (const ch of phase.chapters || []) {
-      if (allIds.has(ch.id)) err(`duplicate chapter id: ${ch.id}`);
-      allIds.add(ch.id);
-      const chFile = path.join(dir, 'chapters', `${ch.id}.html`);
-      if (!fs.existsSync(chFile)) {
-        const msg = `missing chapters/${ch.id}.html`;
-        if (strict) err(msg);
-        else warn(msg);
-        continue;
-      }
-      const chHtml = fs.readFileSync(chFile, 'utf8');
-      validateEncoding({
-        label: `chapters/${ch.id}.html`,
-        text: chHtml,
-        expectCjk,
-        onError: err,
-      });
-      const missingBlocks = checkChapterHtml(chHtml, requiredBlocks);
-      if (missingBlocks.length) {
-        err(`chapters/${ch.id}.html missing blocks (domainType ${domainType}): ${missingBlocks.join(', ')}`);
-      }
-      const phaseId = getChapterPhaseId(course, ch.id);
-      const isTheory = isTheoryChapter(phaseId, ch.id, qualityConfig || {});
-      const minSpans = isTheory
-        ? (qualityConfig?.terms?.minSpansConcept ?? 8)
-        : (qualityConfig?.terms?.minSpansPractice ?? 5);
-      const termCount = countTerms(chHtml);
-      if (termCount < minSpans) {
-        warn(
-          `chapters/${ch.id}.html has ${termCount} .term spans (${isTheory ? 'theory' : 'practice'} recommended ≥${minSpans})`
-        );
-      }
-      const termIds = extractTermIds(chHtml);
-      for (const tid of termIds) {
-        if (!course.terms?.[tid]) {
-          err(`chapters/${ch.id}.html: unknown data-term-id="${tid}"`);
-        }
-      }
-      if (strict && qualityConfig) {
-        const outlineChapter = getChapterOutlineEntry(course, ch.id);
-        const report = reviewChapter({
-          html: chHtml,
-          chapterId: ch.id,
-          outlineChapter,
-          quizHtml: quizHtmlForQuality + welcomeHtmlForQuality,
-          quizzes: course.quizzes,
-          config: qualityConfig,
-          terms: course.terms || {},
-          phaseId,
-        });
-        for (const e of report.errors || []) {
-          err(`chapters/${ch.id}.html (quality): ${e}`);
-        }
-      }
-    }
-  }
-  if (!fs.existsSync(path.join(dir, 'theme.css'))) warn('missing theme.css');
-  if (!fs.existsSync(welcomePath)) {
-    err('missing welcome.partial.html (required for shell init)');
-  } else {
-    const welcomeHtml = fs.readFileSync(welcomePath, 'utf8');
-    validateEncoding({
-      label: 'welcome.partial.html',
-      text: welcomeHtml,
-      expectCjk,
-      onError: err,
-    });
-    if (!welcomeHtml.includes('id="outline-summary-body"')) {
-      err('welcome.partial.html missing #outline-summary-body (breaks renderOutlineSummary / shell UI)');
-    }
-    if (/\bid=["']welcome["']/i.test(welcomeHtml)) {
-      err('welcome.partial.html must not use id="welcome" (reserved by index.shell.html wrapper)');
-    }
-  }
-}
-
-if (fs.existsSync(indexPath)) {
-  const html = fs.readFileSync(indexPath, 'utf8');
-  validateEncoding({
-    label: 'index.html',
-    text: html,
-    expectCjk: course ? courseExpectsCjk(course) : false,
-    onError: err,
+  // 2) chapter HTML files
+  validateChapters({
+    dir,
+    course,
+    requiredBlocks: courseResult.requiredBlocks,
+    domainType: courseResult.domainType,
+    expectCjk: courseResult.expectCjk,
+    quizHtmlForQuality: courseResult.quizHtmlForQuality,
+    welcomeHtmlForQuality: courseResult.welcomeHtmlForQuality,
+    strict,
+    err,
+    warn,
   });
-  if (!html.includes('id="toast"')) err('index.html missing #toast');
-  if (!html.includes('id="term-modal"')) err('index.html missing #term-modal');
-  if (!html.includes('id="course-data"')) err('index.html missing #course-data');
-  if (html.includes('THEME_KEYWORDS')) err('index.html still contains THEME_KEYWORDS (stale shell)');
-  if (!html.includes('id="outline-summary-body"')) {
-    err('assembled index.html missing #outline-summary-body — fix welcome.partial.html and re-run assemble');
-  }
-  const welcomeIdCount = (html.match(/\bid=["']welcome["']/gi) || []).length;
-  if (welcomeIdCount > 1) {
-    err(`duplicate id="welcome" in index.html (${welcomeIdCount} found); remove from welcome.partial.html`);
-  }
-  const dataMatch = html.match(/<script id="course-data"[^>]*>([\s\S]*?)<\/script>/);
-  if (dataMatch) {
-    try {
-      const embedded = JSON.parse(dataMatch[1]);
-      if (embedded.meta?.shellVersion !== defaults.shellVersion) {
-        warn(
-          `shellVersion is ${embedded.meta?.shellVersion}, expected ${defaults.shellVersion} — re-run assemble`
-        );
-      }
-    } catch (e) {
-      err('embedded course-data JSON invalid');
-    }
-  }
-
-  if (course) {
-    const expectCjkIndex = courseExpectsCjk(course);
-    for (const phase of course.outline || []) {
-      for (const ch of phase.chapters || []) {
-        const chFile = path.join(dir, 'chapters', `${ch.id}.html`);
-        if (!fs.existsSync(chFile)) continue;
-        const chHtml = fs.readFileSync(chFile, 'utf8');
-        validateIndexChapterSync({
-          indexHtml: html,
-          chapterId: ch.id,
-          sourceHtml: chHtml,
-          expectCjk: expectCjkIndex,
-          onError: err,
-        });
-      }
-    }
-  }
 }
 
+// 3) index.html
+validateIndex({ dir, course, err, warn });
+
+// report
 console.log(`Validate: ${dir}${strict ? ' (strict)' : ''}`);
 if (warnings.length) {
   console.log('\nWarnings:');

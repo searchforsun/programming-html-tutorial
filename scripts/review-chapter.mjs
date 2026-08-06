@@ -9,24 +9,13 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import {
   loadQualityConfig,
   getChapterOutlineEntry,
+  getChapterPhaseId,
   reviewChapter,
 } from './lib/chapter-quality.mjs';
-
-function getChapterPhaseId(course, chapterId) {
-  for (const phase of course.outline || []) {
-    for (const ch of phase.chapters || []) {
-      if (ch.id === chapterId) return phase.phaseId;
-    }
-  }
-  return null;
-}
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SKILL_ROOT = path.join(__dirname, '..');
+import { SKILL_ROOT } from './lib/paths.mjs';
 
 function parseArgs(argv) {
   const opts = { dir: null, chapter: null, strict: false, writeJson: false };

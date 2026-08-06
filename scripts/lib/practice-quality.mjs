@@ -4,21 +4,7 @@
  * 兼容旧版 ol.steps + ol.steps.steps-judgment。
  */
 
-function stripHtml(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, '')
-    .trim();
-}
-
-function fuzzyTitleMatch(a, b) {
-  const na = stripHtml(a).replace(/\s/g, '');
-  const nb = stripHtml(b).replace(/\s/g, '');
-  if (!na || !nb) return false;
-  return na.includes(nb) || nb.includes(na) || na === nb;
-}
+import { stripHtml, fuzzyTitleMatch } from './utils.mjs';
 
 export function extractChapterPractice(html) {
   const m = html.match(/<div class="chapter-practice">([\s\S]*?)<\/div>\s*(?=<div class="resources|$)/i);

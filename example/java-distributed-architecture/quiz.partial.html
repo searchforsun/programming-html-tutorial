@@ -639,3 +639,303 @@
     <p class="answer hidden"><strong>答案：</strong>B — 需客户端超时/重试（practice-03）</p>
   </article>
 </section>
+
+<section id="quiz-practice-03-sync-calls-quiz" class="quiz-section" data-quiz="practice-03-sync-calls-quiz" data-chapter="practice-03-sync-calls">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「OpenFeign、负载均衡与服务间调用」后作答。<span class="quiz-level-hint">热身+理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q0" data-answer="B">
+    <p class="stem"><strong>0.</strong> （热身·单选）OpenFeign 与手写 RestTemplate 相比，核心优势是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice03sc-q0" value="A"> A) Feign 不需要任何 HTTP 协议知识</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q0" value="B"> B) 声明式接口 + 注解映射，框架自动生成代理</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q0" value="C"> C) Feign 只能调用本机服务</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q0" value="D"> D) 性能远超 gRPC</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">接口即客户端</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 声明式定义调用契约，减少样板</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）<code>@FeignClient(name="inventory-service")</code> 中 <code>name</code> 的值必须？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice03sc-q1" value="A"> A) 任意字符串，仅用于日志</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q1" value="B"> B) 等于 DNS 域名</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q1" value="C"> C) 与目标服务的 <code>spring.application.name</code> 一致</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q1" value="D"> D) 等于 Eureka 的 <code>eureka.instance.hostname</code></label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">与 Eureka/注册中心解耦</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 即服务 ID，配合 lb:// 解析</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="lb://inventory-service">
+    <p class="stem"><strong>2.</strong> （填空）Feign 配合 LoadBalancer 时，uri 前缀写 ______ 表示「从注册中心选实例」。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="uri 前缀" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">以 lb 开头</p>
+    <p class="answer hidden"><strong>答案：</strong>lb://inventory-service（或 lb:// 开头的服务名；大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些 HTTP 状态码场景<strong>适合重试</strong>（假设请求已带幂等键）？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-practice03sc-q3" value="A"> A) 503 Service Unavailable</label></li>
+      <li><label><input type="checkbox" name="jda-practice03sc-q3" value="B"> B) 400 Bad Request（请求体格式错误）</label></li>
+      <li><label><input type="checkbox" name="jda-practice03sc-q3" value="C"> C) 连接超时 <code>java.net.ConnectException</code></label></li>
+      <li><label><input type="checkbox" name="jda-practice03sc-q3" value="D"> D) 读超时 <code>SocketTimeoutException</code></label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">4xx 客户端错误重试也不会好</p>
+    <p class="answer hidden"><strong>答案：</strong>A,C,D — B 是客户端问题，重试无意义</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="A">
+    <p class="stem"><strong>4.</strong> （场景·单选）order-service 收到请求后：① 校验参数 ② 先调 inventory reserve ③ reserve 成功再落库。若步骤 ③ 时 DB 宕机，最可能的结果是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice03sc-q4" value="A"> A) inventory 已扣减但订单未落库，需补偿释放库存</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q4" value="B"> B) 两个操作自动回滚，无副作用</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q4" value="C"> C) inventory 自动检测超时并回退</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q4" value="D"> D) 订单自动创建为 cancelled 状态</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">两个独立系统无分布式事务</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 先调远端再落本地的死局，需 Saga 补偿（<a href="#ch-practice-05-data-consistency">分布式数据</a>）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="A">
+    <p class="stem"><strong>5.</strong> （判断·单选）使用 WireMock 模拟 inventory 后，order 侧测试不再依赖真实 inventory 服务即可验证正常/异常分支。</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice03sc-q5" value="A"> A) 正确 — Mock 让消费者独立验证契约</label></li>
+      <li><label><input type="radio" name="jda-practice03sc-q5" value="B"> B) 错误 — 必须连真实 inventory 才有意义</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">消费者驱动契约的核心：隔离测试</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 消费者独立验证，集成问题左移</p>
+  </article>
+</section>
+
+<section id="quiz-practice-04-messaging-cache-quiz" class="quiz-section" data-quiz="practice-04-messaging-cache-quiz" data-chapter="practice-04-messaging-cache">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「Kafka 事件驱动与 Redis 缓存」后作答。<span class="quiz-level-hint">热身+理解+场景</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q0" data-answer="C">
+    <p class="stem"><strong>0.</strong> （热身·单选）ShopFlow 中 OrderCreated 事件由哪个服务发布？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice04mc-q0" value="A"> A) payment-service</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q0" value="B"> B) Gateway</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q0" value="C"> C) order-service</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q0" value="D"> D) analytics-service</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">订单创建由 order 上下文负责</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 事件由拥有该事实的上下文发布</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="B">
+    <p class="stem"><strong>1.</strong> （单选）Spring Cloud Stream 中，生产者发送消息推荐使用？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice04mc-q1" value="A"> A) 直接 new KafkaProducer 原生 API</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q1" value="B"> B) <code>StreamBridge.send()</code></label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q1" value="C"> C) <code>RestTemplate.postForEntity()</code></label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q1" value="D"> D) <code>@FeignClient</code> 注解</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Binder 抽象屏蔽中间件差异</p>
+    <p class="answer hidden"><strong>答案：</strong>B — StreamBridge 是 Spring Cloud Stream 推荐的消息发送方式</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="消费者组">
+    <p class="stem"><strong>2.</strong> （填空）Kafka 中，同一 topic 的消息可被多个独立消费者群体各自全量消费，这个机制叫 ______。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="中文或英文术语" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">Consumer Group，同组内分区只分配一个消费者</p>
+    <p class="answer hidden"><strong>答案：</strong>消费者组 / Consumer Group（大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="B,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些属于 KafKa <strong>按 orderId 分区</strong>的真实收益？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-practice04mc-q3" value="A"> A) 跨所有 orderId 的 Created 事件全部有序</label></li>
+      <li><label><input type="checkbox" name="jda-practice04mc-q3" value="B"> B) 同一订单的 Created → Paid → Shipped 顺序保证</label></li>
+      <li><label><input type="checkbox" name="jda-practice04mc-q3" value="C"> C) 消费者并发度不受分区数限制</label></li>
+      <li><label><input type="checkbox" name="jda-practice04mc-q3" value="D"> D) payment 实例可并行处理不同 orderId 的事件</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">分区内有序，跨分区不保证；并发上限 = 分区数</p>
+    <p class="answer hidden"><strong>答案：</strong>B,D — A 错误（跨分区无序），C 错误（并发受分区数限制）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （场景·单选）热点商品 SKU-1 缓存 key TTL 为 30min，过期瞬间 100 QPS 同时打向 DB。这是哪类缓存问题？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice04mc-q4" value="A"> A) 缓存穿透（数据本来就不存在）</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q4" value="B"> B) 缓存击穿（热点 key 过期）</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q4" value="C"> C) 缓存雪崩（大量 key 同时过期）</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q4" value="D"> D) 缓存一致性问题</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">单个 key 失效引发的瞬时并发回源</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 击穿：热点 key 过期时并发回源；对策：互斥锁 SETNX</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="A">
+    <p class="stem"><strong>5.</strong> （判断·单选）Cache-Aside 模式下，写路径推荐「先更新 DB 再删除缓存」而非「先删缓存再更新 DB」。</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice04mc-q5" value="A"> A) 正确 — 先删缓存可能被其他读线程回填旧值</label></li>
+      <li><label><input type="radio" name="jda-practice04mc-q5" value="B"> B) 错误 — 必须先删缓存才能保证一致</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">回顾 micro-check 分析</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 先 DB 后删缓存在并发读写下更安全</p>
+  </article>
+</section>
+
+<section id="quiz-practice-05-data-consistency-quiz" class="quiz-section" data-quiz="practice-05-data-consistency-quiz" data-chapter="practice-05-data-consistency">
+  <h3>章节测验</h3>
+  <p class="quiz-panel-lead">学完「分布式数据：事务、幂等与 Saga」后作答；practice 阶段收官。<span class="quiz-level-hint">理解+场景+判断</span>可先「检查」再看「提示」或「答案」。</p>
+
+  <article class="quiz-item" data-qid="q0" data-answer="B">
+    <p class="stem"><strong>0.</strong> （热身·单选）单服务内 @Transactional 回滚无法覆盖跨服务场景的根本原因是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice05dc-q0" value="A"> A) Spring 不支持多个数据源</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q0" value="B"> B) 各服务各自数据库独立提交，无全局事务协调</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q0" value="C"> C) @Transactional 必须在 Controller 层</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q0" value="D"> D) 微服务禁止使用关系型数据库</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">跨库场景原子性边界断裂</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 两个独立数据库无法被一个 @Transactional 覆盖</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q1" data-answer="C">
+    <p class="stem"><strong>1.</strong> （单选）Seata AT 模式的核心机制是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice05dc-q1" value="A"> A) 手动写补偿代码</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q1" value="B"> B) 利用消息队列重试</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q1" value="C"> C) undo_log + 两阶段提交自动回滚</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q1" value="D"> D) 把所有数据库合并为一个</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">AT = Automatic Transaction</p>
+    <p class="answer hidden"><strong>答案：</strong>C — 自动记录 undo_log，二阶段回滚</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q2" data-answer="补偿事务">
+    <p class="stem"><strong>2.</strong> （填空）Saga 模式中，正向步骤失败后执行的逆向操作称为 ______（中文两字+事务）。</p>
+    <input type="text" class="fill-input" aria-label="填空答案" placeholder="___事务" />
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">正向动作的反义词</p>
+    <p class="answer hidden"><strong>答案：</strong>补偿事务（或补偿，大小写不敏感）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q3" data-answer="A,C,D">
+    <p class="stem"><strong>3.</strong> （多选）下列哪些场景<strong>不适合</strong>使用 Seata AT 模式？</p>
+    <ul class="options">
+      <li><label><input type="checkbox" name="jda-practice05dc-q3" value="A"> A) 事务持续时间超过 30 秒</label></li>
+      <li><label><input type="checkbox" name="jda-practice05dc-q3" value="B"> B) order + inventory 两个 PostgreSQL 实例</label></li>
+      <li><label><input type="checkbox" name="jda-practice05dc-q3" value="C"> C) 涉及 Redis 缓存的写入操作</label></li>
+      <li><label><input type="checkbox" name="jda-practice05dc-q3" value="D"> D) 调用第三方支付（外部不可回滚）</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">AT 要求关系型数据库 + 短事务</p>
+    <p class="answer hidden"><strong>答案：</strong>A,C,D — B 是 AT 经典场景（两个关系型 DB）</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q4" data-answer="B">
+    <p class="stem"><strong>4.</strong> （场景·单选）Outbox 模式中，发 Kafka 消息与写业务数据放在两个独立事务中。最可能的后果是？</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice05dc-q4" value="A"> A) 性能提升，无副作用</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q4" value="B"> B) 业务写入成功但消息未发送 / 消息已发送但业务回滚</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q4" value="C"> C) Kafka 自动感知 DB 回滚</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q4" value="D"> D) 两个事务会自动合并</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">两个独立系统没有原子性</p>
+    <p class="answer hidden"><strong>答案：</strong>B — 这就是 Outbox 要解决的问题：两个操作原子化</p>
+  </article>
+
+  <article class="quiz-item" data-qid="q5" data-answer="A">
+    <p class="stem"><strong>5.</strong> （判断·单选）幂等表的唯一索引是防并发重复 INSERT 的关键，仅靠应用层 if 判断无法在并发下保证唯一性。</p>
+    <ul class="options">
+      <li><label><input type="radio" name="jda-practice05dc-q5" value="A"> A) 正确 — 数据库唯一索引是并发的最后防线</label></li>
+      <li><label><input type="radio" name="jda-practice05dc-q5" value="B"> B) 错误 — 应用层 if-else 已足够</label></li>
+    </ul>
+    <div class="quiz-actions">
+      <button type="button" class="btn-check">检查</button>
+      <button type="button" class="btn-hint">提示</button>
+      <button type="button" class="btn-answer">答案</button>
+    </div>
+    <p class="hint hidden">两个请求同时 if 不存在→同时 INSERT</p>
+    <p class="answer hidden"><strong>答案：</strong>A — 并发间隙无法应用层解决，必须唯一索引</p>
+  </article>
+</section>

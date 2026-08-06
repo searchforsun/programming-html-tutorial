@@ -240,6 +240,18 @@
     "practice-02-discovery-gateway": {
       "title": "服务注册发现与 API 网关",
       "summary": "Eureka vs Nacos、order/inventory 注册心跳、Gateway 路由谓词过滤器、鉴权头透传 StripPrefix、Docker Compose 本地最小栈"
+    },
+    "practice-03-sync-calls": {
+      "title": "OpenFeign、负载均衡与服务间调用",
+      "summary": "Feign 声明式客户端与 DTO 映射、LoadBalancer 选实例、超时重试与 ErrorDecoder、order → inventory 下单链路、WireMock 契约测试"
+    },
+    "practice-04-messaging-cache": {
+      "title": "Kafka 事件驱动与 Redis 缓存",
+      "summary": "OrderCreated/PaymentCompleted 领域事件、Spring Cloud Stream + Kafka Binder、分区键与有序性、缓存穿透击穿雪崩防护、Cache-Aside 商品读模型"
+    },
+    "practice-05-data-consistency": {
+      "title": "分布式数据：事务、幂等与 Saga",
+      "summary": "本地 vs 分布式事务边界、Seata AT 两阶段提交、Saga 编排补偿、幂等表与业务唯一键、Transactional Outbox 发消息原子化、ShopFlow mini 验收清单"
     }
   },
   "terms": {
@@ -454,6 +466,42 @@
         { "id": "q3", "type": "multi", "answer": "A,B,D", "hint": "编排不在网关" },
         { "id": "q4", "type": "single", "answer": "A", "hint": "先 discovery 再 gateway" },
         { "id": "q5", "type": "single", "answer": "B", "hint": "注册表剔除有延迟" }
+      ]
+    },
+    "practice-03-sync-calls-quiz": {
+      "chapterId": "practice-03-sync-calls",
+      "title": "OpenFeign、负载均衡与服务间调用",
+      "questions": [
+        { "id": "q0", "type": "single", "answer": "B", "hint": "接口即客户端" },
+        { "id": "q1", "type": "single", "answer": "C", "hint": "与 Eureka/注册中心解耦" },
+        { "id": "q2", "type": "fill", "answer": "lb://inventory-service", "hint": "以 lb 开头" },
+        { "id": "q3", "type": "multi", "answer": "A,C,D", "hint": "4xx 客户端错误重试也不会好" },
+        { "id": "q4", "type": "single", "answer": "A", "hint": "两个独立系统无分布式事务" },
+        { "id": "q5", "type": "single", "answer": "A", "hint": "消费者驱动契约的核心：隔离测试" }
+      ]
+    },
+    "practice-04-messaging-cache-quiz": {
+      "chapterId": "practice-04-messaging-cache",
+      "title": "Kafka 事件驱动与 Redis 缓存",
+      "questions": [
+        { "id": "q0", "type": "single", "answer": "C", "hint": "订单创建由 order 上下文负责" },
+        { "id": "q1", "type": "single", "answer": "B", "hint": "Binder 抽象屏蔽中间件差异" },
+        { "id": "q2", "type": "fill", "answer": "消费者组", "hint": "Consumer Group，同组内分区只分配一个消费者" },
+        { "id": "q3", "type": "multi", "answer": "B,D", "hint": "分区内有序，跨分区不保证；并发上限 = 分区数" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "单个 key 失效引发的瞬时并发回源" },
+        { "id": "q5", "type": "single", "answer": "A", "hint": "回顾 micro-check 分析" }
+      ]
+    },
+    "practice-05-data-consistency-quiz": {
+      "chapterId": "practice-05-data-consistency",
+      "title": "分布式数据：事务、幂等与 Saga",
+      "questions": [
+        { "id": "q0", "type": "single", "answer": "B", "hint": "跨库场景原子性边界断裂" },
+        { "id": "q1", "type": "single", "answer": "C", "hint": "AT = Automatic Transaction" },
+        { "id": "q2", "type": "fill", "answer": "补偿事务", "hint": "正向动作的反义词" },
+        { "id": "q3", "type": "multi", "answer": "A,C,D", "hint": "AT 要求关系型数据库 + 短事务" },
+        { "id": "q4", "type": "single", "answer": "B", "hint": "两个独立系统没有原子性" },
+        { "id": "q5", "type": "single", "answer": "A", "hint": "并发间隙无法应用层解决，必须唯一索引" }
       ]
     }
   }

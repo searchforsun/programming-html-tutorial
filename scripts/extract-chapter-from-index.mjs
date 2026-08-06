@@ -7,9 +7,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { fixMotionTags } from './lib/utils.mjs';
 
 function arg(name, short) {
   const args = process.argv.slice(2);
@@ -54,11 +52,7 @@ if (!m) {
 }
 
 let extracted = m[0].trim();
-if (extracted.includes('motion')) {
-  extracted = extracted
-    .replaceAll('<motion ', '<div ')
-    .replaceAll('</motion>', '</div>');
-}
+extracted = fixMotionTags(extracted);
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, `${extracted}\n`, 'utf8');

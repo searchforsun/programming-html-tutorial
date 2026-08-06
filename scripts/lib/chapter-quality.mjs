@@ -1,27 +1,26 @@
 import fs from 'fs';
 import path from 'path';
 import { reviewChapterPractice } from './practice-quality.mjs';
-
-const INVALID_TAG_RE = /<\/?(motion|TAGDIV)\b/i;
+import { stripHtml, fuzzyTitleMatch, INVALID_TAG_RE } from './utils.mjs';
 
 export function loadQualityConfig(skillRoot) {
   const p = path.join(skillRoot, 'config/chapter-quality.json');
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
-export function stripHtml(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, '')
-    .trim();
-}
-
 export function getChapterOutlineEntry(course, chapterId) {
   for (const phase of course.outline || []) {
     for (const ch of phase.chapters || []) {
       if (ch.id === chapterId) return ch;
+    }
+  }
+  return null;
+}
+
+export function getChapterPhaseId(course, chapterId) {
+  for (const phase of course.outline || []) {
+    for (const ch of phase.chapters || []) {
+      if (ch.id === chapterId) return phase.phaseId;
     }
   }
   return null;
@@ -35,13 +34,6 @@ export function extractH3Texts(html) {
     out.push(stripHtml(m[1]));
   }
   return out;
-}
-
-export function fuzzyTitleMatch(a, b) {
-  const na = stripHtml(a).replace(/\s/g, '');
-  const nb = stripHtml(b).replace(/\s/g, '');
-  if (!na || !nb) return false;
-  return na.includes(nb) || nb.includes(na) || na === nb;
 }
 
 export function countTerms(html) {

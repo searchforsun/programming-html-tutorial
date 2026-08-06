@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const skillRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const portalPath = path.join(skillRoot, 'templates/portal.index.html');
+import { SKILL_ROOT } from './lib/paths.mjs';
+
+const portalPath = path.join(SKILL_ROOT, 'templates/portal.index.html');
 const coursesIndex = process.argv[2]
   ? path.resolve(process.argv[2])
   : path.resolve(process.cwd(), 'courses/index.html');

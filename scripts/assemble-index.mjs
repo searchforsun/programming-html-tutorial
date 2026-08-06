@@ -8,19 +8,15 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import {
   loadDefaults,
   applyShellTemplatePlaceholders,
   applyShellAppPlaceholders,
 } from './lib/ui-styles.mjs';
+import { SKILL_ROOT, readIf } from './lib/paths.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SKILL_ROOT = path.join(__dirname, '..');
-const defaults = JSON.parse(
-  fs.readFileSync(path.join(SKILL_ROOT, 'config', 'defaults.json'), 'utf8')
-);
+const defaults = loadDefaults(SKILL_ROOT);
 const SHELL_VERSION = defaults.shellVersion;
 const shellVersionFile = fs
   .readFileSync(path.join(SKILL_ROOT, 'templates', 'SHELL_VERSION'), 'utf8')
@@ -44,10 +40,6 @@ function parseArgs(argv) {
   opts.dir = path.resolve(opts.dir);
   opts.out = opts.out ? path.resolve(opts.out) : path.join(opts.dir, 'index.html');
   return opts;
-}
-
-function readIf(file) {
-  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim() : '';
 }
 
 function loadHljsScripts(meta, hljsVer) {

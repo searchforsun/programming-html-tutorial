@@ -1,0 +1,546 @@
+<section id="ch-practice-04-messaging-cache" class="chapter" data-chapter="practice-04-messaging-cache">
+  <header class="chapter-header">
+    <h2>Kafka 事件驱动与 Redis 缓存</h2>
+    <button type="button" class="btn-mark-done" data-chapter="practice-04-messaging-cache" aria-label="标记本章完成">标记完成</button>
+  </header>
+
+  <div class="concept">
+    <div class="chapter-intro content-section">
+      <p class="chapter-meta">约 <strong>42 分钟</strong> · 阶段：<strong>Java 微服务栈实战</strong> · 能力：用 Kafka 发布订阅领域事件、Redis 缓存热点商品详情并防护三大缓存问题</p>
+      <div class="notice notice-why-learn">
+        <strong>为什么要学本章</strong>
+        <p><a href="#ch-practice-03-sync-calls">上一章</a> 完成了 order → inventory 同步调用，但下单后还需要异步通知 payment 扣款、给 analytics 记流水——同步链太脆。本章引入 <strong>Kafka 事件驱动</strong> 解耦支付、分析等后续流程；同时用 <strong>Redis 缓存</strong> 加速商品详情读取，并防范穿透、击穿与雪崩三类经典缓存问题。两者结合，ShopFlow 从「能调通」走向「能扛量」。</p>
+      </div>
+      <div class="notice notice-outcome">
+        <strong>学完你能</strong>
+        <ul>
+          <li>定义 OrderCreated、PaymentCompleted 等领域事件并发布/消费</li>
+          <li>用 Spring Cloud Stream + Kafka Binder 配置生产者与消费者</li>
+          <li>说明分区键选取如何影响消息有序性与消费并行度</li>
+          <li>识别缓存穿透/击穿/雪崩并写出对应防护代码</li>
+          <li>实现 Cache-Aside 读商品详情，缓存预热与逻辑过期</li>
+        </ul>
+      </div>
+      <div class="notice">
+        <strong>本章先记住 3 件事</strong>
+        <ul>
+          <li><strong>事件 = 已发生的事实</strong>：OrderCreated 是「订单已创建」的不可变记录，不是「请处理一下」的命令；消费者自行决定如何处理。</li>
+          <li><strong>缓存不是银弹</strong>：只加速读、不改变写路径正确性；缓存与 DB 的短时不一致必须接受并设计补偿（逻辑过期/双删）。</li>
+          <li><strong>有序性有代价</strong>：同一分区内有序，但跨分区无序；按 orderId 分区保证同一订单事件顺序，但并发度受分区数限制。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>领域事件：OrderCreated、PaymentCompleted</h3>
+      <aside class="learn-scenario" aria-label="业务情境">
+        <span class="learn-scenario-title">ShopFlow · 下单后链</span>
+        订单创建后，payment-service 要发起扣款、analytics 要记流水、notification 要发邮件——全都耦合在 order-service 的同步调用中。<strong>领域事件</strong> 把后续动作解耦：order 只发布事件，谁关心谁订阅。
+      </aside>
+      <p><strong>领域事件（Domain Event）</strong> 是限界上下文内已发生的事实，用过去式命名、不可变、携带必要标识与时间戳。ShopFlow 核心事件：</p>
+
+      <table class="outline-table">
+        <thead>
+          <tr><th>事件</th><th>发布者</th><th>典型消费者</th><th>携带字段</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>OrderCreated</code></td>
+            <td>order-service</td>
+            <td>payment、analytics、notification</td>
+            <td>orderId、userId、sku、quantity、occurredAt</td>
+          </tr>
+          <tr>
+            <td><code>PaymentCompleted</code></td>
+            <td>payment-service</td>
+            <td>order（更新状态）、analytics</td>
+            <td>paymentId、orderId、amount、paidAt</td>
+          </tr>
+          <tr>
+            <td><code>InventoryReserved</code></td>
+            <td>inventory-service</td>
+            <td>order（确认预留）</td>
+            <td>reservationId、sku、quantity、reservedAt</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">同步链耦合</span>
+          <ul>
+            <li>order → payment → analytics 串行阻塞</li>
+            <li>下游宕机则整条链失败</li>
+            <li>加新消费者要改 order 代码</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">事件驱动</span>
+          <ul>
+            <li>order 只发事件，不关心谁消费</li>
+            <li>下游宕机不影响 order 主流程</li>
+            <li>加新消费者只需订阅 topic</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>OrderCreated 事件定义</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-common / com.shopflow.event.OrderCreated
+public record OrderCreated(
+  String eventId,       // UUID，幂等去重用
+  String orderId,
+  String userId,
+  String sku,
+  int quantity,
+  Instant occurredAt
+) {
+  public static OrderCreated from(Order order) {
+    return new OrderCreated(
+      UUID.randomUUID().toString(),
+      order.getId(), order.getUserId(),
+      order.getSku(), order.getQuantity(),
+      Instant.now()
+    );
+  }
+}</code></pre>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：事件里该放完整订单明细还是仅 orderId？</summary>
+        <p>放 <strong>关键标识 + 必要字段</strong>（userId、sku、quantity），让多数消费者无需回查即可工作。但大字段（如商品描述列表）应让消费者按 orderId 回查，避免事件体膨胀。这就是「胖事件 vs 瘦事件」的权衡。</p>
+      </details>
+    </div>
+
+    <div class="section-block">
+      <h3>Spring Cloud Stream / Kafka Binder 基础</h3>
+      <p>Spring Cloud Stream 在消息中间件上提供统一编程模型。ShopFlow 选 <strong>Apache Kafka</strong> 作为 <span class="term" data-term-id="choreography" tabindex="0">编舞</span> 的事件总线，通过 <code>spring-cloud-stream-binder-kafka</code> 桥接：生产者用 <code>StreamBridge</code> 发消息，消费者用 <code>java.util.function.Consumer</code> 收消息——无需直接操作 Kafka Client API。</p>
+
+      <h4>依赖与配置</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">xml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-xml">&lt;!-- order-service pom --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-stream-binder-kafka&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">yaml</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-yaml"># order-service / application-local.yml
+spring:
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        orderCreated-out-0:
+          destination: shopflow.order.created
+          producer:
+            use-native-encoding: true
+      function:
+        definition: orderCreatedSupplier
+    function:
+      definition: paymentCompletedConsumer</code></pre>
+      </div>
+
+      <h4>生产者：StreamBridge 发事件</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// order-service / OrderService
+@Component
+public class OrderEventPublisher {
+  private final StreamBridge streamBridge;
+
+  public void publishOrderCreated(Order order) {
+    OrderCreated event = OrderCreated.from(order);
+    boolean sent = streamBridge.send("orderCreated-out-0", event);
+    if (!sent) {
+      log.warn("Kafka 发送失败，走补偿：orderId={}", order.getId());
+      // 写入 outbox 表或死信队列（practice-05 展开）
+    }
+  }
+}</code></pre>
+      </div>
+
+      <h4>消费者：Consumer 函数式 Bean</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// payment-service / PaymentConsumer
+@Configuration
+public class PaymentConsumer {
+
+  @Bean
+  public Consumer&lt;OrderCreated&gt; orderCreatedConsumer(PaymentService svc) {
+    return event -> {
+      log.info("收到 OrderCreated：orderId={}", event.orderId());
+      svc.initiatePayment(event);
+    };
+  }
+
+  @Bean
+  public Consumer&lt;PaymentCompleted&gt; paymentCompletedConsumer(OrderServiceClient client) {
+    return event -> client.updateOrderStatus(event.orderId(), OrderStatus.PAID);
+  }
+}</code></pre>
+      </div>
+
+      <div class="mermaid-wrap">
+        <h5>ShopFlow · 事件流全景（本章范围）</h5>
+        <pre class="mermaid">flowchart LR
+  O[order-service] -->|OrderCreated| K[(Kafka)]
+  K -->|OrderCreated| P[payment-service]
+  K -->|OrderCreated| A[analytics-service]
+  P -->|PaymentCompleted| K
+  K -->|PaymentCompleted| O
+  K -->|PaymentCompleted| A</pre>
+        <p class="diagram-caption">订单创建后，order 发事件即返回；payment 异步扣款；analytics 同时消费用于实时看板。虚线框为本章新增。</p>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>消费者组、分区键与有序性</h3>
+      <p>Kafka 的<strong>消费者组</strong>决定负载均衡：同组内每个分区只由一个消费者处理，实现并行；不同组各自独立消费全量消息。ShopFlow 关键设计：</p>
+      <ul>
+        <li><strong>orderCreated topic 分区键</strong>：<code>orderId.hashCode() % partitions</code>，保证同一订单事件顺序。</li>
+        <li><strong>payment 消费者组</strong>：payment-service 的多个实例共享同一 group，分区内有序、跨分区并行。</li>
+        <li><strong>analytics 消费者组</strong>：独立 group，不受 payment 消费速度影响。</li>
+      </ul>
+
+      <h4>生产者指定分区键</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// 发送时通过 MessageBuilder 设 key
+Message&lt;OrderCreated&gt; msg = MessageBuilder
+  .withPayload(event)
+  .setHeader(KafkaHeaders.KEY, event.orderId().getBytes(StandardCharsets.UTF_8))
+  .build();
+kafkaTemplate.send("shopflow.order.created", msg);</code></pre>
+      </div>
+
+      <div class="learn-tabs" role="tablist" aria-label="有序性权衡">
+        <input type="radio" name="prac04-order-tab" id="prac04-order-tab-a" class="learn-tab-input" checked />
+        <input type="radio" name="prac04-order-tab" id="prac04-order-tab-b" class="learn-tab-input" />
+        <label for="prac04-order-tab-a">按 orderId 分区</label>
+        <label for="prac04-order-tab-b">按 userId 分区</label>
+        <div class="learn-tab-panel" id="prac04-order-panel-a" role="tabpanel">
+          <ul>
+            <li>同一订单的 Created → Paid → Shipped 严格有序</li>
+            <li>每个分区内顺序保证，跨分区不保证</li>
+            <li>合适：订单状态机、库存扣减流水</li>
+          </ul>
+        </div>
+        <div class="learn-tab-panel" id="prac04-order-panel-b" role="tabpanel">
+          <ul>
+            <li>同一用户的所有操作有序</li>
+            <li>热点用户（VIP）会导致分区倾斜</li>
+            <li>适用：用户行为分析、会话回放</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="learn-cheat-sheet">
+        <details>
+          <summary>Kafka 消费者关键配置速查</summary>
+          <div class="learn-cheat-body">
+            <table>
+              <thead><tr><th>配置</th><th>含义</th><th>ShopFlow 建议值</th></tr></thead>
+              <tbody>
+                <tr><td><code>enable.auto.commit</code></td><td>是否自动提交 offset</td><td>false（手动提交，防丢消息）</td></tr>
+                <tr><td><code>max.poll.records</code></td><td>单次拉取最大条数</td><td>500（平衡吞吐与延迟）</td></tr>
+                <tr><td><code>isolation.level</code></td><td>读已提交 / 读未提交</td><td>read_committed（配合事务 producer）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>Redis 缓存穿透/击穿/雪崩防护</h3>
+      <p>ShopFlow 商品详情是典型「读多写少」场景。引入 Redis 缓存后面临三类经典问题：</p>
+
+      <h4>三问题对比与对策</h4>
+      <table class="outline-table learn-decision-table">
+        <thead>
+          <tr><th>问题</th><th>现象</th><th>ShopFlow 对策</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>缓存穿透</strong></td>
+            <td>查不存在的数据，缓存中没有、直接穿透到 DB</td>
+            <td>布隆过滤器 + 空值短期缓存（TTL 60s）</td>
+          </tr>
+          <tr>
+            <td><strong>缓存击穿</strong></td>
+            <td>热点 key 过期瞬间，大量请求同时打到 DB</td>
+            <td>互斥锁（SETNX）只让一个线程重建缓存</td>
+          </tr>
+          <tr>
+            <td><strong>缓存雪崩</strong></td>
+            <td>大量 key 同时过期，DB 瞬时压力飙升</td>
+            <td>过期时间加随机值 ±20%；多级缓存 + 限流</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>缓存穿透防护：布隆 + 空值</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// shopflow-product-service / ProductCacheService
+public Product getProduct(String sku) {
+  // 1. 布隆过滤器预判（不存在则直接返回 null）
+  if (!bloomFilter.mightContain(sku)) return null;
+
+  // 2. 查缓存（含空值哨兵）
+  String cacheJson = redisTemplate.opsForValue().get("product:" + sku);
+  if (cacheJson != null) {
+    return "NULL".equals(cacheJson) ? null : fromJson(cacheJson);
+  }
+
+  // 3. 查 DB
+  Product p = productRepo.findBySku(sku);
+  if (p == null) {
+    redisTemplate.opsForValue().set("product:" + sku, "NULL", 60, TimeUnit.SECONDS);
+  } else {
+    redisTemplate.opsForValue().set("product:" + sku, toJson(p), 30, TimeUnit.MINUTES);
+  }
+  return p;
+}</code></pre>
+      </div>
+
+      <h4>缓存击穿防护：互斥锁</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">public Product getProductWithLock(String sku) {
+  String cacheJson = redisTemplate.opsForValue().get("product:" + sku);
+  if (cacheJson != null) return "NULL".equals(cacheJson) ? null : fromJson(cacheJson);
+
+  // 互斥锁：「谁拿到锁谁重建」
+  String lockKey = "lock:product:" + sku;
+  boolean locked = redisTemplate.opsForValue()
+      .setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
+  if (locked) {
+    try {
+      Product p = productRepo.findBySku(sku);
+      redisTemplate.opsForValue().set(
+        "product:" + sku, p == null ? "NULL" : toJson(p),
+        30 + ThreadLocalRandom.current().nextInt(0, 6), TimeUnit.MINUTES); // 随机过期防雪崩
+      return p;
+    } finally {
+      redisTemplate.delete(lockKey);
+    }
+  } else {
+    // 未拿到锁：短暂 sleep 后重试读缓存
+    Thread.sleep(50);
+    return getProductWithLock(sku);
+  }
+}</code></pre>
+      </div>
+
+      <div class="learn-compare">
+        <div class="learn-compare-col learn-compare-bad">
+          <span class="learn-compare-heading">常见误区</span>
+          <ul>
+            <li>所有 key 设同一 TTL → 批量过期雪崩</li>
+            <li>查不到也不写空哨兵 → 穿透</li>
+            <li>多线程同时重建热点缓存 → 击穿 DB</li>
+          </ul>
+        </div>
+        <div class="learn-compare-col learn-compare-good">
+          <span class="learn-compare-heading">防护组合</span>
+          <ul>
+            <li>TTL = 基准值 + random(0, 20%)</li>
+            <li>不存在也缓存 NULL 哨兵（短 TTL）</li>
+            <li>SETNX 互斥锁 + 逻辑过期双写</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h3>Cache-Aside 在商品读模型上的应用</h3>
+      <p><strong>Cache-Aside（旁路缓存）</strong> 是 ShopFlow 选用的缓存模式：应用直接与缓存和 DB 交互，缓存层不自动回源。读写路径清晰——</p>
+
+      <div class="mermaid-wrap">
+        <h5>Cache-Aside 读写流程</h5>
+        <pre class="mermaid">flowchart TD
+  subgraph 读路径
+    R1[请求 product:SKU-1] --> R2{缓存命中?}
+    R2 -->|是| R3[返回缓存值]
+    R2 -->|否| R4[查 DB]
+    R4 --> R5[写回缓存 + 返回]
+  end
+  subgraph 写路径
+    W1[管理员更新商品] --> W2[更新 DB]
+    W2 --> W3[删除缓存 key]
+    W3 --> W4[下次读自然回源重建]
+  end</pre>
+        <p class="diagram-caption">写路径选择「删缓存」而非「更新缓存」，因为更新可能做无用功（紧接的后续更新会覆盖）、且删缓存天然无并发写缓存的一致性问题。</p>
+      </div>
+
+      <h4>写路径：先 DB 后删缓存（双删可选）</h4>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">@Transactional
+public void updateProduct(String sku, ProductUpdateRequest req) {
+  // 1. 更新 DB
+  productRepo.updateBySku(sku, req);
+  // 2. 删除缓存（失败可异步重试）
+  redisTemplate.delete("product:" + sku);
+}</code></pre>
+      </div>
+
+      <h4>逻辑过期：防热点 key 击穿进阶</h4>
+      <p>热点商品的物理 TTL 设为 <strong>永不过期</strong>，额外存储一个 <code>logicExpireAt</code> 字段。读时发现逻辑过期 → 获取互斥锁 → 开异步线程重建 → 当前请求仍返回旧值（容忍短时不一致）。</p>
+      <div class="code-block">
+        <div class="code-toolbar">
+          <span class="lang-tag">java</span>
+          <button type="button" class="btn-copy" aria-label="复制代码">复制</button>
+        </div>
+        <pre><code class="language-java">// 缓存值包装
+public record CachedProduct(Product product, long logicExpireAt) {}
+
+public Product getWithLogicalExpire(String sku) {
+  CachedProduct cp = getCached(sku);
+  if (cp == null) return getProductWithLock(sku); // 首次加载
+
+  if (System.currentTimeMillis() > cp.logicExpireAt()) {
+    // 逻辑过期，异步重建
+    String lockKey = "lock:product:" + sku;
+    if (redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS)) {
+      executor.submit(() -> {
+        Product fresh = productRepo.findBySku(sku);
+        redisTemplate.opsForValue().set("product:" + sku,
+          toJson(new CachedProduct(fresh, System.currentTimeMillis() + 30 * 60_000L)));
+        redisTemplate.delete(lockKey);
+      });
+    }
+  }
+  return cp.product(); // 返回旧值，不阻塞
+}</code></pre>
+      </div>
+
+      <details class="learn-micro-check">
+        <summary>先想 10 秒：Cache-Aside 在高并发写时，先删缓存再写 DB 会有什么问题？</summary>
+        <p>线程 A 删缓存 → 线程 B 读发现 miss → 读 DB（旧值）→ 写缓存旧值 → 线程 A 写 DB（新值）→ 缓存中是旧值。所以推荐<strong>先写 DB 再删缓存</strong>（或双删：写 DB 前删一次、写完后再延时删一次）。</p>
+      </details>
+    </div>
+
+    <div class="section-block chapter-conclusions-block notice">
+      <h3>本章结论</h3>
+      <p class="chapter-conclusions-lead">每条对应上一节 h3。</p>
+      <ul class="chapter-conclusions-list">
+        <li><strong>领域事件</strong>：不可变、过去式命名；OrderCreated/PaymentCompleted 解耦 order→payment→analytics 链；胖瘦事件权衡按需回查。</li>
+        <li><strong>Spring Cloud Stream + Kafka</strong>：<code>StreamBridge.send()</code> 发消息，函数式 <code>Consumer&lt;T&gt;</code> 收消息；Binder 抽象屏蔽 Kafka Client 细节。</li>
+        <li><strong>分区与有序</strong>：按 orderId 分区保证同一订单事件顺序；消费者组独立消费；手动提交 offset 防丢消息。</li>
+        <li><strong>三缓存问题</strong>：穿透→布隆+空值哨兵；击穿→互斥锁 SETNX；雪崩→TTL 随机化 20% + 多级缓存。</li>
+        <li><strong>Cache-Aside</strong>：读命中直接返回、miss 回 DB 并回填；写先 DB 后删缓存，热点 key 用逻辑过期 + 异步重建容忍短时不一致。</li>
+      </ul>
+    </div>
+
+    <div class="section-block learn-review-block">
+      <h3>复习与自检</h3>
+      <div class="learn-checklist" data-storage-key="java-distributed-architecture_practice04">
+        <p class="learn-checklist-lead">过关清单（勾选会保存在本浏览器）</p>
+        <p class="learn-checklist-progress" aria-live="polite">0 / 5 已勾选</p>
+        <ul>
+          <li><label><input type="checkbox" data-id="event" /> 能定义 OrderCreated 并说明胖瘦事件权衡</label></li>
+          <li><label><input type="checkbox" data-id="stream" /> 能用 StreamBridge + Consumer 实现一对发布/订阅</label></li>
+          <li><label><input type="checkbox" data-id="partition" /> 能解释按 orderId 分区如何保证有序性</label></li>
+          <li><label><input type="checkbox" data-id="cache3" /> 能写出穿透/击穿/雪崩的防护代码片段</label></li>
+          <li><label><input type="checkbox" data-id="quiz-done" /> 已完成右侧章节测验</label></li>
+        </ul>
+      </div>
+
+      <p class="chapter-review-next">下一步：完成 Demo 与测验；继续 <a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a>，把 Kafka 与缓存数据的一致性用 Saga + Outbox 兜底。</p>
+    </div>
+  </div>
+
+  <div class="official-links content-section">
+    <h3>官方文档</h3>
+    <ul>
+      <li><a href="https://docs.spring.io/spring-cloud-stream/reference/" target="_blank" rel="noopener">Spring Cloud Stream Reference</a></li>
+      <li><a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka Documentation</a></li>
+      <li><a href="https://docs.spring.io/spring-data/redis/reference/" target="_blank" rel="noopener">Spring Data Redis Reference</a></li>
+      <li><a href="https://redis.io/docs/latest/develop/use/patterns/cache-aside/" target="_blank" rel="noopener">Redis Cache-Aside Pattern</a></li>
+    </ul>
+  </div>
+
+  <div class="chapter-practice">
+    <h3>动手练习</h3>
+    <p class="steps-intro">在 order / payment 间加入 Kafka 事件流，为商品详情加 Redis 缓存并模拟三类缓存问题。</p>
+    <h4 class="practice-section-title">操作步骤</h4>
+    <ol class="steps steps-operate">
+      <li>启动 Kafka (Docker) 并配置 <code>spring.cloud.stream.kafka.binder.brokers</code>；order 发布 OrderCreated，消费侧日志确认收到。</li>
+      <li>对照「消费者组」说明：起两个 payment 实例（同 group），验证同一分区内只有一个实例消费。</li>
+      <li>为商品详情实现 Cache-Aside：<code>GET /products/{sku}</code> 先查 Redis、miss 回 DB；观察首次慢、二次快。</li>
+      <li>模拟击穿：在 Redis 中删除热点 key 后立即 10 并发压测，确认仅 1 条 SQL 打到 DB（互斥锁生效）。</li>
+    </ol>
+    <h4 class="practice-section-title">判断练习</h4>
+    <ol class="steps-judgment-list">
+    <li>
+      <p class="judgment-stem">Kafka 消费者若用 <code>enable.auto.commit=true</code>（默认），处理消息中途进程崩溃。消息会丢还是重复？如何修正？</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p>会丢：自动提交在 poll 后即提交 offset，业务未处理完也会被标记为已消费。修正：设为 <code>false</code>，业务处理完成后手动 <code>acknowledgment.acknowledge()</code>。但手动提交后若崩溃则消息重复，需消费者幂等。</p></div>
+        </details>
+      </div>
+    </li>
+    <li>
+      <p class="judgment-stem">所有商品缓存 key 的 TTL 均设为 <code>30min</code>，无随机偏移。缓存预热后 30 分钟时 DB CPU 飙至 95%。判断问题类型并给出两处修改。</p>
+      <div class="learn-practice-answer">
+        <details>
+          <summary>参考答案</summary>
+          <div class="learn-practice-answer-body"><p><strong>缓存雪崩</strong>：统一过期导致同时回源。修改：① TTL = 30min + <code>Random(0, 6)</code> 分钟随机偏移；② 对热点 SKU 采用逻辑过期 + 异步重建，物理永不过期。</p></div>
+        </details>
+      </div>
+    </li>
+    </ol>
+    <div class="demo-box">
+      <h4 class="demo-box-title">Demo：Kafka 事件流 + Redis 缓存</h4>
+      <p>目录：<code>demos/practice-04-messaging-cache-lab/</code>。<strong>验收</strong>：order 下单后 payment 消费者日志出现对应事件；商品详情缓存命中率 > 90% 且击穿测试仅 1 次 DB 查询。</p>
+    </div>
+  </div>
+
+  <div class="resources content-section">
+    <h3>延伸学习</h3>
+    <ul>
+      <li><strong>上一章</strong>：<a href="#ch-practice-03-sync-calls">OpenFeign、负载均衡与服务间调用</a></li>
+      <li><strong>下一章</strong>：<a href="#ch-practice-05-data-consistency">分布式数据：事务、幂等与 Saga</a>：<span class="term" data-term-id="outbox-pattern" tabindex="0">Outbox</span> 与 Saga 兜底数据一致性</li>
+      <li><a href="https://developer.confluent.io/patterns/event-driven-architecture/" target="_blank" rel="noopener">Confluent · Event-Driven Architecture Patterns</a></li>
+      <li><a href="https://docs.spring.io/spring-data/redis/reference/redis/caching.html" target="_blank" rel="noopener">Spring Cache Abstraction with Redis</a></li>
+    </ul>
+  </div>
+</section>

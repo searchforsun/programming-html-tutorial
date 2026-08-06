@@ -5,7 +5,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fixMotionTags } from './lib/utils.mjs';
 
 const args = process.argv.slice(2);
 const dirIdx = args.indexOf('--dir');
@@ -30,7 +30,7 @@ for (const f of fs.readdirSync(chDir)) {
   const p = path.join(chDir, f);
   let s = fs.readFileSync(p, 'utf8');
   if (!s.includes('motion')) continue;
-  s = s.replaceAll('<motion ', '<div ').replaceAll('</motion>', '</div>');
+  s = fixMotionTags(s);
   fs.writeFileSync(p, s, 'utf8');
   console.log('fixed', f);
   fixed += 1;
