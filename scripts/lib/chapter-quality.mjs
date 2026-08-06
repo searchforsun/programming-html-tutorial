@@ -59,15 +59,8 @@ export function hasIllegalTags(html) {
 }
 
 export function fixH5Check(html) {
-  const parts = html.split(/<div class="mermaid-wrap">/i);
-  if (parts.length === 1) return /<h5\b/i.test(html);
-  let rest = parts[0];
-  for (let i = 1; i < parts.length; i++) {
-    const closeIdx = parts[i].indexOf('</div>');
-    const end = closeIdx >= 0 ? closeIdx + 6 : parts[i].length;
-    rest += parts[i].slice(end);
-  }
-  return /<h5\b/i.test(rest);
+  const cleaned = html.replace(/<div class="mermaid-wrap"[^>]*>[^]*?<\/div>/gi, '');
+  return /<h5\b/i.test(cleaned);
 }
 
 export function getQuizSection(quizHtml, chapterId) {

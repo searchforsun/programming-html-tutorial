@@ -37,10 +37,12 @@ function parseArgs(argv) {
 /** Gate 2 报告仅输出到终端；默认不落盘 courses/<slug>/reviews/ */
 function cleanupReviewsDir(reviewsDir, keep) {
   if (keep || !fs.existsSync(reviewsDir)) return;
-  for (const name of fs.readdirSync(reviewsDir)) {
-    fs.unlinkSync(path.join(reviewsDir, name));
+  // 安全检查：仅清理名为 reviews 的目录
+  if (path.basename(reviewsDir) !== 'reviews') {
+    console.warn(`cleanupReviewsDir: path not named reviews, skipping: ${reviewsDir}`);
+    return;
   }
-  fs.rmdirSync(reviewsDir);
+  fs.rmSync(reviewsDir, { recursive: true, force: true });
 }
 
 function main() {

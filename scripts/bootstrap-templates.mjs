@@ -20,13 +20,33 @@ const html = fs.readFileSync(path.resolve(htmlPath), 'utf8');
 const tpl = path.join(SKILL_ROOT, 'templates');
 fs.mkdirSync(tpl, { recursive: true });
 
-const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
-const end = css.indexOf('/* theme presets */');
-let c = css.slice(0, end).trim();
-const i = c.indexOf('*, *::before');
-fs.writeFileSync(path.join(tpl, 'shell.base.css'), c.slice(i) + '\n');
+// ---- shell.base.css ----
+const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+if (!styleMatch) {
+  console.error('bootstrap-templates: no <style> block found in index.html');
+  process.exit(1);
+}
+const css = styleMatch[1];
+const themeEnd = css.indexOf('/* theme presets */');
+if (themeEnd < 0) {
+  console.error('bootstrap-templates: marker "/* theme presets */" not found in <style>');
+  process.exit(1);
+}
+let c = css.slice(0, themeEnd).trim();
+const globalStart = c.indexOf('*, *::before');
+if (globalStart < 0) {
+  console.error('bootstrap-templates: global reset "*, *::before" not found in <style>');
+  process.exit(1);
+}
+fs.writeFileSync(path.join(tpl, 'shell.base.css'), c.slice(globalStart) + '\n');
 
-const js = html.match(/<script>\s*\(function \(\) \{[\s\S]*?\}\)\(\);\s*<\/script>/)[0];
+// ---- shell.app.js ----
+const jsMatch = html.match(/<script>\s*\(function \(\) \{[\s\S]*?\}\)\(\);\s*<\/script>/);
+if (!jsMatch) {
+  console.error('bootstrap-templates: no matching IIFE <script> block found in index.html');
+  process.exit(1);
+}
+const js = jsMatch[0];
 let jsBody = js.replace(/^<script>\s*/, '').replace(/\s*<\/script>$/, '');
 jsBody = jsBody.replace(
   /var THEME_KEYWORDS = \{[\s\S]*?\};\s*function resolveThemePreset\(meta\) \{[\s\S]*?\}\s*function applyThemePreset\(\) \{\s*document\.documentElement\.setAttribute\(\s*'data-theme-preset',\s*resolveThemePreset\(COURSE_DATA\.meta\)\s*\);\s*\}/,
@@ -38,6 +58,7 @@ jsBody = jsBody.replace(
 );
 fs.writeFileSync(path.join(tpl, 'shell.app.js'), jsBody + '\n');
 
+// ---- theme.placeholder.css ----
 fs.writeFileSync(
   path.join(tpl, 'theme.placeholder.css'),
   `[data-theme-preset="{{THEME_PRESET}}"][data-theme="light"] {
