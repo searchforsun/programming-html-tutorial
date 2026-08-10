@@ -127,6 +127,10 @@
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
   }
 
+  /**
+   * 应用 UI 风格（12 种之一），更新 DOM 属性、样式表开关与 localStorage。
+   * @param {string} style - 风格 ID（如 vibrant / compact / cyber）
+   */
   function applyUiStyle(style) {
     if (UI_STYLE_IDS.indexOf(style) === -1) style = '{{DEFAULT_UI_STYLE}}';
     document.documentElement.setAttribute('data-ui-style', style);
@@ -137,6 +141,10 @@
     syncUiStyleMenu(style);
   }
 
+  /**
+   * 初始化 UI 风格切换菜单：从 localStorage 恢复偏好，绑定弹出面板与键盘交互。
+   * @param {Function} [onChange] - 风格切换后的回调
+   */
   function initUiStyleMenu(onChange) {
     var saved = storageGet(GLOBAL_UI_STYLE_KEY) || '{{DEFAULT_UI_STYLE}}';
     applyUiStyle(saved);
@@ -263,6 +271,10 @@
     syncOutlineSummaryProgress();
   }
 
+  /**
+   * 切换章节的完成状态（标记完成/取消标记），同步全部 UI 进度。
+   * @param {string} chapterId - 章节 ID
+   */
   function toggleComplete(chapterId) {
     const set = new Set(getCompleted());
     if (set.has(chapterId)) set.delete(chapterId);
@@ -504,6 +516,10 @@
     }
   }
 
+  /**
+   * 章节内目录滚动监听：基于 IntersectionObserver 高亮当前可见标题对应的目录项。
+   * @param {HTMLElement} section - 当前章节 DOM 容器
+   */
   function initChapterTocSpy(section) {
     disconnectChapterTocObservers();
     var nav = document.getElementById('chapter-toc-nav');
@@ -624,6 +640,10 @@
     else document.body.classList.add('page-welcome');
   }
 
+  /**
+   * 显示课程首页（welcome），隐藏所有章节并清除侧栏高亮。
+   * 重置滚动状态与章节目录面板。
+   */
   function showWelcome() {
     document.getElementById('welcome').style.display = '';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
@@ -631,9 +651,15 @@
     });
     document.querySelectorAll('#sidebar li').forEach(function (li) {
       li.classList.remove('active-ch');
+      var a = li.querySelector('a');
+      if (a) a.removeAttribute('aria-current');
     });
     var homeLi = document.getElementById('sidebar-home');
-    if (homeLi) homeLi.classList.add('active-ch');
+    if (homeLi) {
+      homeLi.classList.add('active-ch');
+      var homeA = homeLi.querySelector('a');
+      if (homeA) homeA.setAttribute('aria-current', 'page');
+    }
     storageRemove(KEY_SCROLL);
     syncQuizVisibility(null);
     hideChapterToc();
@@ -663,6 +689,13 @@
   }
 
   /** 切换章节；正文/侧栏 #ch- 链接均应走此函数（非浏览器默认锚点滚动）。 */
+  /**
+   * 导航到指定章节，统一处理侧栏/正文/Hash。
+   * 若章节未生成则显示 Toast 提示并返回 false。
+   * @param {string} id - 章节 ID（如 basics-01-intro）
+   * @param {{updateHash?: boolean}} [options] - updateHash 为 false 时不更新 URL hash
+   * @returns {boolean} 是否导航成功
+   */
   function navigateToChapter(id, options) {
     var opts = options || {};
     var section = document.getElementById('ch-' + id);
@@ -680,6 +713,11 @@
     return true;
   }
 
+  /**
+   * 显示指定章节，隐藏首页与其他章节，触发 Mermaid 渲染、测验面板、
+   * 章节目录、侧栏进度同步与滚动重置。
+   * @param {string} id - 章节 ID
+   */
   function showChapter(id) {
     var section = document.getElementById('ch-' + id);
     if (!section) return;
@@ -695,7 +733,11 @@
     document.querySelectorAll('#sidebar li').forEach(function (li) {
       li.classList.remove('active-ch');
       var a = li.querySelector('a');
-      if (a && a.getAttribute('href') === '#ch-' + id) li.classList.add('active-ch');
+      if (a) a.removeAttribute('aria-current');
+      if (a && a.getAttribute('href') === '#ch-' + id) {
+        li.classList.add('active-ch');
+        a.setAttribute('aria-current', 'page');
+      }
     });
     renderMermaidIn(section);
     syncQuizVisibility(id);
@@ -706,6 +748,10 @@
     syncPageViewClass();
   }
 
+  /**
+   * 根据当前章节 ID 显示/隐藏测验面板中的对应区块。
+   * @param {string|null} chapterId - 当前章节 ID，null 时隐藏全部
+   */
   function syncQuizVisibility(chapterId) {
     var panel = document.getElementById('quiz-panel');
     if (!panel) return;
@@ -742,6 +788,12 @@
     return fill ? fill.value : '';
   }
 
+  /**
+   * 比对测验答案（支持逗号分隔的多值集合比较与包含匹配）。
+   * @param {string} expected - 期望答案
+   * @param {string} user - 用户答案
+   * @returns {boolean} 是否正确
+   */
   function compareQuizAnswers(expected, user) {
     var exp = normalizeQuizText(expected);
     var got = normalizeQuizText(user);
@@ -754,6 +806,10 @@
     return got.indexOf(exp) >= 0 || exp.indexOf(got) >= 0;
   }
 
+  /**
+   * 检查单个测验项的用户答案，显示反馈并更新进度。
+   * @param {HTMLElement} item - 测验项 DOM 元素（.quiz-item）
+   */
   function checkQuizAnswer(item) {
     var expected = item.getAttribute('data-answer') || '';
     var user = collectQuizAnswer(item);
@@ -985,6 +1041,10 @@
     tbody.innerHTML = rows.join('');
   }
 
+  /**
+   * 初始化 Mermaid 图表引擎，根据当前明暗主题选择配色方案。
+   * 明暗两套 themeVariables 确保图表在亮/暗模式均清晰可读。
+   */
   function initMermaid() {
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     mermaid.initialize({
@@ -1025,6 +1085,13 @@
     if (!src) return false;
     el.removeAttribute('data-processed');
     el.querySelectorAll('svg, .mermaidContainer, [id^="dmermaid"]').forEach(function (n) { n.remove(); });
+    // 移除相邻的预渲染 SVG（主题切换时重新客户端渲染）
+    var next = el.nextElementSibling;
+    while (next && next.classList && (next.classList.contains('mermaid-prerendered') || next.classList.contains('mermaid-diagram'))) {
+      var toRemove = next;
+      next = next.nextElementSibling;
+      toRemove.remove();
+    }
     el.textContent = src;
     if (!el.classList.contains('mermaid')) el.classList.add('mermaid');
     return true;
@@ -1036,9 +1103,17 @@
     if (!nodes.length) return Promise.resolve();
     var list = [];
     nodes.forEach(function (el) {
+      // 如果已有预渲染 SVG 相邻，首屏无需客户端重复渲染
+      var next = el.nextElementSibling;
+      if (next && next.classList && next.classList.contains('mermaid-prerendered')) return;
       if (resetMermaidNode(el)) list.push(el);
     });
-    if (!list.length) return Promise.resolve();
+    if (!list.length) {
+      // 全部由预渲染 SVG 提供 → 仍需注入全屏 UI
+      injectMermaidFullscreenUi(root);
+      bindMermaidFullscreen(root);
+      return Promise.resolve();
+    }
     return mermaid.run({ nodes: list }).then(function () {
       injectMermaidFullscreenUi(root);
       bindMermaidFullscreen(root);
@@ -1200,10 +1275,18 @@
 
   function rerenderActiveMermaid() {
     var active = document.querySelector('section[data-chapter].active');
-    if (active) return renderMermaidIn(active);
-    return Promise.resolve();
+    if (!active) return Promise.resolve();
+    // 主题切换：移除所有预渲染 SVG，强制从源码重新渲染
+    active.querySelectorAll('.mermaid-prerendered').forEach(function (div) { div.remove(); });
+    return renderMermaidIn(active);
   }
 
+  /**
+   * 渲染指定 DOM 根节点内的所有 Mermaid 图表。
+   * 先重置节点（保存原始源码、清除旧渲染），再通过 mermaid.run 批量渲染。
+   * @param {HTMLElement} root - 需要渲染 Mermaid 的 DOM 根节点
+   * @returns {Promise<void>}
+   */
   function highlightIn(root) {
     root.querySelectorAll('pre:not(.mermaid) > code').forEach(function (el) {
       hljs.highlightElement(el);
@@ -1212,6 +1295,10 @@
 
   var copyResetTimer = null;
 
+  /**
+   * 在页面右下角显示临时 Toast 提示，3 秒后自动渐隐。
+   * @param {string} message - 提示文本
+   */
   function showToast(message) {
     var toast = document.getElementById('toast');
     if (!toast) return;
@@ -1315,6 +1402,10 @@
     dark.disabled = !isDark;
   }
 
+  /**
+   * 切换明暗主题（light/dark），同步 hljs 样式、Mermaid 重渲染与 localStorage。
+   * @param {string} theme - 'dark' | 'light'
+   */
   function applyTheme(theme) {
     closeAllMermaidFullscreen();
     document.documentElement.setAttribute('data-theme', theme);
@@ -1324,6 +1415,10 @@
     rerenderActiveMermaid();
   }
 
+  /**
+   * 导出学习进度为 JSON 文件下载（完成/已读/已滚动位置 + 扩展存储）。
+   * 文件名含课程 slug 与时间戳。
+   */
   function exportProgress() {
     const data = {
       courseId: slug,
@@ -1341,6 +1436,10 @@
     a.click();
   }
 
+  /**
+   * 从用户选择的 JSON 文件导入学习进度，覆盖当前 localStorage 数据并刷新 UI。
+   * @param {File} file - 用户选择的进度 JSON 文件
+   */
   function importProgress(file) {
     const reader = new FileReader();
     reader.onload = function () {
@@ -1501,6 +1600,10 @@
     document.getElementById('term-modal').addEventListener('close', hideToolbar);
   }
 
+  /**
+   * 初始化术语弹窗面板：渲染术语平台链接、绑定打开/关闭事件。
+   * 点击 .term span 触发 openTermModal；点击遮罩层或按 Escape 关闭。
+   */
   function initTermModal() {
     var modal = document.getElementById('term-modal');
     document.body.addEventListener('click', function (e) {

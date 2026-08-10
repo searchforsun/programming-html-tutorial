@@ -1,0 +1,211 @@
+/* ============================================================
+ * shell.print.css — 打印/PDF 导出样式
+ * 目标：隐藏导航 chrome，强制代码块换行，术语展开，暗色适配
+ * 组装时自动注入 index.shell.html 的 <style> 块
+ * ============================================================ */
+
+/* ---- 隐藏导航元素 ---- */
+.topbar,
+#sidebar,
+#chapter-toc,
+.chapter-toc-fab,
+#quiz-panel,
+.btn-mark-done,
+.btn-copy,
+.btn-ui-style,
+.ui-style-popover,
+.btn-export-progress-label,
+#btn-export-progress,
+.btn-import,
+#selection-term-toolbar,
+.mermaid-toolbar,
+.progress-track,
+.progress-wrap,
+#toast,
+#term-modal {
+  display: none !important;
+}
+
+/* ---- 全局重置 ---- */
+body {
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+/* 隐藏侧栏后的主区域占满可用宽度 */
+.layout {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.main-area {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+#main-content {
+  max-width: 100% !important;
+  padding: 0 12pt !important;
+}
+
+/* ---- 链接可读性 ---- */
+a[href] {
+  color: #0366d6 !important;
+  text-decoration: underline !important;
+}
+
+a[href^="#"] {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* ---- 代码块强制换行、保留背景 ---- */
+pre, code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: 9pt !important;
+  background: #f6f8fa !important;
+  color: #1a2332 !important;
+  border: 1px solid #d0d7de !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+pre {
+  padding: 8pt !important;
+  margin: 6pt 0 !important;
+  page-break-inside: avoid;
+}
+
+/* ---- 表格 ---- */
+table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  page-break-inside: avoid;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+th, td {
+  border: 1px solid #666 !important;
+  padding: 4pt 6pt !important;
+  text-align: left;
+}
+
+th {
+  background: #e8edf4 !important;
+  font-weight: 600;
+}
+
+/* ---- Mermaid 图表适配 ---- */
+.mermaid-wrap {
+  page-break-inside: avoid;
+}
+
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.mermaid-diagram.is-pseudo-fullscreen {
+  position: static !important;
+  background: #fff !important;
+  z-index: auto !important;
+}
+
+/* ---- 术语：展开提示词为脚注式内容 ---- */
+.term {
+  text-decoration: underline dotted !important;
+}
+
+.term::after {
+  content: " (" attr(data-term-id) ")";
+  font-size: 8pt;
+  color: #666;
+}
+
+/* ---- 术语索引（由 assemble 自动生成） ---- */
+.term-index {
+  page-break-before: always;
+}
+
+.term-index h2 {
+  font-size: 15pt;
+  border-bottom: 2px solid #333;
+  padding-bottom: 4pt;
+  margin-bottom: 12pt;
+}
+
+.term-index .term-index-section {
+  margin-bottom: 12pt;
+  page-break-inside: avoid;
+}
+
+.term-index .term-index-letter {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #333;
+  margin-top: 10pt;
+  padding-bottom: 2pt;
+  border-bottom: 1px solid #ccc;
+}
+
+.term-index .term-index-entry {
+  margin: 4pt 0 4pt 12pt;
+  font-size: 10.5pt;
+}
+
+.term-index .term-index-entry .term-label {
+  font-weight: 600;
+}
+
+.term-index .term-index-entry .term-prompt {
+  color: #555;
+  font-size: 9.5pt;
+  margin-top: 2pt;
+}
+
+/* ---- 进度标记隐藏 ---- */
+.ch-done-icon,
+.ch-progress-icon,
+.outline-ch-status {
+  display: none !important;
+}
+
+/* ---- 分页控制 ---- */
+.chapter-header {
+  page-break-before: always;
+}
+
+.welcome + .chapter-header,
+#welcome {
+  page-break-before: avoid;
+}
+
+h3 {
+  page-break-after: avoid;
+}
+
+/* ---- 教学法块保色 ---- */
+div[class^="notice-"],
+.learn-review-block,
+.conclusions-block {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  page-break-inside: avoid;
+}
+
+/* ---- 页眉/页脚轻量化 ---- */
+@page {
+  margin: 16mm 12mm;
+  @bottom-center {
+    content: counter(page);
+    font-size: 9pt;
+    color: #999;
+  }
+}

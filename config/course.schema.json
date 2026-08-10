@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sunshine.ai/course.schema.json",
+  "title": "Course Configuration",
+  "description": "课程配置文件 course.json 的 JSON Schema 定义。编辑器（VS Code 等）可通过 schema 提供自动补全、实时校验与文档提示。",
+  "type": "object",
+  "required": ["meta", "outline", "chapters", "terms"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["title", "slug", "domain", "version", "generatedAt", "domainType"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "课程标题，用作页面 <title> 和顶部栏标题"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "课程目录名，也用作 localStorage key 前缀"
+        },
+        "domain": {
+          "type": "string",
+          "description": "技术领域名，用于术语提示词模板 {domain} 替换"
+        },
+        "themePreset": {
+          "type": "string",
+          "description": "CSS 主题预设 ID，默认等于 slug"
+        },
+        "version": {
+          "type": "string",
+          "description": "技术栈版本（如 Java 21 LTS；Spring Boot 3.5.x）"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date",
+          "description": "课程生成日期 YYYY-MM-DD"
+        },
+        "officialDocs": {
+          "type": "string",
+          "format": "uri",
+          "description": "官方文档链接"
+        },
+        "domainType": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "E", "F"],
+          "description": "领域类型—— A:语言/运行时 B:框架/库 C:平台/中间件 D:运维/云原生 E:窄专题 F:横切能力"
+        },
+        "selectionPromptTemplate": {
+          "type": "string",
+          "description": "划词 AI 解释时的提示词模板，支持 {domain} {selection} {title} 占位符"
+        },
+        "selectionPromptEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用划词 AI 解释功能"
+        },
+        "hljsLanguages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "需要加载的 highlight.js 语言列表，如 [\"java\",\"yaml\",\"xml\"]"
+        },
+        "portalHref": {
+          "type": "string",
+          "description": "课程中心相对路径，默认 ../index.html"
+        },
+        "learningNotes": {
+          "type": "object",
+          "properties": {
+            "assumptions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "前置知识假设列表"
+            },
+            "phaseGoals": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "按 phaseId 键的阶段目标说明"
+            }
+          }
+        }
+      }
+    },
+    "outline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["phaseId", "phaseTitle", "chapters"],
+        "properties": {
+          "phaseId": {
+            "type": "string",
+            "enum": ["basics", "practice", "advanced"],
+            "description": "阶段 ID（对应 defaults.json phases）"
+          },
+          "phaseTitle": {
+            "type": "string",
+            "description": "阶段标题"
+          },
+          "phaseGoal": {
+            "type": "string",
+            "description": "阶段目标说明，展示在大纲汇总表中"
+          },
+          "chapters": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "title", "sections"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*$",
+                  "description": "章节唯一 ID，用于文件名与 DOM id"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "章节标题"
+                },
+                "sections": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string" },
+                  "description": "该章各节标题（h3 级别）"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "chapters": {
+      "type": "object",
+      "description": "按章节 ID 键的元信息映射（与 outline[].chapters[].id 对应）",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["title", "summary"],
+        "properties": {
+          "title": { "type": "string", "description": "章节标题" },
+          "summary": { "type": "string", "description": "章节摘要（用于 meta description 与索引）" }
+        }
+      }
+    },
+    "terms": {
+      "type": "object",
+      "description": "术语定义，按 termId 键。每个术语含 label（显示名）与 prompt（AI 提示词）",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "prompt"],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "术语中文标签（页面展示与弹窗标题）"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 30,
+            "description": "发给 AI 的完整提示词。应包含上下文、解释要求、示例要求与误区要求（参考 check-term-prompts 质量指南）"
+          }
+        }
+      }
+    }
+  }
+}

@@ -7,7 +7,8 @@
   "scripts": {
     "assemble": "node scripts/assemble-index.mjs",
     "validate": "node scripts/validate-tutorial.mjs",
-    "extract": "node scripts/extract-from-index.mjs"
+    "extract": "node scripts/extract-from-index.mjs",
+    "test": "node --test scripts/lib/*.test.mjs"
   },
   "repository": {
     "type": "git",

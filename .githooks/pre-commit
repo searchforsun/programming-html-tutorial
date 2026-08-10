@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# ────────────────────────────────────────────────────
+# Git pre-commit hook — CI 前移，阻断低级错误
+#
+# 安装：git config core.hooksPath .githooks
+# 跳过：git commit --no-verify
+# ────────────────────────────────────────────────────
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+STAGED_MJS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.mjs$' || true)
+STAGED_JS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.js$' | grep -v node_modules || true)
+HAS_ERRORS=0
+
+# ── 1. 语法检查：node --check ──
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  pre-commit · 语法检查"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+for f in $STAGED_MJS $STAGED_JS; do
+  if [ -f "$f" ]; then
+    if ! node --check "$f" 2>&1; then
+      echo "  ✗ 语法错误: $f"
+      HAS_ERRORS=1
+    fi
+  fi
+done
+
+if [ "$HAS_ERRORS" -eq 0 ]; then
+  echo "  ✓ 全部通过"
+fi
+echo ""
+
+# ── 2. 单元测试 ──
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  pre-commit · 单元测试 (node --test)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 仅当 scripts/lib/*.test.mjs 文件被暂存或首次运行时运行测试
+# 全量测试：有测试文件变更或 node --test 不可用则跑
+
+if ls scripts/lib/*.test.mjs >/dev/null 2>&1; then
+  if ! node --test scripts/lib/*.test.mjs 2>&1; then
+    echo "  ✗ 单元测试失败"
+    HAS_ERRORS=1
+  else
+    echo "  ✓ 全部通过"
+  fi
+else
+  echo "  - 无测试文件，跳过"
+fi
+echo ""
+
+# ── 结果 ──
+if [ "$HAS_ERRORS" -ne 0 ]; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  ✗ 提交被阻断 — 请修复以上错误后重试"
+  echo "    跳过检查: git commit --no-verify"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  exit 1
+fi
+
+echo "  ✓ pre-commit 全部通过"
+exit 0

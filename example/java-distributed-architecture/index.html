@@ -26,7 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
   <style>
 /* 壳层共享常量（与 UI 风格包无关） */
 :root {
@@ -2247,6 +2247,217 @@
   }
 }
 
+/* ============================================================
+ * shell.print.css — 打印/PDF 导出样式
+ * 目标：隐藏导航 chrome，强制代码块换行，术语展开，暗色适配
+ * 组装时自动注入 index.shell.html 的 <style> 块
+ * ============================================================ */
+
+/* ---- 隐藏导航元素 ---- */
+.topbar,
+#sidebar,
+#chapter-toc,
+.chapter-toc-fab,
+#quiz-panel,
+.btn-mark-done,
+.btn-copy,
+.btn-ui-style,
+.ui-style-popover,
+.btn-export-progress-label,
+#btn-export-progress,
+.btn-import,
+#selection-term-toolbar,
+.mermaid-toolbar,
+.progress-track,
+.progress-wrap,
+#toast,
+#term-modal {
+  display: none !important;
+}
+
+/* ---- 全局重置 ---- */
+body {
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+/* 隐藏侧栏后的主区域占满可用宽度 */
+.layout {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.main-area {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+#main-content {
+  max-width: 100% !important;
+  padding: 0 12pt !important;
+}
+
+/* ---- 链接可读性 ---- */
+a[href] {
+  color: #0366d6 !important;
+  text-decoration: underline !important;
+}
+
+a[href^="#"] {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* ---- 代码块强制换行、保留背景 ---- */
+pre, code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: 9pt !important;
+  background: #f6f8fa !important;
+  color: #1a2332 !important;
+  border: 1px solid #d0d7de !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+pre {
+  padding: 8pt !important;
+  margin: 6pt 0 !important;
+  page-break-inside: avoid;
+}
+
+/* ---- 表格 ---- */
+table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  page-break-inside: avoid;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+th, td {
+  border: 1px solid #666 !important;
+  padding: 4pt 6pt !important;
+  text-align: left;
+}
+
+th {
+  background: #e8edf4 !important;
+  font-weight: 600;
+}
+
+/* ---- Mermaid 图表适配 ---- */
+.mermaid-wrap {
+  page-break-inside: avoid;
+}
+
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.mermaid-diagram.is-pseudo-fullscreen {
+  position: static !important;
+  background: #fff !important;
+  z-index: auto !important;
+}
+
+/* ---- 术语：展开提示词为脚注式内容 ---- */
+.term {
+  text-decoration: underline dotted !important;
+}
+
+.term::after {
+  content: " (" attr(data-term-id) ")";
+  font-size: 8pt;
+  color: #666;
+}
+
+/* ---- 术语索引（由 assemble 自动生成） ---- */
+.term-index {
+  page-break-before: always;
+}
+
+.term-index h2 {
+  font-size: 15pt;
+  border-bottom: 2px solid #333;
+  padding-bottom: 4pt;
+  margin-bottom: 12pt;
+}
+
+.term-index .term-index-section {
+  margin-bottom: 12pt;
+  page-break-inside: avoid;
+}
+
+.term-index .term-index-letter {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #333;
+  margin-top: 10pt;
+  padding-bottom: 2pt;
+  border-bottom: 1px solid #ccc;
+}
+
+.term-index .term-index-entry {
+  margin: 4pt 0 4pt 12pt;
+  font-size: 10.5pt;
+}
+
+.term-index .term-index-entry .term-label {
+  font-weight: 600;
+}
+
+.term-index .term-index-entry .term-prompt {
+  color: #555;
+  font-size: 9.5pt;
+  margin-top: 2pt;
+}
+
+/* ---- 进度标记隐藏 ---- */
+.ch-done-icon,
+.ch-progress-icon,
+.outline-ch-status {
+  display: none !important;
+}
+
+/* ---- 分页控制 ---- */
+.chapter-header {
+  page-break-before: always;
+}
+
+.welcome + .chapter-header,
+#welcome {
+  page-break-before: avoid;
+}
+
+h3 {
+  page-break-after: avoid;
+}
+
+/* ---- 教学法块保色 ---- */
+div[class^="notice-"],
+.learn-review-block,
+.conclusions-block {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  page-break-inside: avoid;
+}
+
+/* ---- 页眉/页脚轻量化 ---- */
+@page {
+  margin: 16mm 12mm;
+  @bottom-center {
+    content: counter(page);
+    font-size: 9pt;
+    color: #999;
+  }
+}
   </style>
 <style data-ui-style-sheet="minimal" disabled>
 /* UI 风格包 · minimal（独立加载，互斥启用） */
@@ -8298,6 +8509,67 @@ services:
   </article>
 </section>
         </div>
+        <div id="term-index" class="term-index" style="display:none;">
+<h2>术语索引</h2>
+<div class="term-index-section">
+<div class="term-index-letter">A</div>
+<div class="term-index-entry"><span class="term-label">ACID 事务</span><span class="term-id">（acid-transaction）</span><p class="term-prompt">我在学习数据库与分布式。请解释 ACID 在单库本地事务中的含义，说明 ShopFlow 单服务内订单+明细为何仍可用 ACID，并解释跨 order/inventory/payment 服务时 ACID 为何不够用、常改用什么模式。</p></div>
+<div class="term-index-entry"><span class="term-label">API 网关</span><span class="term-id">（api-gateway）</span><p class="term-prompt">我在学习 Spring Cloud Gateway。请说明 API 网关在微服务架构中的职责（路由、鉴权、限流、聚合），与 BFF 的差异，以及不应放进网关的业务编排逻辑有哪些（结合 ShopFlow 入口）。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">B</div>
+<div class="term-index-entry"><span class="term-label">BASE</span><span class="term-id">（base-model）</span><p class="term-prompt">我在学习互联网分布式架构。请解释 BASE（Basically Available, Soft state, Eventually consistent）三字含义、与 ACID 的对比，说明 ShopFlow 跨服务下单链路为何常用 BASE 路径，并列举幂等、对账、Outbox 等配套手段。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">C</div>
+<div class="term-index-entry"><span class="term-label">CAP 定理</span><span class="term-id">（cap-theorem）</span><p class="term-prompt">我在学习 Java 分布式架构。请用通俗语言解释 CAP 定理中 C、A、P 的含义，说明为何三者不能同时满足，并各举一个 ShopFlow 微服务场景下的工程取舍例子（含不能给整个系统贴单一 CP/AP 标签的原因）。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">E</div>
+<div class="term-index-entry"><span class="term-label">ESB</span><span class="term-id">（esb）</span><p class="term-prompt">我在学习 SOA 与微服务演进。请解释企业服务总线（ESB）的职责（路由、转换、编排）、为何易成变更瓶颈，并对比 Spring Cloud Gateway + 域内编排如何承担横切而避免「胖总线」。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">F</div>
+<div class="term-index-entry"><span class="term-label">Fencing Token</span><span class="term-id">（fencing-token）</span><p class="term-prompt">我在学习分布式锁进阶。请解释 fencing token 如何防止旧主（僵尸节点）覆写新主数据，用锁序号递增 + 存储拒绝旧 token 写的流程说明，并说明仅有 UUID 锁值为何不够安全。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">O</div>
+<div class="term-index-entry"><span class="term-label">OpenAPI</span><span class="term-id">（openapi）</span><p class="term-prompt">我在学习 Java 分布式 API 设计。请解释 OpenAPI（契约优先）是什么、为何应先于 Controller 实现，说明 ShopFlow inventory 的 POST /reservations 契约应包含哪些关键字段与幂等头，并对比「代码先行再补文档」的风险。</p></div>
+<div class="term-index-entry"><span class="term-label">Outbox 模式</span><span class="term-id">（outbox-pattern）</span><p class="term-prompt">我在学习分布式数据一致性。请解释 Transactional Outbox 模式如何解决「写库 + 发消息」的原子性问题，并描述在 Java/Spring 中 OrderCreated 事件与订单表同事务写入的实现要点与常见坑。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">S</div>
+<div class="term-index-entry"><span class="term-label">Saga 模式</span><span class="term-id">（saga-pattern）</span><p class="term-prompt">我在学习 Java 分布式事务。请解释 Saga 编排与编舞的区别、补偿事务如何设计，对比 Seata AT 的适用场景，并给一个 ShopFlow 订单支付失败的简化步骤示例。</p></div>
+<div class="term-index-entry"><span class="term-label">SOA</span><span class="term-id">（soa）</span><p class="term-prompt">我在学习企业架构演进。请解释面向服务架构（SOA）的目标、与微服务的主要区别，说明为何常配合 ESB 做集中编排，以及 ShopFlow 若走 SOA 可能遇到的集成瓶颈。</p></div>
+<div class="term-index-entry"><span class="term-label">Spring Boot Actuator</span><span class="term-id">（spring-boot-actuator）</span><p class="term-prompt">我在学习 Spring Boot 运维基线。请解释 Actuator 的 health/info/metrics 端点用途、liveness 与 readiness 探针差异，说明 ShopFlow order-service 本地 /actuator/health 验收标准，并列举不应默认对外暴露的敏感端点。</p></div>
+<div class="term-index-entry"><span class="term-label">Spring Cloud BOM</span><span class="term-id">（spring-cloud-bom）</span><p class="term-prompt">我在学习 Java 微服务工程化。请解释 Spring Cloud BOM（spring-cloud-dependencies）如何与 Spring Boot 版本对齐、为何子模块不应手写 Cloud 组件版本，并说明 ShopFlow 父 POM import BOM 后添加 OpenFeign/Gateway 依赖时的正确写法。</p></div>
+</div>
+<div class="term-index-section">
+<div class="term-index-letter">#</div>
+<div class="term-index-entry"><span class="term-label">编排（Orchestration）</span><span class="term-id">（orchestration）</span><p class="term-prompt">我在学习 Java 分布式通信。请解释微服务流程编排是什么、与 ESB 集中编排有何不同，用 ShopFlow order-service 协调 inventory 预留与 payment 发起的序列说明优缺点，并对比编舞模式何时更合适。</p></div>
+<div class="term-index-entry"><span class="term-label">编舞（Choreography）</span><span class="term-id">（choreography）</span><p class="term-prompt">我在学习事件驱动架构。请解释编舞（Choreography）如何无中心协调者完成跨服务流程，用 PaymentCompleted 被 order、analytics 分别消费举例，说明可扩展性与排障难点，并对比 ShopFlow 采用 order 编排混合方案的理由。</p></div>
+<div class="term-index-entry"><span class="term-label">部分失败</span><span class="term-id">（partial-failure）</span><p class="term-prompt">我在学习分布式系统基础。请解释「部分失败」是什么、与「全站宕机」有何不同，用 ShopFlow 中 order 调用 inventory 超时但库存可能已扣减的例子说明调用方的不确定性，并列出幂等键与查询状态等应对手段。</p></div>
+<div class="term-index-entry"><span class="term-label">读己之写</span><span class="term-id">（read-your-writes）</span><p class="term-prompt">我在学习分布式一致性客户端语义。请解释「读己之写」的用户体验含义、读写分离下为何会失效，说明 ShopFlow 用户下单后刷新订单列表为空的可能原因，并给出短期读主、会话粘滞等缓解方案。</p></div>
+<div class="term-index-entry"><span class="term-label">分布式单体</span><span class="term-id">（distributed-monolith）</span><p class="term-prompt">我在学习微服务反模式。请解释「分布式单体」是什么、与模块化单体的区别，说明为何多个微服务仍共用一个 backlog/数据库却背上分布式排障成本，并给 ShopFlow 识别该反模式的 2～3 个信号。</p></div>
+<div class="term-index-entry"><span class="term-label">分布式锁</span><span class="term-id">（distributed-lock）</span><p class="term-prompt">我在学习 Java 分布式协调。请解释分布式锁解决什么问题、租约（TTL/续租）为何必要，对比 Redis/ZooKeeper/数据库锁的适用边界，并结合 ShopFlow 库存扣减串行化说明「能不用锁就不用」的原则。</p></div>
+<div class="term-index-entry"><span class="term-label">分层单体</span><span class="term-id">（layered-monolith）</span><p class="term-prompt">我在学习架构演进。请解释分层单体（按 controller/service/repository 分包）的特点、优点与演变成大泥球的风险，结合 ShopFlow 创业期 8 人团队说明何时作为合理起点，并对比模块化单体的差异。</p></div>
+<div class="term-index-entry"><span class="term-label">服务发现</span><span class="term-id">（service-discovery）</span><p class="term-prompt">我在学习 Spring Cloud 微服务。请解释服务注册与发现的工作流程（注册、续约、查询、剔除），说明 spring.application.name 与 lb:// 路由的关系，并举例 ShopFlow order-service 向 Eureka 8761 注册后 Gateway 如何解析实例。</p></div>
+<div class="term-index-entry"><span class="term-label">绞杀者模式</span><span class="term-id">（strangler-pattern）</span><p class="term-prompt">我在学习遗留系统迁移。请解释绞杀者（Strangler Fig）模式如何渐进替换单体模块，结合 ShopFlow 将新能力放到新服务、旧模块逐步下线的路径说明，并对比大爆炸式重写的风险。</p></div>
+<div class="term-index-entry"><span class="term-label">康威定律</span><span class="term-id">（conways-law）</span><p class="term-prompt">我在学习架构与组织。请解释康威定律（系统结构镜像沟通结构）对微服务拆分的含义，用 ShopFlow 订单/库存/支付三小队与三服务对齐的正反例说明，并指出「组织未拆、服务先拆」的风险。</p></div>
+<div class="term-index-entry"><span class="term-label">幂等键</span><span class="term-id">（idempotency-key）</span><p class="term-prompt">我在学习 Java 分布式架构。请解释业务幂等键（requestId）的作用、与 HTTP 重试的关系，说明在 ShopFlow POST /reserve 中如何实现「重复提交返回同一结果」，并列举不设幂等键时重复扣库存的风险。</p></div>
+<div class="term-index-entry"><span class="term-label">模块化单体</span><span class="term-id">（modular-monolith）</span><p class="term-prompt">我在学习 Java 模块化架构。请解释模块化单体（单进程单部署、按业务能力分 Maven 模块、跨模块只走公开 API）如何为微服务拆分做排练，用 ShopFlow order/inventory/payment 模块举例，并说明 ArchUnit 约束依赖的方向。</p></div>
+<div class="term-index-entry"><span class="term-label">强一致</span><span class="term-id">（strong-consistency）</span><p class="term-prompt">我在学习分布式数据。请解释强一致/线性一致在工程上的含义与代价，说明 ShopFlow POST /reserve 防超卖为何倾向强一致或串行化，并对比商品详情读多写少场景可接受弱一致的理由。</p></div>
+<div class="term-index-entry"><span class="term-label">熔断器</span><span class="term-id">（circuit-breaker）</span><p class="term-prompt">我在学习微服务韧性。请解释熔断器 CLOSED/OPEN/HALF_OPEN 状态如何转换、与超时/重试/限流如何配合，并说明在 Spring Cloud 中常见的配置误区（结合 ShopFlow 调用 inventory 过载场景）。</p></div>
+<div class="term-index-entry"><span class="term-label">时钟漂移</span><span class="term-id">（clock-skew）</span><p class="term-prompt">我在学习分布式系统。请解释节点间时钟漂移为何存在、NTP 能否完全消除问题，说明为何不能用 System.currentTimeMillis() 排序跨服务事件，并给出 ShopFlow 订单状态变更更稳妥的排序方式（版本号/逻辑时钟等）。</p></div>
+<div class="term-index-entry"><span class="term-label">网络分区</span><span class="term-id">（network-partition）</span><p class="term-prompt">我在学习 CAP 与分布式容错。请解释网络分区（Partition）在真实机房/云多 AZ 中如何发生、为何分布式系统必须假设分区会出现，并结合 ShopFlow 同城双活订单库与库存缓存跨机房场景说明对可用性与一致性的影响。</p></div>
+<div class="term-index-entry"><span class="term-label">微服务</span><span class="term-id">（microservices）</span><p class="term-prompt">我在学习 Java 微服务架构。请解释微服务的核心特征（独立部署、去中心化数据、智能端点 dumb pipe），列举收益与成本（分布式事务、可观测、集成测试），并说明 ShopFlow 何时值得从模块化单体演进到微服务。</p></div>
+<div class="term-index-entry"><span class="term-label">限界上下文</span><span class="term-id">（bounded-context）</span><p class="term-prompt">我在学习 DDD 与微服务拆分。请解释「限界上下文」是什么、与微服务边界如何对应，并以 ShopFlow 订单/库存/支付为例说明如何划分上下文与避免模型泄漏。</p></div>
+<div class="term-index-entry"><span class="term-label">消费者驱动契约</span><span class="term-id">（consumer-driven-contract）</span><p class="term-prompt">我在学习微服务集成测试。请解释消费者驱动契约（CDC）的工作方式、与契约优先 OpenAPI 如何配合，用 order-service 调用 inventory-service 举例说明 Pact 如何将集成失败左移到 CI，并列举不做 CDC 时联调阶段的典型问题。</p></div>
+<div class="term-index-entry"><span class="term-label">因果一致</span><span class="term-id">（causal-consistency）</span><p class="term-prompt">我在学习一致性模型。请解释因果一致是什么、与最终一致和强一致的关系，用 ShopFlow 订单评论回复链或同一用户操作序列举例，并说明会话粘滞、版本向量等常见实现思路。</p></div>
+<div class="term-index-entry"><span class="term-label">最终一致</span><span class="term-id">（eventual-consistency）</span><p class="term-prompt">我在学习 Java 分布式架构，已了解 CAP 与副本复制。请解释「最终一致」的精确定义、与强一致的区别，举 ShopFlow 商品详情读从库短暂旧库存的例子，并说明需要哪些补偿手段（幂等、对账、状态机）。</p></div>
+</div>
+
+        </div>
       </main>
       <aside id="chapter-toc" class="chapter-toc" aria-label="本章大纲" hidden>
         <div class="chapter-toc-header">
@@ -8990,7 +9262,7 @@ services:
   const KEY_DONE = slug + '_completed';
   const KEY_VISITED = slug + '_visited';
   const KEY_THEME = slug + '_theme';
-  const GLOBAL_THEME_KEY = '{{GLOBAL_THEME_KEY}}';
+  const GLOBAL_THEME_KEY = 'study-self_theme';
   const GLOBAL_UI_STYLE_KEY = 'study-self_ui-style';
   const UI_STYLE_IDS = ["minimal","tech","cyber","vibrant","nord","paper","glass","terminal","sakura","compact","outline","soft"];
   const KEY_SCROLL = slug + '_scroll';
@@ -9112,6 +9384,10 @@ services:
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
   }
 
+  /**
+   * 应用 UI 风格（12 种之一），更新 DOM 属性、样式表开关与 localStorage。
+   * @param {string} style - 风格 ID（如 vibrant / compact / cyber）
+   */
   function applyUiStyle(style) {
     if (UI_STYLE_IDS.indexOf(style) === -1) style = 'vibrant';
     document.documentElement.setAttribute('data-ui-style', style);
@@ -9122,6 +9398,10 @@ services:
     syncUiStyleMenu(style);
   }
 
+  /**
+   * 初始化 UI 风格切换菜单：从 localStorage 恢复偏好，绑定弹出面板与键盘交互。
+   * @param {Function} [onChange] - 风格切换后的回调
+   */
   function initUiStyleMenu(onChange) {
     var saved = storageGet(GLOBAL_UI_STYLE_KEY) || 'vibrant';
     applyUiStyle(saved);
@@ -9248,6 +9528,10 @@ services:
     syncOutlineSummaryProgress();
   }
 
+  /**
+   * 切换章节的完成状态（标记完成/取消标记），同步全部 UI 进度。
+   * @param {string} chapterId - 章节 ID
+   */
   function toggleComplete(chapterId) {
     const set = new Set(getCompleted());
     if (set.has(chapterId)) set.delete(chapterId);
@@ -9489,6 +9773,10 @@ services:
     }
   }
 
+  /**
+   * 章节内目录滚动监听：基于 IntersectionObserver 高亮当前可见标题对应的目录项。
+   * @param {HTMLElement} section - 当前章节 DOM 容器
+   */
   function initChapterTocSpy(section) {
     disconnectChapterTocObservers();
     var nav = document.getElementById('chapter-toc-nav');
@@ -9609,6 +9897,10 @@ services:
     else document.body.classList.add('page-welcome');
   }
 
+  /**
+   * 显示课程首页（welcome），隐藏所有章节并清除侧栏高亮。
+   * 重置滚动状态与章节目录面板。
+   */
   function showWelcome() {
     document.getElementById('welcome').style.display = '';
     document.querySelectorAll('section[data-chapter]').forEach(function (s) {
@@ -9616,9 +9908,15 @@ services:
     });
     document.querySelectorAll('#sidebar li').forEach(function (li) {
       li.classList.remove('active-ch');
+      var a = li.querySelector('a');
+      if (a) a.removeAttribute('aria-current');
     });
     var homeLi = document.getElementById('sidebar-home');
-    if (homeLi) homeLi.classList.add('active-ch');
+    if (homeLi) {
+      homeLi.classList.add('active-ch');
+      var homeA = homeLi.querySelector('a');
+      if (homeA) homeA.setAttribute('aria-current', 'page');
+    }
     storageRemove(KEY_SCROLL);
     syncQuizVisibility(null);
     hideChapterToc();
@@ -9648,6 +9946,13 @@ services:
   }
 
   /** 切换章节；正文/侧栏 #ch- 链接均应走此函数（非浏览器默认锚点滚动）。 */
+  /**
+   * 导航到指定章节，统一处理侧栏/正文/Hash。
+   * 若章节未生成则显示 Toast 提示并返回 false。
+   * @param {string} id - 章节 ID（如 basics-01-intro）
+   * @param {{updateHash?: boolean}} [options] - updateHash 为 false 时不更新 URL hash
+   * @returns {boolean} 是否导航成功
+   */
   function navigateToChapter(id, options) {
     var opts = options || {};
     var section = document.getElementById('ch-' + id);
@@ -9665,6 +9970,11 @@ services:
     return true;
   }
 
+  /**
+   * 显示指定章节，隐藏首页与其他章节，触发 Mermaid 渲染、测验面板、
+   * 章节目录、侧栏进度同步与滚动重置。
+   * @param {string} id - 章节 ID
+   */
   function showChapter(id) {
     var section = document.getElementById('ch-' + id);
     if (!section) return;
@@ -9680,7 +9990,11 @@ services:
     document.querySelectorAll('#sidebar li').forEach(function (li) {
       li.classList.remove('active-ch');
       var a = li.querySelector('a');
-      if (a && a.getAttribute('href') === '#ch-' + id) li.classList.add('active-ch');
+      if (a) a.removeAttribute('aria-current');
+      if (a && a.getAttribute('href') === '#ch-' + id) {
+        li.classList.add('active-ch');
+        a.setAttribute('aria-current', 'page');
+      }
     });
     renderMermaidIn(section);
     syncQuizVisibility(id);
@@ -9691,6 +10005,10 @@ services:
     syncPageViewClass();
   }
 
+  /**
+   * 根据当前章节 ID 显示/隐藏测验面板中的对应区块。
+   * @param {string|null} chapterId - 当前章节 ID，null 时隐藏全部
+   */
   function syncQuizVisibility(chapterId) {
     var panel = document.getElementById('quiz-panel');
     if (!panel) return;
@@ -9727,6 +10045,12 @@ services:
     return fill ? fill.value : '';
   }
 
+  /**
+   * 比对测验答案（支持逗号分隔的多值集合比较与包含匹配）。
+   * @param {string} expected - 期望答案
+   * @param {string} user - 用户答案
+   * @returns {boolean} 是否正确
+   */
   function compareQuizAnswers(expected, user) {
     var exp = normalizeQuizText(expected);
     var got = normalizeQuizText(user);
@@ -9739,6 +10063,10 @@ services:
     return got.indexOf(exp) >= 0 || exp.indexOf(got) >= 0;
   }
 
+  /**
+   * 检查单个测验项的用户答案，显示反馈并更新进度。
+   * @param {HTMLElement} item - 测验项 DOM 元素（.quiz-item）
+   */
   function checkQuizAnswer(item) {
     var expected = item.getAttribute('data-answer') || '';
     var user = collectQuizAnswer(item);
@@ -9970,6 +10298,10 @@ services:
     tbody.innerHTML = rows.join('');
   }
 
+  /**
+   * 初始化 Mermaid 图表引擎，根据当前明暗主题选择配色方案。
+   * 明暗两套 themeVariables 确保图表在亮/暗模式均清晰可读。
+   */
   function initMermaid() {
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     mermaid.initialize({
@@ -10010,6 +10342,13 @@ services:
     if (!src) return false;
     el.removeAttribute('data-processed');
     el.querySelectorAll('svg, .mermaidContainer, [id^="dmermaid"]').forEach(function (n) { n.remove(); });
+    // 移除相邻的预渲染 SVG（主题切换时重新客户端渲染）
+    var next = el.nextElementSibling;
+    while (next && next.classList && (next.classList.contains('mermaid-prerendered') || next.classList.contains('mermaid-diagram'))) {
+      var toRemove = next;
+      next = next.nextElementSibling;
+      toRemove.remove();
+    }
     el.textContent = src;
     if (!el.classList.contains('mermaid')) el.classList.add('mermaid');
     return true;
@@ -10021,9 +10360,17 @@ services:
     if (!nodes.length) return Promise.resolve();
     var list = [];
     nodes.forEach(function (el) {
+      // 如果已有预渲染 SVG 相邻，首屏无需客户端重复渲染
+      var next = el.nextElementSibling;
+      if (next && next.classList && next.classList.contains('mermaid-prerendered')) return;
       if (resetMermaidNode(el)) list.push(el);
     });
-    if (!list.length) return Promise.resolve();
+    if (!list.length) {
+      // 全部由预渲染 SVG 提供 → 仍需注入全屏 UI
+      injectMermaidFullscreenUi(root);
+      bindMermaidFullscreen(root);
+      return Promise.resolve();
+    }
     return mermaid.run({ nodes: list }).then(function () {
       injectMermaidFullscreenUi(root);
       bindMermaidFullscreen(root);
@@ -10185,10 +10532,18 @@ services:
 
   function rerenderActiveMermaid() {
     var active = document.querySelector('section[data-chapter].active');
-    if (active) return renderMermaidIn(active);
-    return Promise.resolve();
+    if (!active) return Promise.resolve();
+    // 主题切换：移除所有预渲染 SVG，强制从源码重新渲染
+    active.querySelectorAll('.mermaid-prerendered').forEach(function (div) { div.remove(); });
+    return renderMermaidIn(active);
   }
 
+  /**
+   * 渲染指定 DOM 根节点内的所有 Mermaid 图表。
+   * 先重置节点（保存原始源码、清除旧渲染），再通过 mermaid.run 批量渲染。
+   * @param {HTMLElement} root - 需要渲染 Mermaid 的 DOM 根节点
+   * @returns {Promise<void>}
+   */
   function highlightIn(root) {
     root.querySelectorAll('pre:not(.mermaid) > code').forEach(function (el) {
       hljs.highlightElement(el);
@@ -10197,6 +10552,10 @@ services:
 
   var copyResetTimer = null;
 
+  /**
+   * 在页面右下角显示临时 Toast 提示，3 秒后自动渐隐。
+   * @param {string} message - 提示文本
+   */
   function showToast(message) {
     var toast = document.getElementById('toast');
     if (!toast) return;
@@ -10300,6 +10659,10 @@ services:
     dark.disabled = !isDark;
   }
 
+  /**
+   * 切换明暗主题（light/dark），同步 hljs 样式、Mermaid 重渲染与 localStorage。
+   * @param {string} theme - 'dark' | 'light'
+   */
   function applyTheme(theme) {
     closeAllMermaidFullscreen();
     document.documentElement.setAttribute('data-theme', theme);
@@ -10309,6 +10672,10 @@ services:
     rerenderActiveMermaid();
   }
 
+  /**
+   * 导出学习进度为 JSON 文件下载（完成/已读/已滚动位置 + 扩展存储）。
+   * 文件名含课程 slug 与时间戳。
+   */
   function exportProgress() {
     const data = {
       courseId: slug,
@@ -10326,6 +10693,10 @@ services:
     a.click();
   }
 
+  /**
+   * 从用户选择的 JSON 文件导入学习进度，覆盖当前 localStorage 数据并刷新 UI。
+   * @param {File} file - 用户选择的进度 JSON 文件
+   */
   function importProgress(file) {
     const reader = new FileReader();
     reader.onload = function () {
@@ -10486,6 +10857,10 @@ services:
     document.getElementById('term-modal').addEventListener('close', hideToolbar);
   }
 
+  /**
+   * 初始化术语弹窗面板：渲染术语平台链接、绑定打开/关闭事件。
+   * 点击 .term span 触发 openTermModal；点击遮罩层或按 Escape 关闭。
+   */
   function initTermModal() {
     var modal = document.getElementById('term-modal');
     document.body.addEventListener('click', function (e) {
@@ -10612,6 +10987,343 @@ services:
 
   initCourse();
 })();
+/**
+ * Mermaid 全屏模块（可选注入）。
+ * 仅在教程包含 .mermaid-wrap 时由 assemble 注入。
+ * 依赖：shell.app.js 中的 showToast / renderMermaidIn / initMermaid / initMermaidFullscreen 已在核心中定义存根。
+ */
+(function () {
+  if (typeof window === 'undefined') return;
+
+  function saveMermaidSource(el) {
+    if (!el.getAttribute('data-mermaid-src')) {
+      var src = (el.textContent || '').trim();
+      if (src) el.setAttribute('data-mermaid-src', src);
+    }
+  }
+
+  function resetMermaidNode(el) {
+    saveMermaidSource(el);
+    var src = el.getAttribute('data-mermaid-src');
+    if (!src) return false;
+    el.removeAttribute('data-processed');
+    el.querySelectorAll('svg, .mermaidContainer, [id^="dmermaid"]').forEach(function (n) { n.remove(); });
+    el.textContent = src;
+    if (!el.classList.contains('mermaid')) el.classList.add('mermaid');
+    return true;
+  }
+
+  window.renderMermaidIn = function (root) {
+    if (typeof mermaid === 'undefined' || !root || !root.querySelectorAll) return Promise.resolve();
+    var nodes = root.querySelectorAll('pre.mermaid, div.mermaid');
+    if (!nodes.length) return Promise.resolve();
+    var list = [];
+    nodes.forEach(function (el) {
+      if (resetMermaidNode(el)) list.push(el);
+    });
+    if (!list.length) return Promise.resolve();
+    return mermaid.run({ nodes: list }).then(function () {
+      injectMermaidFullscreenUi(root);
+      bindMermaidFullscreen(root);
+    }).catch(function (err) {
+      console.warn('Mermaid render failed:', err);
+    });
+  };
+
+  function getMermaidDiagramHost(wrap) {
+    var pre = wrap.querySelector(':scope > pre.mermaid, :scope > div.mermaid');
+    if (!pre) {
+      pre = wrap.querySelector('pre.mermaid, div.mermaid');
+    }
+    if (!pre) return null;
+    var diagram = wrap.querySelector('.mermaid-diagram');
+    if (!diagram) {
+      diagram = document.createElement('div');
+      diagram.className = 'mermaid-diagram';
+      wrap.insertBefore(diagram, pre);
+      diagram.appendChild(pre);
+    }
+    var bar = wrap.querySelector(':scope > .mermaid-toolbar');
+    if (bar) diagram.appendChild(bar);
+    return diagram;
+  }
+
+  function injectMermaidFullscreenUi(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      if (diagram.querySelector('.mermaid-toolbar')) return;
+      var bar = document.createElement('div');
+      bar.className = 'mermaid-toolbar';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mermaid-fs-btn';
+      btn.textContent = '全屏';
+      btn.setAttribute('aria-label', '图表全屏');
+      btn.setAttribute('aria-expanded', 'false');
+      bar.appendChild(btn);
+      diagram.appendChild(bar);
+    });
+  }
+
+  function isPseudoFs(diagram) {
+    return diagram.classList.contains('is-pseudo-fullscreen');
+  }
+
+  function closePseudoFs(diagram) {
+    diagram.classList.remove('is-pseudo-fullscreen');
+    if (!document.querySelector('.mermaid-diagram.is-pseudo-fullscreen')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function openPseudoFs(diagram) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+      if (d !== diagram) closePseudoFs(d);
+    });
+    diagram.classList.add('is-pseudo-fullscreen');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function syncFsButton(diagram, btn) {
+    var native = document.fullscreenElement === diagram;
+    var pseudo = isPseudoFs(diagram);
+    var on = native || pseudo;
+    btn.textContent = on ? '退出全屏' : '全屏';
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? '退出图表全屏' : '图表全屏');
+  }
+
+  function closeAllMermaidFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    }
+    document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+      closePseudoFs(diagram);
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
+    });
+  }
+
+  function bindMermaidFullscreen(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    scope.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var diagram = getMermaidDiagramHost(wrap);
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (!btn || diagram.dataset.fsBound) return;
+      diagram.dataset.fsBound = '1';
+      btn.addEventListener('click', function () {
+        var pre = diagram.querySelector('pre.mermaid, div.mermaid');
+        if (!pre || !pre.querySelector('svg')) {
+          showToast('图表尚未渲染完成，请稍候再试');
+          return;
+        }
+        var native = document.fullscreenElement === diagram;
+        var pseudo = isPseudoFs(diagram);
+        if (native || pseudo) {
+          if (native) document.exitFullscreen().catch(function () {});
+          if (pseudo) closePseudoFs(diagram);
+          syncFsButton(diagram, btn);
+          return;
+        }
+        document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (d) {
+          closePseudoFs(d);
+          var b = d.querySelector('.mermaid-fs-btn');
+          if (b) syncFsButton(d, b);
+        });
+        var req = diagram.requestFullscreen || diagram.webkitRequestFullscreen;
+        if (typeof req === 'function') {
+          Promise.resolve(req.call(diagram)).then(function () {
+            syncFsButton(diagram, btn);
+          }).catch(function () {
+            openPseudoFs(diagram);
+            syncFsButton(diagram, btn);
+          });
+        } else {
+          openPseudoFs(diagram);
+          syncFsButton(diagram, btn);
+        }
+      });
+    });
+  }
+
+  function syncAllMermaidFsButtons() {
+    document.querySelectorAll('.mermaid-wrap').forEach(function (wrap) {
+      var diagram = wrap.querySelector('.mermaid-diagram');
+      if (!diagram) return;
+      var btn = diagram.querySelector('.mermaid-fs-btn');
+      if (btn) syncFsButton(diagram, btn);
+    });
+  }
+
+  window.initMermaidFullscreen = function () {
+    document.addEventListener('fullscreenchange', function () {
+      syncAllMermaidFsButtons();
+      if (!document.fullscreenElement) {
+        document.body.style.overflow = document.querySelector('.mermaid-diagram.is-pseudo-fullscreen') ? 'hidden' : '';
+      }
+    });
+    document.addEventListener('webkitfullscreenchange', syncAllMermaidFsButtons);
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.mermaid-diagram.is-pseudo-fullscreen').forEach(function (diagram) {
+        closePseudoFs(diagram);
+        var btn = diagram.querySelector('.mermaid-fs-btn');
+        if (btn) syncFsButton(diagram, btn);
+      });
+    });
+  };
+
+  window.rerenderActiveMermaid = function () {
+    var active = document.querySelector('section[data-chapter].active');
+    if (active) return window.renderMermaidIn(active);
+    return Promise.resolve();
+  };
+})();
+
+/**
+ * 划词 AI 解释模块（可选注入）。
+ * 仅在 course.meta.selectionPromptEnabled !== false 时由 assemble 注入。
+ */
+(function () {
+  if (typeof window === 'undefined') return;
+
+  var SELECTION_PROMPT_MIN = 2;
+  var SELECTION_PROMPT_MAX = 120;
+  var DEFAULT_SELECTION_PROMPT_TEMPLATE =
+    '我在学习{domain}，请解释一下「{selection}」，并结合示例说明常见用法与误区。';
+
+  function isSelectionPromptEnabled() {
+    var meta = COURSE_DATA.meta || {};
+    return meta.selectionPromptEnabled !== false;
+  }
+
+  function isNodeInExcludedSelectionRoot(node) {
+    if (!node) return true;
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el) return true;
+    return !!el.closest(
+      'pre, code, .code-block, .quiz-section, #quiz-panel, #sidebar, #term-modal, ' +
+        '#selection-term-toolbar, button, input, textarea, select, label, ' +
+        '.topbar, #chapter-toc, .chapter-toc-fab, .btn-copy, .quiz-actions'
+    );
+  }
+
+  function getSelectionInMainContent() {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+    var text = sel.toString().replace(/\s+/g, ' ').trim();
+    if (text.length < SELECTION_PROMPT_MIN || text.length > SELECTION_PROMPT_MAX) return null;
+    var range = sel.getRangeAt(0);
+    if (isNodeInExcludedSelectionRoot(range.commonAncestorContainer)) return null;
+    var main = document.getElementById('main-content');
+    if (!main || !main.contains(range.commonAncestorContainer)) return null;
+    return { text: text, range: range };
+  }
+
+  function buildSelectionPrompt(selection) {
+    var meta = COURSE_DATA.meta || {};
+    var tpl = meta.selectionPromptTemplate || DEFAULT_SELECTION_PROMPT_TEMPLATE;
+    var domain = meta.domain || meta.title || '本课程';
+    return tpl
+      .replace(/\{domain\}/g, domain)
+      .replace(/\{selection\}/g, selection)
+      .replace(/\{title\}/g, meta.title || domain);
+  }
+
+  window.initSelectionPrompt = function () {
+    if (!isSelectionPromptEnabled()) return;
+
+    var toolbar = document.getElementById('selection-term-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.id = 'selection-term-toolbar';
+      toolbar.className = 'selection-term-toolbar';
+      toolbar.hidden = true;
+      toolbar.setAttribute('role', 'toolbar');
+      toolbar.setAttribute('aria-label', '选中文本操作');
+      var btnEl = document.createElement('button');
+      btnEl.type = 'button';
+      btnEl.className = 'btn-selection-term';
+      btnEl.textContent = 'AI 解释';
+      toolbar.appendChild(btnEl);
+      document.body.appendChild(toolbar);
+    }
+
+    var btn = toolbar.querySelector('.btn-selection-term');
+    var pendingSelection = null;
+
+    function hideToolbar() {
+      toolbar.hidden = true;
+      pendingSelection = null;
+    }
+
+    function positionToolbar(range) {
+      var rect = range.getBoundingClientRect();
+      toolbar.hidden = false;
+      var tw = toolbar.offsetWidth;
+      var th = toolbar.offsetHeight;
+      var left = rect.left + rect.width / 2 - tw / 2;
+      var top = rect.top - th - 10;
+      if (top < 8) top = rect.bottom + 10;
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - th - 8));
+      toolbar.style.left = left + 'px';
+      toolbar.style.top = top + 'px';
+    }
+
+    document.addEventListener(
+      'mouseup',
+      function (e) {
+        if (toolbar.contains(e.target)) return;
+        window.setTimeout(function () {
+          if (e.target.closest('.term')) {
+            hideToolbar();
+            return;
+          }
+          var hit = getSelectionInMainContent();
+          if (!hit) {
+            hideToolbar();
+            return;
+          }
+          pendingSelection = hit.text;
+          positionToolbar(hit.range);
+        }, 12);
+      },
+      true
+    );
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!pendingSelection) return;
+      openTermModal(pendingSelection, buildSelectionPrompt(pendingSelection));
+      hideToolbar();
+      var sel = window.getSelection();
+      if (sel) sel.removeAllRanges();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hideToolbar();
+    });
+    document.addEventListener(
+      'scroll',
+      function () {
+        hideToolbar();
+      },
+      true
+    );
+    document.getElementById('term-modal').addEventListener('close', hideToolbar);
+  };
+})();
+
   </script>
 </body>
 </html>

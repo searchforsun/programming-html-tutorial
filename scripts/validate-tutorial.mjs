@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { info, warn as logWarn, error as logError, success } from './lib/log.mjs';
 import { getRequiredBlocks, checkChapterHtml } from './lib/chapter-blocks.mjs';
 import {
   loadQualityConfig,
@@ -22,6 +23,7 @@ import {
   validateEncoding,
   validateIndexChapterSync,
 } from './lib/encoding-quality.mjs';
+import { friendlyError, printFriendlyErrors } from './lib/error-help.mjs';
 
 function getChapterPhaseId(course, chapterId) {
   for (const phase of course.outline || []) {
@@ -41,7 +43,7 @@ const dir = process.argv.includes('--dir')
 const strict = process.argv.includes('--strict');
 
 if (!dir) {
-  console.error('Usage: node validate-tutorial.mjs --dir <tutorial-dir> [--strict]');
+  error('Usage: node validate-tutorial.mjs --dir <tutorial-dir> [--strict]');
   process.exit(1);
 }
 
@@ -164,6 +166,66 @@ if (course) {
       }
     }
   }
+  // ── 术语引用顺序检查：章节引用的 term-id 必须在当前章或之前章首次出现 ──
+  const termFirstChapter = {}; // termId → 首次出现的 chapterId
+  for (const phase of course.outline) {
+    for (const ch of phase.chapters || []) {
+      const chFile = path.join(dir, 'chapters', `${ch.id}.html`);
+      if (!fs.existsSync(chFile)) continue;
+      const chHtml = fs.readFileSync(chFile, 'utf8');
+      const termIds = extractTermIds(chHtml);
+      for (const tid of termIds) {
+        if (!termFirstChapter[tid]) {
+          termFirstChapter[tid] = ch.id;
+        }
+      }
+    }
+  }
+  // 第二遍扫描：检测超前引用（引用术语但术语尚未首次出现）
+  const outlineOrder = [];
+  for (const phase of course.outline) {
+    for (const ch of phase.chapters || []) {
+      outlineOrder.push(ch.id);
+    }
+  }
+  const chapterIndex = Object.fromEntries(outlineOrder.map((id, i) => [id, i]));
+  for (const phase of course.outline) {
+    for (const ch of phase.chapters || []) {
+      const chFile = path.join(dir, 'chapters', `${ch.id}.html`);
+      if (!fs.existsSync(chFile)) continue;
+      const chHtml = fs.readFileSync(chFile, 'utf8');
+      const termIds = extractTermIds(chHtml);
+      for (const tid of termIds) {
+        const firstChapter = termFirstChapter[tid];
+        if (firstChapter && chapterIndex[ch.id] > chapterIndex[firstChapter]) {
+          // 术语在当前章引用，但首次出现在之前章——这是正常的（复习引用），跳过
+          continue;
+        }
+        // 术语在当前章首次出现（或未出现在任何章），正常
+      }
+      // 核心检查：引用 course.terms 中定义但尚未在任何章节出现的术语
+      const allDefinedTerms = new Set(Object.keys(course.terms || {}));
+      const currentIndex = chapterIndex[ch.id];
+      const referencedButNotIntroduced = [];
+      for (const tid of termIds) {
+        if (!allDefinedTerms.has(tid)) continue; // 未在 terms 中定义则跳过
+        const firstAt = termFirstChapter[tid];
+        if (!firstAt || chapterIndex[firstAt] > currentIndex) {
+          referencedButNotIntroduced.push(tid);
+        }
+      }
+      if (referencedButNotIntroduced.length > 0) {
+        const introChapter = referencedButNotIntroduced.map((tid) => {
+          const firstAt = termFirstChapter[tid];
+          return firstAt ? `${tid}（首次出现在 ${firstAt}）` : `${tid}（尚未在任何章节出现）`;
+        });
+        warn(
+          `chapters/${ch.id}.html 超前引用了 ${referencedButNotIntroduced.length} 个术语：${introChapter.join('；')}。建议将术语首次出现的章节调整到引用之前，或将 term span 移动到该术语的定义章`
+        );
+      }
+    }
+  }
+
   if (!fs.existsSync(path.join(dir, 'theme.css'))) warn('missing theme.css');
   if (!fs.existsSync(welcomePath)) {
     err('missing welcome.partial.html (required for shell init)');
@@ -236,14 +298,22 @@ if (fs.existsSync(indexPath)) {
   }
 }
 
-console.log(`Validate: ${dir}${strict ? ' (strict)' : ''}`);
-if (warnings.length) {
-  console.log('\nWarnings:');
-  warnings.forEach((w) => console.log('  ⚠', w));
+info(`Validate: ${dir}${strict ? ' (strict)' : ''}`);
+
+// 将 errors/warnings 转换为友好化格式
+const friendlyErrors = errors.map((e) => friendlyError(e));
+const friendlyWarnings = warnings.map((w) => friendlyError(w));
+
+if (friendlyErrors.length === 0 && friendlyWarnings.length === 0) {
+  console.log('\nOK (0 errors, 0 warnings) - 所有检查通过 ✓');
+} else {
+  printFriendlyErrors(friendlyErrors, friendlyWarnings);
+  if (friendlyErrors.length) {
+    console.log(`\n共 ${friendlyErrors.length} 项必须修复。`);
+    info('修复后可重新运行：node scripts/validate-tutorial.mjs --dir ' + dir);
+    process.exit(1);
+  }
+  if (friendlyWarnings.length) {
+    console.log(`\n共 ${friendlyWarnings.length} 项建议修复（不阻断，但建议处理）。`);
+  }
 }
-if (errors.length) {
-  console.log('\nErrors:');
-  errors.forEach((e) => console.log('  ✗', e));
-  process.exit(1);
-}
-console.log('\nOK (0 errors' + (warnings.length ? `, ${warnings.length} warnings` : '') + ')');

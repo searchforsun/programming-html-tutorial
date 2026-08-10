@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "2026-08-07T17:54:26.408Z",
+    "shellVersion": "2.10.1",
+    "title": "Java 分布式架构设计入门到进阶",
+    "slug": "java-distributed-architecture",
+    "domainType": "F",
+    "terms": 33,
+    "outlinePhases": 3,
+    "outlineChapters": 15,
+    "actualChapterFiles": 7,
+    "mermaidCount": 16,
+    "codeBlocks": 28,
+    "quizQuestions": 0,
+    "quizTypes": "",
+    "hljsLanguages": "java, yaml, properties, xml, bash, json",
+    "useMermaid": true,
+    "useSelectionPrompt": true,
+    "skipStyleBuild": false,
+    "fileSizeKB": "470.9"
+  },
+  {
+    "timestamp": "2026-08-08T06:05:43.356Z",
+    "shellVersion": "2.10.1",
+    "title": "Java 分布式架构设计入门到进阶",
+    "slug": "java-distributed-architecture",
+    "domainType": "F",
+    "terms": 33,
+    "outlinePhases": 3,
+    "outlineChapters": 15,
+    "actualChapterFiles": 7,
+    "mermaidCount": 16,
+    "codeBlocks": 28,
+    "quizQuestions": 0,
+    "quizTypes": "",
+    "hljsLanguages": "java, yaml, properties, xml, bash, json",
+    "useMermaid": true,
+    "useSelectionPrompt": true,
+    "skipStyleBuild": false,
+    "fileSizeKB": "474.9"
+  }
+]

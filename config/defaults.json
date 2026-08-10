@@ -23,7 +23,12 @@
   },
   "cdn": {
     "highlightJs": "11.9.0",
-    "mermaid": "10.9.0"
+    "mermaid": "10.9.0",
+    "base": {
+      "highlightJs": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js",
+      "mermaid": "https://cdn.jsdelivr.net/npm/mermaid",
+      "fonts": "https://fonts.googleapis.com"
+    }
   },
   "phases": [
     { "phaseId": "basics", "defaultTitle": "基础", "prefix": "basics" },

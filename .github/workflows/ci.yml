@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 语法检查（scripts/*.mjs）
+        run: |
+          echo "=== 语法检查 ==="
+          for f in scripts/*.mjs; do
+            echo "  $f"
+            node --check "$f" || exit 1
+          done
+          for f in scripts/lib/*.mjs; do
+            echo "  $f"
+            node --check "$f" || exit 1
+          done
+
+      - name: 单元测试（node:test）
+        run: npm test
+
+      - name: 文档即代码验证（verify-docs）
+        run: node scripts/verify-docs.mjs

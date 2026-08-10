@@ -15,6 +15,8 @@ import {
   getChapterOutlineEntry,
   reviewChapter,
 } from './lib/chapter-quality.mjs';
+import { info, warn, error, success, plain } from './lib/log.mjs';
+import { friendlyError, printFriendlyErrors } from './lib/error-help.mjs';
 
 function getChapterPhaseId(course, chapterId) {
   for (const phase of course.outline || []) {
@@ -37,7 +39,7 @@ function parseArgs(argv) {
     else if (argv[i] === '--write-json') opts.writeJson = true;
   }
   if (!opts.dir) {
-    console.error(
+    error(
       'Usage: node review-chapter.mjs --dir <tutorial-dir> [--chapter <id>] [--strict] [--write-json]'
     );
     process.exit(1);
@@ -59,7 +61,7 @@ function main() {
   const config = loadQualityConfig(SKILL_ROOT);
   const coursePath = path.join(opts.dir, 'course.json');
   if (!fs.existsSync(coursePath)) {
-    console.error('Missing course.json');
+    error('Missing course.json');
     process.exit(1);
   }
   const course = JSON.parse(fs.readFileSync(coursePath, 'utf8'));
@@ -84,7 +86,7 @@ function main() {
   }
 
   if (!chapterIds.length) {
-    console.log('No chapters to review.');
+    info('No chapters to review.');
     process.exit(0);
   }
 
@@ -93,13 +95,16 @@ function main() {
 
   let errorCount = 0;
   let warnCount = 0;
+  const allErrors = [];
+  const allWarnings = [];
+  const allSuggestions = [];
 
-  console.log(`Review chapters: ${opts.dir}${opts.strict ? ' (strict)' : ''}\n`);
+  info(`Review chapters: ${opts.dir}${opts.strict ? ' (strict)' : ''}\n`);
 
   for (const chapterId of chapterIds.sort()) {
     const chFile = path.join(opts.dir, 'chapters', `${chapterId}.html`);
     if (!fs.existsSync(chFile)) {
-      console.log(`  ✗ ${chapterId}: missing chapters/${chapterId}.html`);
+      info(`  ✗ ${chapterId}: missing chapters/${chapterId}.html`);
       errorCount++;
       continue;
     }
@@ -125,29 +130,59 @@ function main() {
     }
 
     const status = report.passed ? 'OK' : 'FAIL';
-    console.log(`[${status}] ${chapterId}`);
+    info(`[${status}] ${chapterId}`);
     report.errors.forEach((e) => {
-      console.log(`  ✗ ${e}`);
       errorCount++;
     });
     report.warnings.forEach((w) => {
-      console.log(`  ⚠ ${w}`);
       warnCount++;
       if (opts.strict) errorCount++;
     });
-    report.suggestions.forEach((s) => console.log(`  · ${s}`));
+    report.suggestions.forEach((s) => {}); // suggestions 不计数
+
+    // 收集本章友好化错误
+    for (const e of report.errors) {
+      allErrors.push(friendlyError(e, chapterId));
+    }
+    for (const w of report.warnings) {
+      allWarnings.push(friendlyError(w, chapterId));
+    }
+    for (const s of report.suggestions) {
+      allSuggestions.push({ label: chapterId, text: s });
+    }
+
     if (report.errors.length || report.warnings.length || report.suggestions.length) {
-      console.log('');
+      // 仍先输出简版摘要
+      report.errors.forEach((e) => info(`  ✗ ${e}`));
+      report.warnings.forEach((w) => info(`  ⚠ ${w}`));
+      report.suggestions.forEach((s) => info(`  · ${s}`));
+      info('');
     }
   }
 
   cleanupReviewsDir(reviewsDir, opts.writeJson);
 
+  // 友好化汇总输出
+  if (allErrors.length || allWarnings.length) {
+    info('\n' + '='.repeat(60));
+    info('详细修复指南');
+    info('='.repeat(60));
+    printFriendlyErrors(allErrors, allWarnings);
+  }
+
+  if (allSuggestions.length) {
+    info('\n💡 改进建议 (Suggestions)\n' + '─'.repeat(60));
+    for (const s of allSuggestions) {
+      info(`  [${s.label}] ${s.text}`);
+    }
+    info();
+  }
+
   if (errorCount > 0) {
-    console.log(`\nReview failed (${errorCount} issue(s)${opts.strict && warnCount ? ', strict mode' : ''})`);
+    info(`\nReview failed (${errorCount} issue(s)${opts.strict && warnCount ? ', strict mode' : ''})`);
     process.exit(1);
   }
-  console.log(`\nReview OK (${chapterIds.length} chapter(s)${warnCount ? `, ${warnCount} warning(s)` : ''})`);
+  info(`\nReview OK (${chapterIds.length} chapter(s)${warnCount ? `, ${warnCount} warning(s)` : ''})`);
 }
 
 main();

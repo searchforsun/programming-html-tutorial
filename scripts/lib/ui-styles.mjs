@@ -78,6 +78,7 @@ export function applyShellAppPlaceholders(js, defaults) {
   const def = defaults.defaultUiStyle || 'vibrant';
   return js
     .replace(/\{\{GLOBAL_UI_STYLE_KEY\}\}/g, defaults.globalUiStyleKey || 'study-self_ui-style')
+    .replace(/\{\{GLOBAL_THEME_KEY\}\}/g, defaults.globalThemeKey || 'study-self_theme')
     .replace(/\{\{UI_STYLE_IDS_JSON\}\}/g, JSON.stringify(uiStyleIds(defaults)))
     .replace(/\{\{DEFAULT_UI_STYLE\}\}/g, def);
 }

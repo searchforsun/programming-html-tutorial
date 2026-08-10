@@ -7,19 +7,20 @@
 {{UI_STYLE_BOOTSTRAP_SCRIPT}}
   </script>
   <title>{{TITLE}}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/{{HLJS_VERSION}}/highlight.min.js"></script>
+  <link rel="stylesheet" href="{{CDN_HLJS_BASE}}/{{HLJS_VERSION}}/styles/github.min.css" id="hljs-light">
+  <link rel="stylesheet" href="{{CDN_HLJS_BASE}}/{{HLJS_VERSION}}/styles/github-dark.min.css" id="hljs-dark" disabled>
+  <script src="{{CDN_HLJS_BASE}}/{{HLJS_VERSION}}/highlight.min.js"></script>
 {{HLJS_LANG_SCRIPTS}}
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <script src="{{CDN_MERMAID_BASE}}@{{MERMAID_VERSION}}/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="{{CDN_FONTS_BASE}}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="{{CDN_FONTS_BASE}}/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
   <style>
 {{SHELL_SHARED_CSS}}
 {{SHELL_BASE_CSS}}
 {{THEME_CSS}}
 {{SHELL_SURFACES_CSS}}
+{{SHELL_PRINT_CSS}}
   </style>
 {{SHELL_STYLE_SHEETS_HTML}}
   <script>
@@ -73,6 +74,9 @@
         <div id="quiz-panel">
 {{QUIZ_HTML}}
         </div>
+        <div id="term-index" class="term-index" style="display:none;">
+{{TERM_INDEX_HTML}}
+        </div>
       </main>
       <aside id="chapter-toc" class="chapter-toc" aria-label="本章大纲" hidden>
         <div class="chapter-toc-header">
@@ -105,6 +109,7 @@
   </script>
   <script>
 {{SHELL_APP_JS}}
+{{OPTIONAL_MODULES_JS}}
   </script>
 </body>
 </html>

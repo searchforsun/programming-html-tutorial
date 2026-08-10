@@ -44,22 +44,22 @@ while ((m = chapterRe.exec(contentBlock[1])) !== null) {
 
 const oldPreset = course.meta.theme || course.meta.themePreset || 'spring';
 const presetSlug = course.meta.slug || 'default';
-const springLight = css.match(
-  new RegExp(`\\[data-theme-preset="${oldPreset}"\\]\\[data-theme="light"\\][\\s\\S]*?\\}`)
-);
-const springDark = css.match(
-  new RegExp(`\\[data-theme-preset="${oldPreset}"\\]\\[data-theme="dark"\\][\\s\\S]*?\\}`)
-);
+
+// 按 preset 标记边界截取 CSS，而非靠脆弱正则匹配单条规则末尾的 }
+const presetMarker = `[data-theme-preset="${oldPreset}"]`;
+const startIdx = css.indexOf(presetMarker);
 let themeCss = '';
-if (springLight && springDark) {
-  themeCss =
-    springLight[0].replaceAll(oldPreset, presetSlug) +
-    '\n' +
-    springDark[0].replaceAll(oldPreset, presetSlug) +
-    '\n';
-} else {
+if (startIdx !== -1) {
+  // 找到下一个 preset 标记的位置作为当前块的右边界
+  const nextPresetIdx = css.indexOf('[data-theme-preset="', startIdx + presetMarker.length);
+  const blockEnd = nextPresetIdx !== -1 ? nextPresetIdx : css.length;
+  themeCss = css.slice(startIdx, blockEnd).trim() + '\n';
+}
+if (!themeCss) {
   themeCss = `/* TODO: theme for ${presetSlug} */\n`;
 }
+// 将旧 preset 名替换为当前 slug
+themeCss = themeCss.replaceAll(oldPreset, presetSlug);
 
 course.meta.shellVersion = defaults.shellVersion;
 course.meta.themePreset = presetSlug;

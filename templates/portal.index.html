@@ -375,6 +375,59 @@
       max-width: 42em;
       line-height: 1.7;
     }
+    .portal-search {
+      display: flex; gap: .5rem; flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+    .portal-search input {
+      flex: 1 1 240px;
+      padding: .55rem .8rem;
+      font-size: .92rem;
+      background: var(--input-bg, var(--surface));
+      color: var(--input-fg, var(--text));
+      border: var(--style-border-width, 1px) solid var(--input-border, var(--border));
+      border-radius: var(--radius);
+      outline: none;
+      font-family: inherit;
+    }
+    .portal-search input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+    .portal-search input::placeholder {
+      color: var(--input-placeholder, var(--muted));
+    }
+    .portal-filter-tags {
+      display: flex; flex-wrap: wrap; gap: .35rem;
+      margin-top: .6rem;
+    }
+    .portal-filter-tag {
+      padding: .25rem .65rem;
+      font-size: .8rem;
+      background: var(--surface-elevated, var(--surface));
+      color: var(--muted);
+      border: var(--style-border-width, 1px) solid var(--border);
+      border-radius: var(--radius-pill, 99px);
+      cursor: pointer;
+      user-select: none;
+      transition: all .18s ease;
+    }
+    .portal-filter-tag:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .portal-filter-tag.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .portal-no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
     .course-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2808,6 +2861,10 @@ color: var(--text) !important;
       <section class="portal-hero">
         <h2>选择课程开始学习</h2>
         <p>分阶段系统学习各技术专题：原理讲解、代码示例、章节测验与动手实验，进度自动保存，随时从上次位置继续。</p>
+        <div class="portal-search">
+          <input type="search" id="portal-search-input" placeholder="搜索课程标题、领域或标签…" aria-label="搜索课程" />
+        </div>
+        <div class="portal-filter-tags" id="portal-filter-tags" aria-label="按标签过滤课程"></div>
       </section>
       <div id="course-grid" class="course-grid" aria-live="polite"></div>
       <p class="portal-footer">新增课程后请在 <code>courses/courses.json</code> 中注册</p>
@@ -2987,24 +3044,107 @@ color: var(--text) !important;
     );
   }
 
-  function renderCourses(data) {
+  var CACHE_KEY = 'portal-catalog-cache';
+  var CACHE_ETAG_KEY = 'portal-catalog-etag';
+  var allCourses = [];
+  var activeTag = null;
+
+  function collectTags(courses) {
+    var tagMap = {};
+    courses.forEach(function (c) {
+      (c.tags || []).forEach(function (t) {
+        tagMap[t] = (tagMap[t] || 0) + 1;
+      });
+    });
+    return Object.keys(tagMap).sort();
+  }
+
+  function renderFilterTags(tags) {
+    var container = document.getElementById('portal-filter-tags');
+    if (!container) return;
+    if (!tags.length) { container.innerHTML = ''; return; }
+    var html = '';
+    tags.forEach(function (t) {
+      var cls = t === activeTag ? 'portal-filter-tag active' : 'portal-filter-tag';
+      html += '<button class="' + cls + '" data-tag="' + t + '" aria-pressed="' + (t === activeTag ? 'true' : 'false') + '">' + t + '</button>';
+    });
+    container.innerHTML = html;
+    // rebind: remove old listeners via clone
+    var btns = container.querySelectorAll('.portal-filter-tag');
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var tag = btn.getAttribute('data-tag');
+        activeTag = (tag === activeTag) ? null : tag;
+        renderFilterTags(tags);
+        filterAndRender();
+      });
+    });
+  }
+
+  function filterAndRender() {
+    var filterText = '';
+    var searchInput = document.getElementById('portal-search-input');
+    if (searchInput) filterText = searchInput.value.trim().toLowerCase();
+
+    var filtered = allCourses.filter(function (c) {
+      if (activeTag && (c.tags || []).indexOf(activeTag) === -1) return false;
+      if (!filterText) return true;
+      var haystack = [
+        c.title || '', c.domain || '', c.summary || '',
+        (c.tags || []).join(' ')
+      ].join(' ').toLowerCase();
+      return haystack.indexOf(filterText) !== -1;
+    });
+
     var grid = document.getElementById('course-grid');
-    if (data && data._loadFailed) return;
-    var courses = (data && data.courses) || [];
-    if (!courses.length) {
-      grid.innerHTML = '<div class="portal-empty">暂无可用课程，请在 <code>courses/courses.json</code> 中注册</div>';
+    if (!grid) return;
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="portal-no-results">未找到匹配「' + filterText + (activeTag ? ' · ' + activeTag : '') + '」的课程</div>';
       return;
     }
-    grid.innerHTML = courses.map(renderCourseCard).join('');
+    grid.innerHTML = filtered.map(renderCourseCard).join('');
+  }
+
+  function renderCourses(data) {
+    if (data && data._loadFailed) return;
+    var courses = (data && data.courses) || [];
+    allCourses = courses;
+    if (!courses.length) {
+      var grid = document.getElementById('course-grid');
+      if (grid) grid.innerHTML = '<div class="portal-empty">暂无可用课程，请在 <code>courses/courses.json</code> 中注册</div>';
+      return;
+    }
+    var tags = collectTags(courses);
+    activeTag = null;
+    renderFilterTags(tags);
+    filterAndRender();
   }
 
   function loadCatalog() {
-    return fetch('courses.json')
+    var cachedRaw = storageGet(CACHE_KEY);
+    var fetchOpts = {};
+    var cachedEtag = storageGet(CACHE_ETAG_KEY);
+    if (cachedEtag) {
+      fetchOpts.headers = { 'If-None-Match': cachedEtag };
+    }
+    return fetch('courses.json', fetchOpts)
       .then(function (r) {
+        if (r.status === 304 && cachedRaw) {
+          return JSON.parse(cachedRaw);
+        }
         if (!r.ok) throw new Error('courses.json HTTP ' + r.status);
-        return r.json();
+        var etag = r.headers.get('ETag');
+        return r.text().then(function (raw) {
+          if (etag) storageSet(CACHE_ETAG_KEY, etag);
+          storageSet(CACHE_KEY, raw);
+          return JSON.parse(raw);
+        });
       })
       .catch(function () {
+        if (cachedRaw) {
+          // stale cache as fallback
+          return JSON.parse(cachedRaw);
+        }
         var grid = document.getElementById('course-grid');
         if (grid) {
           grid.innerHTML =
@@ -3015,6 +3155,17 @@ color: var(--text) !important;
       });
   }
 
+  function initSearch() {
+    var input = document.getElementById('portal-search-input');
+    if (!input) return;
+    var debounceTimer;
+    input.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(filterAndRender, 200);
+    });
+  }
+
+  initSearch();
   initUiStyleMenu(function () { loadCatalog().then(renderCourses); });
   initThemeToggle('btn-theme', function () { loadCatalog().then(renderCourses); });
 

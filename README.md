@@ -107,6 +107,24 @@ node scripts/assemble-index.mjs --dir <workspace>/courses/<slug>
 
 PowerShell 用 `;` 串联，勿用 `&&`。
 
+### 扩展工具链（v2.10.1+）
+
+| 脚本 | 用途 | 阶段 |
+|------|------|------|
+| `fix-encoding.mjs` | 一键修复源文件 BOM/编码问题 | P1 |
+| `generate-chapter-skeleton.mjs` | 根据大纲生成章节 HTML 骨架 | P2 |
+| `sync-ui-style-config.mjs` | 校验/同步 UI 风格配置一致性 | P2 |
+| `check-term-prompts.mjs` | 术语 prompt 质量 4 维度审查 | P3 |
+| `verify-docs.mjs` | 文档与代码一致性交叉校验 | P4 |
+| `package-offline.mjs` | 下载 CDN 资源生成离线 ZIP | P7 |
+| `lib/build-cache.mjs` | 增量构建 mtime 缓存 | P6 |
+| `lib/error-help.mjs` | 错误信息友好化引擎 | P6 |
+| `lib/*.test.mjs`（5 个文件） | 125 条单元测试（node:test） | P2 |
+
+**单元测试**：`npm test` 或 `node --test scripts/lib/*.test.mjs`。
+
+**CI**：`.github/workflows/ci.yml` 在 push/PR 时运行语法检查 → 单元测试 → 文档验证。
+
 ---
 
 ## 发布到 agentskill.sh（维护者）
